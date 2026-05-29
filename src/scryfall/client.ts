@@ -85,6 +85,17 @@ const FRAME = 'frame:2015 border:black -is:showcase -is:extendedart -is:fullart 
 const PAGE_SIZE = 175;
 // Cap how deep we jump for the "all" pool so the offset stays sane.
 const MAX_RANDOM_PAGE = 40;
+// A search page is a contiguous slice of one sort order, so ordering by `name`
+// would make every card in a game share a starting letter. These orders all
+// scatter starting letters across a single page (verified against Scryfall);
+// orders whose secondary sort is name — color, rarity, cmc, artist — cluster
+// by letter and are deliberately excluded. Combined with a random page +
+// direction, each "all" game and each replay pulls a different, varied mix.
+const ALL_POOL_ORDERS = ['released', 'set', 'usd', 'eur', 'edhrec'] as const;
+
+function randomFrom<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -113,8 +124,8 @@ interface SearchPage {
   total_cards?: number;
 }
 
-async function fetchSearchPage(q: string, order: string, page: number): Promise<SearchPage> {
-  const url = `${BASE}/cards/search?q=${q}&order=${order}&page=${page}`;
+async function fetchSearchPage(q: string, order: string, page: number, dir: string): Promise<SearchPage> {
+  const url = `${BASE}/cards/search?q=${q}&order=${order}&dir=${dir}&page=${page}`;
   const res = await fetchWithRetry(url);
   return res.json();
 }
@@ -126,17 +137,20 @@ export async function fetchCandidates(
   limit = PAGE_SIZE,
 ): Promise<ScryfallCard[]> {
   const q = encodeURIComponent(buildSearchQuery(input));
+  const isAll = input.kind === 'all';
   // "popular" is sorted by EDHREC rank so the first page is genuinely well-known
-  // cards. "all" reads a random page so each game pulls a different slice.
-  const order = input.kind === 'popular' ? 'edhrec' : 'name';
-  const first = await fetchSearchPage(q, order, 1);
+  // cards. "all" picks a random sort order + direction + page so each game pulls
+  // a different, letter-diverse slice.
+  const order = isAll ? randomFrom(ALL_POOL_ORDERS) : 'edhrec';
+  const dir = isAll && Math.random() < 0.5 ? 'desc' : 'asc';
+  const first = await fetchSearchPage(q, order, 1, dir);
 
   let data = first.data;
-  if (input.kind === 'all' && first.total_cards && first.total_cards > PAGE_SIZE) {
+  if (isAll && first.total_cards && first.total_cards > PAGE_SIZE) {
     const pages = Math.min(Math.ceil(first.total_cards / PAGE_SIZE), MAX_RANDOM_PAGE);
     const page = 1 + Math.floor(Math.random() * pages);
     if (page !== 1) {
-      const more = await fetchSearchPage(q, order, page);
+      const more = await fetchSearchPage(q, order, page, dir);
       if (more.data?.length) data = more.data;
     }
   }

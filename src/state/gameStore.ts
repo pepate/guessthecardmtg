@@ -17,6 +17,8 @@ interface GameState {
   pool: ScryfallCard[];
   /** Which pool the current game is played on (recorded in highscores). */
   poolKind: PoolKind;
+  /** The selection that built the current game, so "play again" can re-fetch. */
+  lastSelection: PoolSelection | null;
   /** The whole game pre-planned so no card or name repeats across rounds. */
   plan: PlannedRound[];
   round: Round | null;
@@ -84,6 +86,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   pool: [],
   poolKind: 'popular',
+  lastSelection: null,
   plan: [],
   round: null,
   roundIndex: 0,
@@ -109,6 +112,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({
         pool,
         poolKind: selection.kind,
+        lastSelection: selection,
         plan,
         round: startPlanned(plan[0], Date.now()),
         roundIndex: 0,
@@ -161,22 +165,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   restart() {
-    const { pool, config } = get();
-    if (uniqueNameCount(pool) < config.optionCount) {
+    // Re-fetch a fresh pool so "play again" pulls new cards rather than
+    // replaying the same slice of the catalogue.
+    const { lastSelection } = get();
+    if (!lastSelection) {
       set({ phase: 'idle' });
       return;
     }
-    const plan = planGame(pool, config);
-    set({
-      plan,
-      round: startPlanned(plan[0], Date.now()),
-      roundIndex: 0,
-      gameStartedAt: Date.now(),
-      correctCount: 0,
-      totalScore: 0,
-      earned: 0,
-      phase: 'playing',
-    });
+    void get().selectPool(lastSelection);
   },
 
   reset() {
