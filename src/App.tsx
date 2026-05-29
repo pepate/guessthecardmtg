@@ -133,6 +133,7 @@ export function App() {
   const round = useGameStore((s) => s.round);
   const config = useGameStore((s) => s.config);
   const advance = useGameStore((s) => s.advance);
+  const reset = useGameStore((s) => s.reset);
 
   const elapsedMs = useGameClock();
   const timeLeftMs = useGameTimeLeft();
@@ -150,10 +151,25 @@ export function App() {
 
   return (
     <div className="stage-root">
-      <header className="brandbar">
-        <span className="brand-name">Arcane Drift</span>
-        <span className="brand-sub">guess the card</span>
-      </header>
+      {phase === 'playing' ? (
+        <button
+          type="button"
+          className="home-btn"
+          aria-label="Quit to menu"
+          data-testid="home-btn"
+          onClick={reset}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M3 10.5 12 3l9 7.5" />
+            <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+          </svg>
+        </button>
+      ) : (
+        <header className="brandbar">
+          <span className="brand-name">Arcane Drift</span>
+          <span className="brand-sub">guess the card</span>
+        </header>
+      )}
 
       {phase === 'idle' && <StartShare />}
       {phase === 'idle' && <StartArtwork />}
