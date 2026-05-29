@@ -108,6 +108,7 @@ function ErrorScreen() {
       style={{
         position: 'absolute',
         inset: 0,
+        pointerEvents: 'all',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

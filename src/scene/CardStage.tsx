@@ -25,8 +25,11 @@ const wrapperStyle: CSSProperties = {
 const cardStyle: CSSProperties = {
   position: 'relative',
   aspectRatio: '488 / 680',
-  height: 'min(62vh, 78vw)',
-  maxWidth: '90vw',
+  // Fill as much of the screen as possible while leaving room for the HUD on
+  // top and the timer + name choices at the bottom. Width is the usual binding
+  // constraint on phones, so the height cap is generous.
+  height: 'min(66vh, 132vw)',
+  maxWidth: '94vw',
   borderRadius: '4.7% / 3.4%',
   overflow: 'hidden',
 };

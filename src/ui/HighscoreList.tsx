@@ -55,8 +55,22 @@ export function HighscoreList({
             }}
           >
             <span style={{ color: 'var(--ink-2)', fontSize: 13 }}>{i + 1}</span>
-            <span style={{ color: 'var(--ink-0)', fontSize: 14 }}>
-              {e.correct}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <span style={{ color: 'var(--ink-0)', fontSize: 14 }}>{e.correct}</span>
+              <span
+                style={{
+                  fontSize: 9,
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  color: 'var(--ink-2)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 4,
+                  padding: '1px 5px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {e.pool === 'all' ? 'All' : 'Popular'}
+              </span>
             </span>
             <span style={{ color: 'var(--ember-hot)', fontSize: 15, fontWeight: 700 }}>{e.score}</span>
           </div>

@@ -1,18 +1,39 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
 import { useCountUp } from './useCountUp';
 import { HighscoreList } from './HighscoreList';
+import { shareUrl } from '../share/score';
 
 export function GameOver() {
   const correctCount = useGameStore((s) => s.correctCount);
   const totalScore = useGameStore((s) => s.totalScore);
+  const poolKind = useGameStore((s) => s.poolKind);
   const highscores = useGameStore((s) => s.highscores);
   const restart = useGameStore((s) => s.restart);
   const reset = useGameStore((s) => s.reset);
 
+  const [shareLabel, setShareLabel] = useState('Share score');
+
   const animatedScore = useCountUp(totalScore, 1100, 1, 0);
   const best = highscores[0]?.score ?? 0;
   const isBest = totalScore > 0 && totalScore >= best;
+
+  async function onShare() {
+    const url = shareUrl({ score: totalScore, correct: correctCount, pool: poolKind });
+    const text = `I scored ${totalScore} points in Arcane Drift — beat me: ${url}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Arcane Drift', text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      setShareLabel('Link copied');
+      setTimeout(() => setShareLabel('Share score'), 2000);
+    } catch {
+      // User cancelled the share sheet, or clipboard was blocked — no-op.
+    }
+  }
 
   return (
     <motion.div
@@ -24,6 +45,7 @@ export function GameOver() {
       style={{
         position: 'absolute',
         inset: 0,
+        pointerEvents: 'all',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -66,6 +88,14 @@ export function GameOver() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
         <button className="ember-btn" style={{ width: '100%' }} onClick={restart}>
           Play again
+        </button>
+        <button
+          className="ghost-btn"
+          style={{ width: '100%' }}
+          onClick={onShare}
+          data-testid="share-btn"
+        >
+          {shareLabel}
         </button>
         <button className="ghost-btn" style={{ width: '100%' }} onClick={reset}>
           Back to menu

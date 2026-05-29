@@ -4,7 +4,8 @@ import { DEFAULT_TIME_ATTACK_CONFIG } from '../engine/types';
 import { planGame, resolveGuess, expire as expireRound, type PlannedRound } from '../engine/timeAttack';
 import { fetchCandidates } from '../scryfall/client';
 import type { PoolSelection, ScryfallCard } from '../scryfall/types';
-import { loadHighscores, saveHighscore, type HighscoreEntry } from './highscores';
+import { loadHighscores, saveHighscore, type HighscoreEntry, type PoolKind } from './highscores';
+import { decodeResult, type SharedResult } from '../share/score';
 
 export type GamePhase = 'idle' | 'loading' | 'playing' | 'error' | 'gameover';
 
@@ -14,6 +15,8 @@ interface GameState {
   error: string | null;
 
   pool: ScryfallCard[];
+  /** Which pool the current game is played on (recorded in highscores). */
+  poolKind: PoolKind;
   /** The whole game pre-planned so no card or name repeats across rounds. */
   plan: PlannedRound[];
   round: Round | null;
@@ -30,6 +33,8 @@ interface GameState {
   earnedSeq: number;
 
   highscores: HighscoreEntry[];
+  /** A friend's shared result from a `?r=` link, shown as a challenge banner. */
+  challenge: SharedResult | null;
 
   selectPool: (selection: PoolSelection) => Promise<void>;
   guessName: (name: string) => void;
@@ -60,13 +65,14 @@ function uniqueNameCount(pool: ScryfallCard[]): number {
 }
 
 function finishGame(
-  state: { totalScore: number; correctCount: number },
+  state: { totalScore: number; correctCount: number; poolKind: PoolKind },
   set: (partial: Partial<GameState>) => void,
 ): void {
   const highscores = saveHighscore({
     score: state.totalScore,
     correct: state.correctCount,
     date: Date.now(),
+    pool: state.poolKind,
   });
   set({ phase: 'gameover', round: null, highscores });
 }
@@ -77,6 +83,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   error: null,
 
   pool: [],
+  poolKind: 'popular',
   plan: [],
   round: null,
   roundIndex: 0,
@@ -88,6 +95,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   earnedSeq: 0,
 
   highscores: loadHighscores(),
+  challenge: decodeResult(new URLSearchParams(window.location.search).get('r')),
 
   async selectPool(selection) {
     set({ phase: 'loading', error: null });
@@ -100,6 +108,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const plan = planGame(pool, config);
       set({
         pool,
+        poolKind: selection.kind,
         plan,
         round: startPlanned(plan[0], Date.now()),
         roundIndex: 0,

@@ -34,6 +34,7 @@ const sub: React.CSSProperties = {
 export function PoolSelect() {
   const selectPool = useGameStore((s) => s.selectPool);
   const highscores = useGameStore((s) => s.highscores);
+  const challenge = useGameStore((s) => s.challenge);
   const [excludeUniverseBeyond, setExcludeUniverseBeyond] = useState(true);
 
   function pick(kind: 'popular' | 'all') {
@@ -71,6 +72,29 @@ export function PoolSelect() {
           90 seconds · guess as many as you can
         </p>
       </div>
+
+      {challenge && (
+        <div
+          data-testid="challenge-banner"
+          style={{
+            textAlign: 'center',
+            padding: '10px 14px',
+            borderRadius: 10,
+            border: '1px solid var(--ember)',
+            background: 'rgba(255,138,60,0.12)',
+            color: 'var(--ink-0)',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 13,
+            lineHeight: 1.5,
+          }}
+        >
+          A friend scored{' '}
+          <strong style={{ color: 'var(--ember-hot)' }}>{challenge.score}</strong> points
+          {' '}({challenge.correct} cards) on the {challenge.pool === 'all' ? 'All cards' : 'Popular cards'} pool.
+          <br />
+          Can you beat them?
+        </div>
+      )}
 
       <button style={btn} onClick={() => pick('popular')}>
         Popular cards

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { loadHighscores, saveHighscore, type HighscoreEntry } from './highscores';
 
 function entry(score: number, correct = 10, date = 1000): HighscoreEntry {
-  return { score, correct, date };
+  return { score, correct, date, pool: 'popular' };
 }
 
 describe('highscores', () => {
@@ -42,14 +42,14 @@ describe('highscores', () => {
   });
 
   it('ignores corrupt stored data', () => {
-    localStorage.setItem('guessthecard.highscores.v2', 'not json');
+    localStorage.setItem('guessthecard.highscores.v3', 'not json');
     expect(loadHighscores()).toEqual([]);
   });
 
   it('filters out malformed entries', () => {
     localStorage.setItem(
-      'guessthecard.highscores.v2',
-      JSON.stringify([{ score: 100, correct: 5, date: 1 }, { nope: true }]),
+      'guessthecard.highscores.v3',
+      JSON.stringify([{ score: 100, correct: 5, date: 1, pool: 'all' }, { nope: true }]),
     );
     expect(loadHighscores()).toHaveLength(1);
   });

@@ -1,3 +1,5 @@
+export type PoolKind = 'popular' | 'all';
+
 export interface HighscoreEntry {
   /** Total points scored across the game. */
   score: number;
@@ -5,9 +7,11 @@ export interface HighscoreEntry {
   correct: number;
   /** Date.now() when the game finished. */
   date: number;
+  /** Which card pool the game was played on. */
+  pool: PoolKind;
 }
 
-const KEY = 'guessthecard.highscores.v2';
+const KEY = 'guessthecard.highscores.v3';
 const MAX_ENTRIES = 10;
 
 function isEntry(x: unknown): x is HighscoreEntry {
@@ -16,7 +20,8 @@ function isEntry(x: unknown): x is HighscoreEntry {
   return (
     typeof e.score === 'number' &&
     typeof e.correct === 'number' &&
-    typeof e.date === 'number'
+    typeof e.date === 'number' &&
+    (e.pool === 'popular' || e.pool === 'all')
   );
 }
 
