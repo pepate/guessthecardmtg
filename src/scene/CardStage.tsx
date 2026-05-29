@@ -133,7 +133,7 @@ export function CardStage({ stage }: { stage: RevealStage }) {
             <Blur key="name" testid="blur-name" style={{ top: '3.2%', left: '5%', width: '60%', height: '6.5%' }} />
           )}
           {blurMana && (
-            <Blur key="mana" testid="blur-mana" style={{ top: '3.8%', left: '58%', width: '37%', height: '5%' }} />
+            <Blur key="mana" testid="blur-mana" style={{ top: '3.2%', left: '58%', width: '37%', height: '6.5%' }} />
           )}
           {blurType && (
             <Blur key="type" testid="blur-type" style={{ top: '56.3%', left: '5%', width: '90%', height: '5.5%' }} />

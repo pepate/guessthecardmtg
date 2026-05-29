@@ -57,13 +57,14 @@ function StartArtwork({ variant = 'banner' }: { variant?: 'banner' | 'full' }) {
             backgroundPosition: 'center',
           }}
         />
-        {/* Dark scrim so the centred result text stays readable over the artwork. */}
+        {/* Scrim that darkens toward the bottom: artwork stays visible up top while
+            the lower buttons (esp. Share) sit over near-solid ink for readability. */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             background:
-              'linear-gradient(180deg, rgba(7,6,10,0.74) 0%, rgba(7,6,10,0.72) 50%, rgba(7,6,10,0.88) 100%)',
+              'linear-gradient(180deg, rgba(7,6,10,0.34) 0%, rgba(7,6,10,0.46) 32%, rgba(7,6,10,0.80) 72%, rgba(7,6,10,0.95) 100%)',
           }}
         />
       </motion.div>
