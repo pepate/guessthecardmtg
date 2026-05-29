@@ -15,105 +15,99 @@ export function Scoreboard() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       style={{
         position: 'absolute',
         inset: 0,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'center',
-        background: 'rgba(0,0,0,0.65)',
-        backdropFilter: 'blur(10px)',
+        background: 'rgba(7,6,10,0.55)',
+        backdropFilter: 'blur(4px)',
         zIndex: 20,
-        padding: '24px 20px',
-        paddingBottom: 'calc(24px + env(safe-area-inset-bottom))',
+        pointerEvents: 'all',
       }}
     >
-      <div
+      <motion.div
+        initial={{ y: 40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        data-testid="scoreboard"
+        data-result={round.status}
         style={{
-          background: 'rgba(15,15,30,0.9)',
-          borderRadius: 20,
-          padding: '28px 24px',
+          background: 'linear-gradient(180deg, rgba(20,17,28,0.96), rgba(7,6,10,0.98))',
+          borderRadius: '18px 18px 0 0',
+          padding: '26px 22px calc(26px + env(safe-area-inset-bottom))',
           width: '100%',
-          maxWidth: 400,
+          maxWidth: 460,
           display: 'flex',
           flexDirection: 'column',
           gap: 16,
-          border: `2px solid ${won ? 'rgba(100,220,120,0.4)' : 'rgba(220,80,80,0.4)'}`,
+          borderTop: `2px solid ${won ? 'var(--ember)' : 'rgba(120,40,40,0.6)'}`,
         }}
       >
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 40 }}>{won ? '🎉' : '😢'}</div>
-          <h2
+          <div
             style={{
-              color: won ? '#8f8' : '#f88',
-              margin: '8px 0 4px',
-              fontSize: 24,
-              fontWeight: 700,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 12,
+              letterSpacing: 3,
+              textTransform: 'uppercase',
+              color: won ? 'var(--ember-hot)' : 'var(--ink-2)',
             }}
           >
-            {won ? 'Richtig!' : 'Nicht getroffen'}
-          </h2>
-          <p style={{ color: '#ddd', fontSize: 18, margin: 0, fontWeight: 600 }}>{cardName}</p>
+            {won ? 'Richtig erkannt' : round.guess ? 'Daneben' : 'Zeit abgelaufen'}
+          </div>
+          <div style={{ fontSize: 30, fontWeight: 700, color: 'var(--ink-0)', margin: '6px 0 2px' }}>
+            {cardName}
+          </div>
+          {won && (
+            <div style={{ color: 'var(--ember-hot)', fontSize: 22, fontWeight: 600 }}>
+              +{round.score} Punkte
+            </div>
+          )}
         </div>
 
         <div
           style={{
             display: 'flex',
             justifyContent: 'center',
-            gap: 20,
-            background: 'rgba(255,255,255,0.05)',
-            borderRadius: 12,
+            gap: 28,
             padding: '12px 0',
+            borderTop: '1px solid var(--line)',
+            borderBottom: '1px solid var(--line)',
           }}
         >
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ color: '#aaa', fontSize: 11, fontWeight: 600, letterSpacing: 0.5 }}>
-              GESAMT
-            </div>
-            <div style={{ color: '#fff', fontSize: 26, fontWeight: 700 }}>{totalScore}</div>
-          </div>
-          <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ color: '#aaa', fontSize: 11, fontWeight: 600, letterSpacing: 0.5 }}>
-              STREAK
-            </div>
-            <div style={{ color: '#f90', fontSize: 26, fontWeight: 700 }}>{streak}</div>
-          </div>
+          <Stat label="GESAMT" value={totalScore} color="var(--ink-0)" />
+          <Stat label="STREAK" value={streak} color="var(--ember-hot)" />
         </div>
 
-        <button
-          onClick={nextRound}
-          style={{
-            minHeight: 54,
-            borderRadius: 14,
-            border: 'none',
-            background: 'rgba(100,160,255,0.55)',
-            color: '#fff',
-            fontSize: 18,
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
+        <button className="ember-btn" style={{ width: '100%' }} onClick={nextRound}>
           Nächste Karte
         </button>
-
-        <button
-          onClick={reset}
-          style={{
-            minHeight: 44,
-            borderRadius: 12,
-            border: '1.5px solid rgba(255,255,255,0.12)',
-            background: 'transparent',
-            color: '#888',
-            fontSize: 14,
-            cursor: 'pointer',
-          }}
-        >
+        <button className="ghost-btn" style={{ width: '100%' }} onClick={reset}>
           Zurück zur Auswahl
         </button>
-      </div>
+      </motion.div>
     </motion.div>
+  );
+}
+
+function Stat({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div
+        style={{
+          color: 'var(--ink-2)',
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: 1.5,
+          fontFamily: "'JetBrains Mono', monospace",
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ color, fontSize: 26, fontWeight: 700 }}>{value}</div>
+    </div>
   );
 }

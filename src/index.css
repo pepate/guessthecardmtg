@@ -1,9 +1,18 @@
 :root {
   color-scheme: dark;
-  --bg: #0b0b14;
-  --fg: #f2f2f7;
-  --accent: #7c5cff;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --bg-0: #07060a;
+  --bg-1: #0d0b13;
+  --bg-2: #14111c;
+  --ink-0: #f4ead9;
+  --ink-1: #d9c9a3;
+  --ink-2: #8a7d65;
+  --ink-3: #4a4236;
+  --ember: #ff7a2c;
+  --ember-hot: #ffb265;
+  --ember-deep: #b8450f;
+  --line: rgba(255, 186, 120, 0.14);
+  --line-strong: rgba(255, 186, 120, 0.28);
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
 }
 
 * {
@@ -20,9 +29,122 @@ body,
 }
 
 body {
-  background: var(--bg);
-  color: var(--fg);
+  background: var(--bg-0);
+  color: var(--ink-0);
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: manipulation;
+}
+
+/* Ambient ember + arcane glow */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(184, 69, 15, 0.25), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 20% 100%, rgba(100, 30, 120, 0.16), transparent 60%),
+    radial-gradient(ellipse 50% 50% at 85% 80%, rgba(255, 122, 44, 0.10), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Starfield + vignette */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.08), transparent),
+    radial-gradient(1px 1px at 70% 60%, rgba(255, 255, 255, 0.06), transparent),
+    radial-gradient(1px 1px at 40% 80%, rgba(255, 255, 255, 0.05), transparent),
+    radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.6) 100%);
+  pointer-events: none;
+  z-index: 0;
+  mix-blend-mode: screen;
+}
+
+.stage-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.brandbar {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 18px;
+  display: flex;
+  flex-direction: column;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.brand-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--ink-0);
+  text-shadow: 0 0 18px rgba(255, 122, 44, 0.35);
+}
+
+.brand-sub {
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.bottom-sheet {
+  pointer-events: all;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(13, 11, 19, 0) 0%, rgba(7, 6, 10, 0.92) 38%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.ember-btn {
+  min-height: 56px;
+  min-width: 200px;
+  padding: 12px 22px;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(180deg, var(--ember) 0%, var(--ember-deep) 100%);
+  color: #fff;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(184, 69, 15, 0.4);
+}
+
+.ghost-btn {
+  min-height: 46px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-2);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  cursor: pointer;
 }

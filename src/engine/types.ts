@@ -1,85 +1,53 @@
-import type { Color, ScryfallCard } from '../scryfall/types';
-
-export type AttributeKind = 'color' | 'cmc' | 'type' | 'power';
-
-/** Value the player submits when guessing an attribute. */
-export type AttributeValue =
-  | { kind: 'color'; value: Color[] }
-  | { kind: 'cmc'; value: number }
-  | { kind: 'type'; value: string }
-  | { kind: 'power'; value: number };
-
-export interface AttributeDef {
-  kind: AttributeKind;
-  label: string;
-}
-
-export interface ScoreConfig {
-  startBudget: number;
-  revealCost: number;
-  wrongAttributeCost: number;
-  wrongNameCost: number;
-}
-
-export const DEFAULT_SCORE_CONFIG: ScoreConfig = {
-  startBudget: 1000,
-  revealCost: 150,
-  wrongAttributeCost: 50,
-  wrongNameCost: 200,
-};
+import type { ScryfallCard } from '../scryfall/types';
 
 export type RoundStatus = 'playing' | 'won' | 'lost';
 
+export interface TimeAttackConfig {
+  /** Total time the player has to guess, in ms. */
+  durationMs: number;
+  /** Score awarded for an instant correct guess. */
+  maxScore: number;
+  /** Score awarded for a correct guess at the last moment. */
+  minScore: number;
+  /** Length of one reveal stage, in ms. */
+  stageMs: number;
+  /** Number of name choices (incl. the correct one). */
+  optionCount: number;
+}
+
+export const DEFAULT_TIME_ATTACK_CONFIG: TimeAttackConfig = {
+  durationMs: 15000,
+  maxScore: 1000,
+  minScore: 100,
+  stageMs: 3000,
+  optionCount: 4,
+};
+
 /**
- * Full state of one round. The engine is pure: every mode method takes a
- * RoundState and returns a new one, so it can be unit-tested without React
- * or a store and re-used as Zustand state.
+ * How much of the card is shown:
+ * 0 = artwork only
+ * 1 = full card in color, every info region blurred
+ * 2 = + type line
+ * 3 = + mana cost
+ * 4 = + full text + power
+ * 5 = time is up / everything (round over)
  */
-export interface RoundState {
+export type RevealStage = 0 | 1 | 2 | 3 | 4 | 5;
+
+/**
+ * One round of the time-attack mode. The engine is pure: every function takes
+ * a Round (plus a clock value) and returns a new Round, so it can be unit-tested
+ * without React or a store.
+ */
+export interface Round {
   target: ScryfallCard;
-  /** target + distractor cards drawn from the pool, used to build choices. */
-  pool: ScryfallCard[];
-  reveals: Record<AttributeKind, boolean>;
-  budget: number;
-  wrongAttempts: { attribute: number; name: number };
+  /** optionCount names including the target, shuffled. */
+  options: string[];
+  /** Date.now() at the moment the round started. */
+  startedAt: number;
   status: RoundStatus;
-}
-
-export interface GuessResult {
-  correct: boolean;
-  /** Set when a correct attribute guess revealed something. */
-  revealedAttribute?: AttributeKind;
-  /** True when the round was won by guessing the name. */
-  roundWon?: boolean;
-  /** True when the round ended (won, or budget exhausted). */
-  roundOver?: boolean;
-  scoreDelta: number;
-  /** Remaining round budget after applying this guess. */
-  budget: number;
-}
-
-export interface StartRoundInput {
-  target: ScryfallCard;
-  pool: ScryfallCard[];
-  config?: ScoreConfig;
-}
-
-/**
- * Core extensibility seam. A new game mode is a new implementation of this
- * interface in engine/modes/ — the UI only knows GameMode, never a concrete mode.
- */
-export interface GameMode {
-  readonly id: string;
-  startRound(input: StartRoundInput): RoundState;
-  /** Attributes that are still hidden and therefore guessable. */
-  revealableAttributes(round: RoundState): AttributeKind[];
-  guessAttribute(
-    round: RoundState,
-    value: AttributeValue,
-  ): { round: RoundState; result: GuessResult };
-  /** Name options, kept consistent with already-revealed attributes. */
-  nameChoices(round: RoundState): string[];
-  guessName(round: RoundState, name: string): { round: RoundState; result: GuessResult };
-  /** Final/current score for the round. */
-  score(round: RoundState): number;
+  /** The option the player chose, or null while still playing / on timeout. */
+  guess: string | null;
+  /** Points awarded once resolved (0 while playing or on a miss). */
+  score: number;
 }

@@ -2,70 +2,42 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
 
 export function NameChoice() {
-  const nameOptions = useGameStore((s) => s.nameOptions);
-  const guessName = useGameStore((s) => s.guessName);
-  const rollNameChoices = useGameStore((s) => s.rollNameChoices);
   const round = useGameStore((s) => s.round);
+  const guessName = useGameStore((s) => s.guessName);
 
   if (!round || round.status !== 'playing') return null;
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      style={{ padding: '8px 16px 0', display: 'flex', flexDirection: 'column', gap: 8 }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}
     >
-      <p
-        style={{
-          color: '#ccc',
-          fontSize: 13,
-          margin: 0,
-          textAlign: 'center',
-          fontWeight: 600,
-          letterSpacing: 0.3,
-        }}
-      >
-        Wie heißt die Karte?
-      </p>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {nameOptions.map((name) => (
-          <button
-            key={name}
-            onClick={() => guessName(name)}
-            style={{
-              minHeight: 48,
-              borderRadius: 10,
-              border: '1.5px solid rgba(255,255,255,0.15)',
-              background: 'rgba(255,255,255,0.07)',
-              color: '#fff',
-              fontSize: 16,
-              fontWeight: 500,
-              cursor: 'pointer',
-              textAlign: 'left',
-              padding: '10px 16px',
-            }}
-          >
-            {name}
-          </button>
-        ))}
-      </div>
-
-      <button
-        onClick={rollNameChoices}
-        style={{
-          minHeight: 44,
-          borderRadius: 10,
-          border: '1.5px solid rgba(255,255,255,0.1)',
-          background: 'transparent',
-          color: '#888',
-          fontSize: 13,
-          cursor: 'pointer',
-          marginTop: 2,
-        }}
-      >
-        Optionen neu mischen
-      </button>
+      {round.options.map((name) => (
+        <button
+          key={name}
+          data-testid="name-option"
+          onClick={() => guessName(name)}
+          style={{
+            minHeight: 60,
+            borderRadius: 12,
+            border: '1px solid var(--line-strong)',
+            background: 'linear-gradient(180deg, rgba(255,186,120,0.08), rgba(20,17,28,0.6))',
+            color: 'var(--ink-0)',
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: 19,
+            fontWeight: 600,
+            lineHeight: 1.15,
+            cursor: 'pointer',
+            padding: '8px 12px',
+            textAlign: 'center',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+          }}
+        >
+          {name}
+        </button>
+      ))}
     </motion.div>
   );
 }

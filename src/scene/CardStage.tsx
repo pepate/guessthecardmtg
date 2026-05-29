@@ -1,34 +1,32 @@
 import type { CSSProperties } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
-import { cardHasAttribute } from '../engine/attributes';
+import type { RevealStage } from '../engine/types';
 
-const ART_CLIP = 'inset(11.5% 7.5% 44% 7.5%)';
-
-const overlayBase: CSSProperties = {
-  position: 'absolute',
-  backdropFilter: 'blur(7px)',
-  WebkitBackdropFilter: 'blur(7px)',
-  background: 'rgba(8,10,20,0.35)',
-  border: '1px solid rgba(255,255,255,0.12)',
-  borderRadius: 4,
+const RARITY_GLOW: Record<string, string> = {
+  common: 'rgba(200,200,200,0.20)',
+  uncommon: 'rgba(169,196,212,0.35)',
+  rare: 'rgba(230,201,106,0.55)',
+  mythic: 'rgba(255,106,44,0.70)',
+  special: 'rgba(255,106,44,0.70)',
+  bonus: 'rgba(255,106,44,0.70)',
 };
 
 const wrapperStyle: CSSProperties = {
   width: '100%',
   height: '100%',
   display: 'flex',
-  alignItems: 'flex-start',
+  alignItems: 'center',
   justifyContent: 'center',
-  paddingTop: 72,
+  padding: '0 16px',
   boxSizing: 'border-box',
 };
 
 const cardStyle: CSSProperties = {
   position: 'relative',
   aspectRatio: '488 / 680',
-  height: 'min(58vh, 70vw)',
-  maxWidth: '88vw',
+  height: 'min(62vh, 78vw)',
+  maxWidth: '90vw',
   borderRadius: '4.7% / 3.4%',
   overflow: 'hidden',
 };
@@ -41,11 +39,25 @@ const fillImg: CSSProperties = {
   objectFit: 'fill',
 };
 
-function Overlay({ testid, style }: { testid: string; style: CSSProperties }) {
+const blurBase: CSSProperties = {
+  position: 'absolute',
+  backdropFilter: 'blur(8px)',
+  WebkitBackdropFilter: 'blur(8px)',
+  background: 'rgba(8,6,12,0.30)',
+  border: '1px solid rgba(255,186,120,0.10)',
+  borderRadius: 4,
+};
+
+const maskBase: CSSProperties = {
+  position: 'absolute',
+  background: '#08060c',
+};
+
+function Blur({ testid, style }: { testid: string; style: CSSProperties }) {
   return (
     <motion.div
       data-testid={testid}
-      style={{ ...overlayBase, ...style }}
+      style={{ ...blurBase, ...style }}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
@@ -53,7 +65,18 @@ function Overlay({ testid, style }: { testid: string; style: CSSProperties }) {
   );
 }
 
-export function CardStage() {
+function Mask({ style }: { style: CSSProperties }) {
+  return (
+    <motion.div
+      style={{ ...maskBase, ...style }}
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+    />
+  );
+}
+
+export function CardStage({ stage }: { stage: RevealStage }) {
   const round = useGameStore((s) => s.round);
   if (!round) return null;
 
@@ -64,50 +87,59 @@ export function CardStage() {
   if (!cardUrl) return <div style={wrapperStyle} />;
 
   const over = round.status !== 'playing';
-  const colorRevealed = round.reveals.color || over;
-  const showMana = !(round.reveals.cmc || over);
-  const showType = !(round.reveals.type || over);
-  const isCreature = cardHasAttribute(round.target, 'power');
-  const showPower = isCreature && !(round.reveals.power || over);
+  const hasPower = !!round.target.power;
+
+  const artOnly = !over && stage === 0;
+  const blurName = !over;
+  const blurType = !over && stage < 2;
+  const blurMana = !over && stage < 3;
+  const blurText = !over && stage < 4;
+  const blurPower = hasPower && !over && stage < 4;
+
+  const glow = RARITY_GLOW[round.target.rarity ?? 'common'] ?? RARITY_GLOW.common;
 
   return (
     <div style={wrapperStyle}>
-      <div style={cardStyle}>
+      <div
+        style={{
+          ...cardStyle,
+          boxShadow: `0 18px 40px rgba(0,0,0,0.6), 0 0 ${over ? 48 : 26}px ${glow}`,
+          transition: 'box-shadow 0.6s ease',
+        }}
+      >
         <img
           src={cardUrl}
           alt=""
           data-testid="card-image"
-          data-color-revealed={colorRevealed}
-          style={{
-            ...fillImg,
-            filter: colorRevealed ? 'none' : 'grayscale(1)',
-            transition: 'filter 0.5s ease',
-          }}
+          data-stage={stage}
+          data-status={round.status}
+          style={fillImg}
         />
-        {!colorRevealed && (
-          <img src={cardUrl} alt="" aria-hidden style={{ ...fillImg, clipPath: ART_CLIP }} />
-        )}
+
         <AnimatePresence>
-          {showMana && (
-            <Overlay
-              key="mana"
-              testid="blur-mana"
-              style={{ top: '3.8%', left: '58%', width: '37%', height: '5%' }}
-            />
+          {artOnly && (
+            <>
+              <Mask key="m-top" style={{ top: 0, left: 0, width: '100%', height: '11.5%' }} />
+              <Mask key="m-bottom" style={{ top: '56%', left: 0, width: '100%', height: '44%' }} />
+              <Mask key="m-left" style={{ top: '11.5%', left: 0, width: '7.5%', height: '44.5%' }} />
+              <Mask key="m-right" style={{ top: '11.5%', left: '92.5%', width: '7.5%', height: '44.5%' }} />
+            </>
           )}
-          {showType && (
-            <Overlay
-              key="type"
-              testid="blur-type"
-              style={{ top: '56.5%', left: '6%', width: '88%', height: '5%' }}
-            />
+
+          {blurName && (
+            <Blur key="name" testid="blur-name" style={{ top: '3.2%', left: '5%', width: '60%', height: '6.5%' }} />
           )}
-          {showPower && (
-            <Overlay
-              key="power"
-              testid="blur-power"
-              style={{ top: '88.5%', left: '76%', width: '17%', height: '6%' }}
-            />
+          {blurMana && (
+            <Blur key="mana" testid="blur-mana" style={{ top: '3.8%', left: '58%', width: '37%', height: '5%' }} />
+          )}
+          {blurType && (
+            <Blur key="type" testid="blur-type" style={{ top: '56.3%', left: '5%', width: '90%', height: '5.5%' }} />
+          )}
+          {blurText && (
+            <Blur key="text" testid="blur-text" style={{ top: '62.5%', left: '5%', width: '90%', height: '26%' }} />
+          )}
+          {blurPower && (
+            <Blur key="power" testid="blur-power" style={{ top: '88%', left: '75%', width: '18%', height: '6.5%' }} />
           )}
         </AnimatePresence>
       </div>

@@ -8,12 +8,13 @@ const btn: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   width: '100%',
-  minHeight: 56,
+  minHeight: 58,
   borderRadius: 12,
-  border: '2px solid rgba(255,255,255,0.15)',
-  background: 'rgba(255,255,255,0.08)',
-  color: '#fff',
-  fontSize: 18,
+  border: '1px solid var(--line-strong)',
+  background: 'linear-gradient(180deg, rgba(255,186,120,0.08), rgba(20,17,28,0.6))',
+  color: 'var(--ink-0)',
+  fontFamily: "'Cormorant Garamond', serif",
+  fontSize: 19,
   fontWeight: 600,
   cursor: 'pointer',
   padding: '12px 16px',
@@ -46,27 +47,33 @@ export function PoolSelect() {
     <motion.div
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
-        padding: '24px 20px',
-        paddingBottom: 'calc(24px + env(safe-area-inset-bottom))',
-      }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
     >
-      <h1
-        style={{
-          color: '#fff',
-          fontSize: 26,
-          fontWeight: 700,
-          textAlign: 'center',
-          margin: 0,
-          marginBottom: 8,
-          textShadow: '0 2px 12px rgba(0,0,0,0.7)',
-        }}
-      >
-        GuessTheCard
-      </h1>
+      <div style={{ textAlign: 'center', marginBottom: 4 }}>
+        <h1
+          style={{
+            fontSize: 30,
+            fontWeight: 700,
+            margin: 0,
+            color: 'var(--ink-0)',
+            textShadow: '0 0 22px rgba(255,122,44,0.35)',
+          }}
+        >
+          GuessTheCard
+        </h1>
+        <p
+          style={{
+            margin: '4px 0 0',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 12,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            color: 'var(--ink-2)',
+          }}
+        >
+          Wähle deinen Pool
+        </p>
+      </div>
 
       <button style={btn} onClick={() => pick({ kind: 'popular' })}>
         Beliebte Karten
@@ -89,9 +96,9 @@ export function PoolSelect() {
               width: '100%',
               height: 48,
               borderRadius: 10,
-              border: '2px solid rgba(255,255,255,0.2)',
-              background: 'rgba(0,0,0,0.4)',
-              color: '#fff',
+              border: '1px solid var(--line-strong)',
+              background: 'rgba(7,6,10,0.6)',
+              color: 'var(--ink-0)',
               fontSize: 15,
               padding: '0 14px',
               boxSizing: 'border-box',
