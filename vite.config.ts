@@ -26,11 +26,14 @@ export default defineConfig({
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'pwa-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // pwa.png is only the source artwork for the generated icons; don't
+        // precache it (the resized icons are referenced by the manifest).
+        globIgnores: ['**/pwa.png'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/(?:cards|c1|c2|c3)\.scryfall\.io\/.*/i,

@@ -12,6 +12,7 @@ import { NameChoice } from './ui/NameChoice';
 import { Snackbar } from './ui/Snackbar';
 import { GameOver } from './ui/GameOver';
 import { StartShare } from './ui/StartShare';
+import { InstallButton } from './ui/InstallButton';
 
 // After a round resolves: a correct guess flashes green briefly, a miss / timeout
 // reveals the full card for a beat — then we auto-advance to the next card.
@@ -207,6 +208,7 @@ export function App() {
       )}
 
       {phase === 'idle' && <StartShare />}
+      {phase === 'gameover' && <InstallButton />}
       {phase === 'idle' && <StartArtwork />}
       {phase === 'gameover' && <StartArtwork variant="full" />}
       {round && <CardStage stage={playingNow ? stage : 5} />}
