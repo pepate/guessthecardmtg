@@ -51,7 +51,7 @@ export function GameOver() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         gap: 18,
         padding: '24px 22px calc(24px + env(safe-area-inset-bottom))',
         overflowY: 'auto',
