@@ -76,7 +76,7 @@ export function StartShare() {
         aria-label="Share"
         data-testid="start-share"
         style={ICON_BTN}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (best ? setOpen((v) => !v) : shareAppOnly())}
       >
         {copied ? (
           <span style={{ fontSize: 9, letterSpacing: 0.5, fontFamily: "'JetBrains Mono', monospace" }}>
@@ -115,17 +115,13 @@ export function StartShare() {
               boxShadow: '0 12px 28px rgba(0,0,0,0.5)',
             }}
           >
-            {best ? (
+            {best && (
               <button type="button" style={MENU_ITEM} onClick={shareWithScore}>
                 Share with best score
                 <span style={{ display: 'block', color: 'var(--ink-2)', fontSize: 10, marginTop: 2 }}>
                   {best.score} pts · {best.correct} cards
                 </span>
               </button>
-            ) : (
-              <div style={{ ...MENU_ITEM, color: 'var(--ink-2)', cursor: 'default' }}>
-                No score yet
-              </div>
             )}
             <button
               type="button"
