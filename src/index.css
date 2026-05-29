@@ -1,0 +1,28 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0b14;
+  --fg: #f2f2f7;
+  --accent: #7c5cff;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}

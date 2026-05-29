@@ -9,6 +9,14 @@ dist-ssr/
 .claude-flow/data/
 .claude-flow/logs/
 .claude-flow/sessions/
+.claude-flow/metrics/
+.claude-flow/security/
+.claude-flow/swarm/
+.swarm/
+ruvector.db
+
+# TypeScript incremental build info
+*.tsbuildinfo
 
 # Logs
 *.log
