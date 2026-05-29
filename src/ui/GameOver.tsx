@@ -24,7 +24,9 @@ export function GameOver() {
     const text = `I scored ${totalScore} points in Arcane Drift — beat me: ${url}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Arcane Drift', text, url });
+        // Pass only `text` (which already embeds the URL). Including a separate
+        // `url` makes WhatsApp append it again, so the link shows up twice.
+        await navigator.share({ title: 'Arcane Drift', text });
         return;
       }
       await navigator.clipboard.writeText(text);
