@@ -19,7 +19,7 @@ const ADVANCE_DELAY = { won: 1000, lost: 2000 } as const;
 
 // A random card's artwork, shown faded behind the start screen for a splash of
 // colour. Best-effort: if the fetch fails we simply render nothing.
-function StartArtwork() {
+function StartArtwork({ variant = 'banner' }: { variant?: 'banner' | 'full' }) {
   const [art, setArt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,6 +36,40 @@ function StartArtwork() {
   }, []);
 
   if (!art) return null;
+
+  if (variant === 'full') {
+    return (
+      <motion.div
+        key="full-art"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 1.2 }}
+        aria-hidden
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: `url(${art})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
+        {/* Dark scrim so the centred result text stays readable over the artwork. */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'linear-gradient(180deg, rgba(7,6,10,0.74) 0%, rgba(7,6,10,0.72) 50%, rgba(7,6,10,0.88) 100%)',
+          }}
+        />
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       key="start-art"
@@ -173,6 +207,7 @@ export function App() {
 
       {phase === 'idle' && <StartShare />}
       {phase === 'idle' && <StartArtwork />}
+      {phase === 'gameover' && <StartArtwork variant="full" />}
       {round && <CardStage stage={playingNow ? stage : 5} />}
 
       <div className="overlay">

@@ -85,17 +85,17 @@ body::after {
 
 .home-btn {
   position: absolute;
-  top: calc(10px + env(safe-area-inset-top));
-  left: 18px;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 16px;
   z-index: 3;
-  width: 40px;
-  height: 40px;
+  width: 72px;
+  height: 51px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid var(--line-strong);
-  background: rgba(20, 17, 28, 0.6);
+  border: 1px solid var(--line);
+  background: rgba(13, 11, 19, 0.55);
   color: var(--ink-0);
   cursor: pointer;
   backdrop-filter: blur(8px);
