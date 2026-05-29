@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Ruflo runtime artifacts (keep config, ignore generated data)
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+*.local
+.vscode/*
+!.vscode/extensions.json
+.idea/
