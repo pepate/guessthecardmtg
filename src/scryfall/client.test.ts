@@ -11,7 +11,7 @@ function makeCard(overrides: Partial<ScryfallCard> = {}): ScryfallCard {
     name: 'Test Card',
     cmc: 3,
     type_line: 'Creature — Human',
-    image_uris: { art_crop: 'https://example.com/art.jpg' },
+    image_uris: { art_crop: 'https://example.com/art.jpg', normal: 'https://example.com/normal.jpg' },
     ...overrides,
   };
 }

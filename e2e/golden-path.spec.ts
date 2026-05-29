@@ -77,12 +77,24 @@ test('golden path: pick pool, reveal an attribute, guess the name and win', asyn
   // Lightning Bolt has color, mana value and type → three hidden chips.
   await expect(page.getByText('???')).toHaveCount(3);
 
+  // Card image renders grayscale (color not yet revealed).
+  await expect(page.getByTestId('card-image')).toBeVisible();
+  await expect(page.getByTestId('card-image')).toHaveAttribute('data-color-revealed', 'false');
+
+  // Mana and type regions are blurred; Lightning Bolt has no power region.
+  await expect(page.getByTestId('blur-mana')).toBeVisible();
+  await expect(page.getByTestId('blur-type')).toBeVisible();
+  await expect(page.getByTestId('blur-power')).toHaveCount(0);
+
   // Color tab is selected by default; R is correct for Lightning Bolt.
   await page.getByRole('button', { name: 'R', exact: true }).click();
   await page.getByRole('button', { name: 'Raten' }).click();
 
   // Color is now revealed → one fewer hidden chip.
   await expect(page.getByText('???')).toHaveCount(2);
+
+  // Card image is now in full color.
+  await expect(page.getByTestId('card-image')).toHaveAttribute('data-color-revealed', 'true');
 
   await page.getByRole('button', { name: 'Lightning Bolt' }).click();
 

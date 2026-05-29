@@ -12,7 +12,7 @@ einzelner Attribute (Farbe, Manawert, Typ, Power …) schrittweise mehr Informat
 den Kartennamen per Multiple Choice errät.
 
 Die App ist **mobile-first** (Hauptzielgerät: Smartphone), als **PWA installierbar** und setzt auf
-ein 3D-Rendering mit **React Three Fiber** für ein grafisch hochwertiges Erlebnis mit Effekten.
+ein flaches **2D-Karten-Rendering** mit progressiver Aufdeckung (CSS/DOM, Framer-Motion-Übergänge).
 
 **Ruflo** wird ausschließlich als **Entwicklungs-Werkzeug** verwendet (Agent-Swarm, Memory,
 Workflows zur parallelen Implementierung) und ist **nicht** Teil des laufenden Spiels.
@@ -22,7 +22,7 @@ Workflows zur parallelen Implementierung) und ist **nicht** Teil des laufenden S
 **Ziele**
 - Spielbarer Progressive-Reveal-Modus mit Scryfall-Daten.
 - Mobile-first, touch-optimiert, als PWA installierbar.
-- Grafisch ansprechend (3D-Karte, Holo-Foil, Partikel, Bloom).
+- Grafisch ansprechend (2D-Kartenbild mit progressiver Aufdeckung: Graustufen, Blur-Regionen).
 - Saubere, erweiterbare Modus-Architektur (weitere Modi später ohne UI-Umbau).
 - Auswählbarer Kartenpool beim Start.
 
@@ -82,11 +82,8 @@ src/
       progressiveReveal.ts   # erste & einzige Modus-Implementierung
   state/
     gameStore.ts     # Zustand der Partie (Runde, Reveals, Score) — z. B. Zustand
-  scene/             # 3D-View (kennt nur Engine-Output, keine Spielregeln)
-    CardStage.tsx    # R3F <Canvas>, Licht, Kamera, Parallax
-    HoloCard.tsx     # 3D-Kartenmesh + holografischer Foil-Shader (GLSL)
-    RevealFX.tsx     # Partikel-Burst + Materialize-Effekt
-    effects.tsx      # Postprocessing: Bloom/Glow (adaptiv)
+  scene/             # 2D-Karten-View (kennt nur Engine-Output, keine Spielregeln)
+    CardStage.tsx    # Flaches Kartenbild + Graustufen-/Blur-Aufdeckung (CSS, Framer Motion)
   ui/                # React-DOM-Overlay (Framer Motion)
     PoolSelect.tsx
     AttributeBar.tsx
@@ -99,8 +96,8 @@ src/
 
 **Schichten**
 - **engine/** — pure Logik, vollständig unit-testbar.
-- **scene/** — 3D-Rendering; erhält Artwork + Reveal-Events aus dem Store, kennt keine Regeln.
-- **ui/** — DOM-Overlay für Eingaben/Anzeigen, schwebt per CSS über dem `<Canvas>`.
+- **scene/** — 2D-Rendering; erhält Kartenbild + Reveal-Status aus dem Store, kennt keine Regeln.
+- **ui/** — DOM-Overlay für Eingaben/Anzeigen, schwebt per CSS über der Karten-Bühne.
 
 **GameMode-Interface (Kern der Erweiterbarkeit)**
 - `startRound(pool) → Round` — zieht Zielkarte + Distraktoren.
@@ -114,18 +111,25 @@ Die UI kennt nur dieses Interface → neuer Modus = neue Datei in `modes/`, kein
 
 **Datenfluss**
 UI-Event → `gameStore` → aktive `GameMode`-Methode → ggf. `scryfall/client` → Ergebnis in Store →
-Store-Update triggert beide Views: `scene/` spielt den Reveal-Effekt, `ui/` aktualisiert
+Store-Update triggert beide Views: `scene/` aktualisiert die Karten-Aufdeckung, `ui/` aktualisiert
 Attribut-Leiste/Score.
 
-## Rendering & Effekte (React Three Fiber)
+## Rendering & Aufdeckung (2D / CSS)
 
-- **Stack:** `@react-three/fiber`, `@react-three/drei`, `@react-three/postprocessing`,
-  Framer Motion für DOM-Übergänge.
-- **Karte:** 3D-Mesh mit `art_crop` als Textur, holografischer Foil-Shader (GLSL), der mit jedem
-  Reveal intensiver wird; leichte Dauer-Neigung (Parallax).
-- **Reveal-Effekt:** korrektes Attribut → Partikel-Burst + Bloom-Puls, Attribut-Feld „flippt" auf.
-- **Rundenende:** richtiger Name → volle Karte (`image_uris.normal`) materialisiert mit
-  Glanz-Sweep; falscher Name → roter Glitch/Shake.
+Das `image_uris.normal`-Vollbild der Zielkarte ist die **gesamte Runde** sichtbar und wird
+schrittweise aufgedeckt. Der Kartenpool ist auf Karten mit modernem Rahmen (`frame:2015`)
+beschränkt, damit die festen Aufdeckungs-Rechtecke zum Layout passen.
+
+- **Graustufen bis Farbe:** Das Kartenbild ist mit `filter: grayscale(1)` entsättigt, bis das Farb-
+  Attribut erraten ist (oder die Runde endet); dann zeigt es sich in voller Farbe (mit Filter-Transition).
+- **Immer farbiges Artwork:** Solange die Farbe noch nicht aufgedeckt ist, liegt eine zweite,
+  unveränderte Kopie desselben Bildes deckungsgleich darüber und wird per `clip-path: inset(...)`
+  auf das Art-Fenster beschnitten — gleiches Bild + gleiche Box = perfekte Registrierung.
+- **Blur-Regionen pro Attribut:** Manakosten (oben rechts), Typzeile (unter dem Art) und —
+  nur bei Kreaturen — Power/Toughness (unten rechts) sind je mit einem absolut positionierten Div
+  (`backdrop-filter: blur(7px)`, leichter dunkler Tint, feine Border) verdeckt. Wird das Attribut
+  aufgedeckt (oder die Runde endet), verschwindet das Overlay (Framer-Motion-Fade).
+- **Rundenende:** alle Regionen werden aufgedeckt und die Karte zeigt sich vollständig in Farbe.
 
 ## Mobile-First & PWA
 
@@ -133,15 +137,10 @@ Attribut-Leiste/Score.
 - Portrait als Standard: Karten-Bühne oben, Eingaben/Multiple-Choice als tippbares Panel unten
   (Daumen-Bereich). Desktop = breitere Variante. Touch-Targets ≥ 44px, keine Hover-Abhängigkeit.
 
-**Interaktion ohne Maus**
-- Parallax-Tilt über **DeviceOrientation (Gyroscope)**; Fallback Touch-Drag.
-- iOS verlangt User-Geste zur Gyroscope-Freigabe → wird eingebaut.
-
-**Performance (kritisch bei 3D)**
-- `dpr` begrenzen (max 2), `<Canvas>` mit `powerPreference: "high-performance"`.
-- Postprocessing/Bloom adaptiv via `<PerformanceMonitor>` (auf schwachen Geräten reduzieren/aus),
-  Partikelzahl skalieren.
-- Bilder in passender Größe (`art_crop`/`normal`, nicht `png`/`large`), lazy laden.
+**Performance**
+- Kein 3D/WebGL — reines DOM/CSS, dadurch günstig auf schwachen Geräten.
+- Bilder in passender Größe (`normal`, nicht `png`/`large`), lazy laden.
+- `backdrop-filter`/`filter`-Transitions sparsam und nur auf der Karten-Bühne.
 
 **PWA**
 - `vite-plugin-pwa`: Manifest (Name, Icons, Theme, Portrait, Standalone) + Service Worker.
@@ -160,7 +159,8 @@ Attribut-Leiste/Score.
 - **engine/** (Vitest, gemockte Kartendaten): Attribut-Vergleich, Reveal-Logik, Scoring,
   Multiple-Choice-Konsistenz mit Reveals.
 - **scryfall/client** (gemocktes `fetch`): korrekte Queries, Rate-Limit-Delay, Fehlerpfade.
-- **scene/ & ui/**: leichte Smoke-Tests; 3D-Shader/Effekte werden manuell im Browser geprüft.
+- **scene/ & ui/**: leichte Smoke-Tests; das 2D-Aufdeckungsverhalten wird per E2E (Playwright)
+  über `data-testid` (`card-image`, `blur-mana`, `blur-type`, `blur-power`) geprüft.
 
 ## Deployment (GitHub Pages)
 

@@ -25,6 +25,12 @@ function hasArt(card: ScryfallCard): boolean {
   return false;
 }
 
+function hasNormalImage(card: ScryfallCard): boolean {
+  if (card.image_uris?.normal) return true;
+  if (card.card_faces?.[0]?.image_uris?.normal) return true;
+  return false;
+}
+
 async function fetchWithRetry(url: string): Promise<Response> {
   let delay = 500;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -71,14 +77,18 @@ export async function fetchRandomCard(query?: string): Promise<ScryfallCard> {
   throw new Error('Could not find a card with art after maximum retries');
 }
 
+// Restrict to the standard modern frame so the fixed reveal regions (mana cost,
+// type line, power/toughness) line up — exclude full-art/showcase/borderless treatments.
+const FRAME = 'frame:2015 border:black -is:showcase -is:extendedart -is:fullart -is:borderless';
+
 function buildSearchQuery(input: PoolSelection): string {
   switch (input.kind) {
     case 'popular':
-      return 'format:commander';
+      return `format:commander ${FRAME}`;
     case 'sets':
-      return input.sets.map((s) => `set:${s}`).join(' or ');
+      return `(${input.sets.map((s) => `set:${s}`).join(' or ')}) ${FRAME}`;
     case 'random':
-      return '-is:funny';
+      return `-is:funny ${FRAME}`;
   }
 }
 
@@ -90,5 +100,5 @@ export async function fetchCandidates(
   const url = `${BASE}/cards/search?q=${q}`;
   const res = await fetchWithRetry(url);
   const body: { data: ScryfallCard[]; has_more: boolean; next_page?: string } = await res.json();
-  return body.data.filter(hasArt).slice(0, limit);
+  return body.data.filter(hasNormalImage).slice(0, limit);
 }
