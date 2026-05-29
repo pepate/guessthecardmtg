@@ -5,6 +5,11 @@ node_modules/
 dist/
 dist-ssr/
 
+# Playwright
+test-results/
+playwright-report/
+.claude-flow/agents/
+
 # Ruflo runtime artifacts (keep config, ignore generated data)
 .claude-flow/data/
 .claude-flow/logs/
