@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CardStage } from './scene/CardStage';
 import { useGameStore } from './state/gameStore';
@@ -7,7 +8,12 @@ import { PoolSelect } from './ui/PoolSelect';
 import { HUD } from './ui/HUD';
 import { Timer } from './ui/Timer';
 import { NameChoice } from './ui/NameChoice';
-import { Scoreboard } from './ui/Scoreboard';
+import { Snackbar } from './ui/Snackbar';
+import { GameOver } from './ui/GameOver';
+
+// After a round resolves: a correct guess flashes green briefly, a miss / timeout
+// reveals the full card for a beat — then we auto-advance to the next card.
+const ADVANCE_DELAY = { won: 1000, lost: 2000 } as const;
 
 function LoadingScreen() {
   return (
@@ -78,10 +84,20 @@ export function App() {
   const phase = useGameStore((s) => s.phase);
   const round = useGameStore((s) => s.round);
   const config = useGameStore((s) => s.config);
+  const advance = useGameStore((s) => s.advance);
 
   const elapsedMs = useGameClock();
   const stage = stageAt(elapsedMs, config);
   const playingNow = phase === 'playing' && round?.status === 'playing';
+
+  const status = round?.status;
+  const startedAt = round?.startedAt;
+  useEffect(() => {
+    if (phase !== 'playing' || !status || status === 'playing') return;
+    const delay = status === 'won' ? ADVANCE_DELAY.won : ADVANCE_DELAY.lost;
+    const id = setTimeout(advance, delay);
+    return () => clearTimeout(id);
+  }, [phase, status, startedAt, advance]);
 
   return (
     <div className="stage-root">
@@ -108,6 +124,7 @@ export function App() {
 
           {phase === 'loading' && <LoadingScreen />}
           {phase === 'error' && <ErrorScreen />}
+          {phase === 'gameover' && <GameOver />}
 
           {phase === 'playing' && round && (
             <motion.div
@@ -121,17 +138,15 @@ export function App() {
                 <HUD />
               </div>
               <div style={{ flex: 1 }} />
-              {playingNow && (
-                <div className="bottom-sheet" style={{ pointerEvents: 'all', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <Timer elapsedMs={elapsedMs} />
-                  <NameChoice />
-                </div>
-              )}
+              <div className="bottom-sheet" style={{ pointerEvents: 'all', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {playingNow && <Timer elapsedMs={elapsedMs} />}
+                <NameChoice />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {phase === 'playing' && round && round.status !== 'playing' && <Scoreboard />}
+        {phase === 'playing' && <Snackbar />}
       </div>
     </div>
   );

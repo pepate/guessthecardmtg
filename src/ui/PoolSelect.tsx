@@ -1,14 +1,15 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
 import type { PoolSelection } from '../scryfall/types';
+import { HighscoreList } from './HighscoreList';
 
 const btn: React.CSSProperties = {
   display: 'flex',
+  flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
   width: '100%',
-  minHeight: 58,
+  minHeight: 62,
   borderRadius: 12,
   border: '1px solid var(--line-strong)',
   background: 'linear-gradient(180deg, rgba(255,186,120,0.08), rgba(20,17,28,0.6))',
@@ -17,30 +18,25 @@ const btn: React.CSSProperties = {
   fontSize: 19,
   fontWeight: 600,
   cursor: 'pointer',
-  padding: '12px 16px',
+  padding: '10px 16px',
   backdropFilter: 'blur(8px)',
+};
+
+const sub: React.CSSProperties = {
+  fontFamily: "'JetBrains Mono', monospace",
+  fontSize: 10,
+  letterSpacing: 1.5,
+  textTransform: 'uppercase',
+  color: 'var(--ink-2)',
+  marginTop: 2,
 };
 
 export function PoolSelect() {
   const selectPool = useGameStore((s) => s.selectPool);
-  const [setInput, setSetInput] = useState('');
-  const [showSetInput, setShowSetInput] = useState(false);
+  const highscores = useGameStore((s) => s.highscores);
 
   function pick(sel: PoolSelection) {
     void selectPool(sel);
-  }
-
-  function handleSets() {
-    if (!showSetInput) {
-      setShowSetInput(true);
-      return;
-    }
-    const sets = setInput
-      .split(',')
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean);
-    if (sets.length === 0) return;
-    pick({ kind: 'sets', sets });
   }
 
   return (
@@ -71,46 +67,36 @@ export function PoolSelect() {
             color: 'var(--ink-2)',
           }}
         >
-          Wähle deinen Pool
+          15 Karten · errate so viele wie möglich
         </p>
       </div>
 
       <button style={btn} onClick={() => pick({ kind: 'popular' })}>
         Beliebte Karten
+        <span style={sub}>Bekannte Commander-Karten</span>
       </button>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <button style={btn} onClick={handleSets}>
-          Nach Set
-        </button>
-        {showSetInput && (
-          <motion.input
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 48 }}
-            type="text"
-            placeholder="Set-Codes, kommagetrennt (z.B. mh3, blb)"
-            value={setInput}
-            onChange={(e) => setSetInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSets()}
-            style={{
-              width: '100%',
-              height: 48,
-              borderRadius: 10,
-              border: '1px solid var(--line-strong)',
-              background: 'rgba(7,6,10,0.6)',
-              color: 'var(--ink-0)',
-              fontSize: 15,
-              padding: '0 14px',
-              boxSizing: 'border-box',
-              outline: 'none',
-            }}
-          />
-        )}
+      <button style={btn} onClick={() => pick({ kind: 'all' })}>
+        Alle Karten
+        <span style={sub}>Alles ab 2015</span>
+      </button>
+
+      <div style={{ marginTop: 6 }}>
+        <div
+          style={{
+            textAlign: 'center',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            color: 'var(--ink-2)',
+            marginBottom: 8,
+          }}
+        >
+          Bestenliste
+        </div>
+        <HighscoreList entries={highscores} />
       </div>
-
-      <button style={btn} onClick={() => pick({ kind: 'random' })}>
-        Komplett zufällig
-      </button>
     </motion.div>
   );
 }

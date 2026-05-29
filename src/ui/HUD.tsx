@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
+import { useCountUp } from './useCountUp';
 
 const chip: React.CSSProperties = {
   display: 'flex',
@@ -23,7 +24,10 @@ const label: React.CSSProperties = {
 
 export function HUD() {
   const totalScore = useGameStore((s) => s.totalScore);
-  const streak = useGameStore((s) => s.streak);
+  const roundIndex = useGameStore((s) => s.roundIndex);
+  const totalRounds = useGameStore((s) => s.config.totalRounds);
+
+  const animatedScore = useCountUp(totalScore, 900);
 
   return (
     <motion.div
@@ -31,22 +35,25 @@ export function HUD() {
       animate={{ opacity: 1, y: 0 }}
       style={{
         display: 'flex',
-        justifyContent: 'flex-end',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
         gap: 10,
         padding: '12px 16px',
         paddingTop: 'calc(12px + env(safe-area-inset-top))',
       }}
     >
       <div style={chip}>
-        <span style={label}>SCORE</span>
-        <span style={{ color: 'var(--ink-0)', fontSize: 20, fontWeight: 700 }}>{totalScore}</span>
+        <span style={label}>KARTE</span>
+        <span data-testid="round-progress" style={{ color: 'var(--ink-0)', fontSize: 20, fontWeight: 700 }}>
+          {Math.min(roundIndex + 1, totalRounds)}/{totalRounds}
+        </span>
       </div>
-      {streak > 0 && (
-        <div style={chip}>
-          <span style={label}>STREAK</span>
-          <span style={{ color: 'var(--ember-hot)', fontSize: 20, fontWeight: 700 }}>{streak}</span>
-        </div>
-      )}
+      <div style={chip}>
+        <span style={label}>SCORE</span>
+        <span data-testid="hud-score" style={{ color: 'var(--ink-0)', fontSize: 20, fontWeight: 700 }}>
+          {animatedScore}
+        </span>
+      </div>
     </motion.div>
   );
 }

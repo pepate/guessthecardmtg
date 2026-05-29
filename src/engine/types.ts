@@ -13,6 +13,8 @@ export interface TimeAttackConfig {
   stageMs: number;
   /** Number of name choices (incl. the correct one). */
   optionCount: number;
+  /** How many cards make up one game. */
+  totalRounds: number;
 }
 
 export const DEFAULT_TIME_ATTACK_CONFIG: TimeAttackConfig = {
@@ -21,6 +23,7 @@ export const DEFAULT_TIME_ATTACK_CONFIG: TimeAttackConfig = {
   minScore: 100,
   stageMs: 3000,
   optionCount: 4,
+  totalRounds: 15,
 };
 
 /**

@@ -148,23 +148,37 @@ describe('fetchCandidates', () => {
     expect(url).toContain('format%3Acommander');
   });
 
-  it('builds query for sets pool', async () => {
+  it('sorts the popular pool by EDHREC rank', async () => {
     mockFetch.mockResolvedValueOnce(okResponse({ data: [makeCard()], has_more: false }));
-    const promise = fetchCandidates({ kind: 'sets', sets: ['neo', 'ltr'] });
+    const promise = fetchCandidates({ kind: 'popular' });
     await vi.runAllTimersAsync();
     await promise;
     const url = mockFetch.mock.calls[0][0] as string;
-    expect(url).toContain('set%3Aneo');
-    expect(url).toContain('set%3Altr');
+    expect(url).toContain('order=edhrec');
   });
 
-  it('builds query for random pool using -is:funny', async () => {
+  it('builds query for the all pool using -is:funny', async () => {
     mockFetch.mockResolvedValueOnce(okResponse({ data: [makeCard()], has_more: false }));
-    const promise = fetchCandidates({ kind: 'random' });
+    const promise = fetchCandidates({ kind: 'all' });
     await vi.runAllTimersAsync();
     await promise;
     const url = mockFetch.mock.calls[0][0] as string;
     expect(url).toContain('-is%3Afunny');
+  });
+
+  it('jumps to a random page for the all pool when there are many results', async () => {
+    mockFetch
+      .mockResolvedValueOnce(okResponse({ data: [makeCard({ id: 'p1' })], has_more: true, total_cards: 1000 }))
+      .mockResolvedValueOnce(okResponse({ data: [makeCard({ id: 'pN' })], has_more: true }));
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const promise = fetchCandidates({ kind: 'all' });
+    await vi.runAllTimersAsync();
+    const cards = await promise;
+    randomSpy.mockRestore();
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    const secondUrl = mockFetch.mock.calls[1][0] as string;
+    expect(secondUrl).toContain('page=');
+    expect(cards[0].id).toBe('pN');
   });
 
   it('filters out cards without art', async () => {

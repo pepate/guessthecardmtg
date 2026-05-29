@@ -77,19 +77,43 @@ export async function fetchRandomCard(query?: string): Promise<ScryfallCard> {
   throw new Error('Could not find a card with art after maximum retries');
 }
 
-// Restrict to the standard modern frame so the fixed reveal regions (mana cost,
-// type line, power/toughness) line up — exclude full-art/showcase/borderless treatments.
+// Restrict to the standard modern frame (cards printed 2015+) so the fixed
+// reveal regions (mana cost, type line, power/toughness) line up — and exclude
+// full-art / showcase / extended-art / borderless treatments.
 const FRAME = 'frame:2015 border:black -is:showcase -is:extendedart -is:fullart -is:borderless';
+// Scryfall returns 175 results per search page.
+const PAGE_SIZE = 175;
+// Cap how deep we jump for the "all" pool so the offset stays sane.
+const MAX_RANDOM_PAGE = 40;
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 function buildSearchQuery(input: PoolSelection): string {
   switch (input.kind) {
     case 'popular':
       return `format:commander ${FRAME}`;
-    case 'sets':
-      return `(${input.sets.map((s) => `set:${s}`).join(' or ')}) ${FRAME}`;
-    case 'random':
-      return `-is:funny ${FRAME}`;
+    case 'all':
+      return `-is:funny game:paper ${FRAME}`;
   }
+}
+
+interface SearchPage {
+  data: ScryfallCard[];
+  has_more: boolean;
+  total_cards?: number;
+}
+
+async function fetchSearchPage(q: string, order: string, page: number): Promise<SearchPage> {
+  const url = `${BASE}/cards/search?q=${q}&order=${order}&page=${page}`;
+  const res = await fetchWithRetry(url);
+  return res.json();
 }
 
 export async function fetchCandidates(
@@ -97,8 +121,20 @@ export async function fetchCandidates(
   limit = 30,
 ): Promise<ScryfallCard[]> {
   const q = encodeURIComponent(buildSearchQuery(input));
-  const url = `${BASE}/cards/search?q=${q}`;
-  const res = await fetchWithRetry(url);
-  const body: { data: ScryfallCard[]; has_more: boolean; next_page?: string } = await res.json();
-  return body.data.filter(hasNormalImage).slice(0, limit);
+  // "popular" is sorted by EDHREC rank so the first page is genuinely well-known
+  // cards. "all" reads a random page so each game pulls a different slice.
+  const order = input.kind === 'popular' ? 'edhrec' : 'name';
+  const first = await fetchSearchPage(q, order, 1);
+
+  let data = first.data;
+  if (input.kind === 'all' && first.total_cards && first.total_cards > PAGE_SIZE) {
+    const pages = Math.min(Math.ceil(first.total_cards / PAGE_SIZE), MAX_RANDOM_PAGE);
+    const page = 1 + Math.floor(Math.random() * pages);
+    if (page !== 1) {
+      const more = await fetchSearchPage(q, order, page);
+      if (more.data?.length) data = more.data;
+    }
+  }
+
+  return shuffle(data.filter(hasNormalImage)).slice(0, limit);
 }
