@@ -12,7 +12,7 @@ export interface HighscoreEntry {
 }
 
 const KEY = 'guessthecard.highscores.v3';
-const MAX_ENTRIES = 10;
+const MAX_ENTRIES = 5;
 
 function isEntry(x: unknown): x is HighscoreEntry {
   if (typeof x !== 'object' || x === null) return false;
@@ -42,7 +42,7 @@ export function loadHighscores(): HighscoreEntry[] {
   }
 }
 
-/** Insert a finished game, keep the top 10 by score, persist, and return the list. */
+/** Insert a finished game, keep the top 5 by score, persist, and return the list. */
 export function saveHighscore(entry: HighscoreEntry): HighscoreEntry[] {
   const list = [...loadHighscores(), entry].sort(rank).slice(0, MAX_ENTRIES);
   try {

@@ -27,12 +27,12 @@ describe('highscores', () => {
     expect(loadHighscores().map((e) => e.score)).toEqual([900, 600, 300]);
   });
 
-  it('keeps only the top 10 scores', () => {
+  it('keeps only the top 5 scores', () => {
     for (let i = 1; i <= 15; i++) saveHighscore(entry(i * 100, 10, i));
     const list = loadHighscores();
-    expect(list).toHaveLength(10);
+    expect(list).toHaveLength(5);
     expect(list[0].score).toBe(1500);
-    expect(list[9].score).toBe(600);
+    expect(list[4].score).toBe(1100);
   });
 
   it('breaks score ties in favour of the newer game', () => {
