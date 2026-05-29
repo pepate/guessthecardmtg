@@ -96,11 +96,14 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 function buildSearchQuery(input: PoolSelection): string {
+  // Universes Beyond crossover cards (e.g. LOTR, Final Fantasy) are matched by
+  // Scryfall's `is:ub`; exclude them when the player asks for MTG-native cards.
+  const ub = input.excludeUniverseBeyond ? ' -is:ub' : '';
   switch (input.kind) {
     case 'popular':
-      return `format:commander ${FRAME}`;
+      return `format:commander ${FRAME}${ub}`;
     case 'all':
-      return `-is:funny game:paper ${FRAME}`;
+      return `-is:funny game:paper ${FRAME}${ub}`;
   }
 }
 
@@ -118,7 +121,9 @@ async function fetchSearchPage(q: string, order: string, page: number): Promise<
 
 export async function fetchCandidates(
   input: PoolSelection,
-  limit = 30,
+  // A timed game can run through many cards, so keep a full search page on hand
+  // — enough that pre-planned rounds never have to repeat a name.
+  limit = PAGE_SIZE,
 ): Promise<ScryfallCard[]> {
   const q = encodeURIComponent(buildSearchQuery(input));
   // "popular" is sorted by EDHREC rank so the first page is genuinely well-known

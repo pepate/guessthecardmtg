@@ -37,5 +37,5 @@ export interface ScryfallCard {
 
 /** Card pool selection chosen on the start screen. */
 export type PoolSelection =
-  | { kind: 'popular' }
-  | { kind: 'all' };
+  | { kind: 'popular'; excludeUniverseBeyond: boolean }
+  | { kind: 'all'; excludeUniverseBeyond: boolean };

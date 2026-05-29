@@ -141,7 +141,7 @@ describe('fetchRandomCard', () => {
 describe('fetchCandidates', () => {
   it('builds query for popular pool', async () => {
     mockFetch.mockResolvedValueOnce(okResponse({ data: [makeCard()], has_more: false }));
-    const promise = fetchCandidates({ kind: 'popular' });
+    const promise = fetchCandidates({ kind: 'popular', excludeUniverseBeyond: false });
     await vi.runAllTimersAsync();
     await promise;
     const url = mockFetch.mock.calls[0][0] as string;
@@ -150,16 +150,34 @@ describe('fetchCandidates', () => {
 
   it('sorts the popular pool by EDHREC rank', async () => {
     mockFetch.mockResolvedValueOnce(okResponse({ data: [makeCard()], has_more: false }));
-    const promise = fetchCandidates({ kind: 'popular' });
+    const promise = fetchCandidates({ kind: 'popular', excludeUniverseBeyond: false });
     await vi.runAllTimersAsync();
     await promise;
     const url = mockFetch.mock.calls[0][0] as string;
     expect(url).toContain('order=edhrec');
   });
 
+  it('excludes Universe Beyond cards with -is:ub when asked', async () => {
+    mockFetch.mockResolvedValueOnce(okResponse({ data: [makeCard()], has_more: false }));
+    const promise = fetchCandidates({ kind: 'popular', excludeUniverseBeyond: true });
+    await vi.runAllTimersAsync();
+    await promise;
+    const url = mockFetch.mock.calls[0][0] as string;
+    expect(url).toContain('-is%3Aub');
+  });
+
+  it('keeps Universe Beyond cards when not excluded', async () => {
+    mockFetch.mockResolvedValueOnce(okResponse({ data: [makeCard()], has_more: false }));
+    const promise = fetchCandidates({ kind: 'popular', excludeUniverseBeyond: false });
+    await vi.runAllTimersAsync();
+    await promise;
+    const url = mockFetch.mock.calls[0][0] as string;
+    expect(url).not.toContain('-is%3Aub');
+  });
+
   it('builds query for the all pool using -is:funny', async () => {
     mockFetch.mockResolvedValueOnce(okResponse({ data: [makeCard()], has_more: false }));
-    const promise = fetchCandidates({ kind: 'all' });
+    const promise = fetchCandidates({ kind: 'all', excludeUniverseBeyond: false });
     await vi.runAllTimersAsync();
     await promise;
     const url = mockFetch.mock.calls[0][0] as string;
@@ -171,7 +189,7 @@ describe('fetchCandidates', () => {
       .mockResolvedValueOnce(okResponse({ data: [makeCard({ id: 'p1' })], has_more: true, total_cards: 1000 }))
       .mockResolvedValueOnce(okResponse({ data: [makeCard({ id: 'pN' })], has_more: true }));
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const promise = fetchCandidates({ kind: 'all' });
+    const promise = fetchCandidates({ kind: 'all', excludeUniverseBeyond: false });
     await vi.runAllTimersAsync();
     const cards = await promise;
     randomSpy.mockRestore();
@@ -187,7 +205,7 @@ describe('fetchCandidates', () => {
     mockFetch.mockResolvedValueOnce(
       okResponse({ data: [noArt, withArt], has_more: false }),
     );
-    const promise = fetchCandidates({ kind: 'popular' });
+    const promise = fetchCandidates({ kind: 'popular', excludeUniverseBeyond: false });
     await vi.runAllTimersAsync();
     const cards = await promise;
     expect(cards).toHaveLength(1);
@@ -197,7 +215,7 @@ describe('fetchCandidates', () => {
   it('respects the limit parameter', async () => {
     const data = Array.from({ length: 20 }, (_, i) => makeCard({ id: `c${i}` }));
     mockFetch.mockResolvedValueOnce(okResponse({ data, has_more: false }));
-    const promise = fetchCandidates({ kind: 'popular' }, 5);
+    const promise = fetchCandidates({ kind: 'popular', excludeUniverseBeyond: false }, 5);
     await vi.runAllTimersAsync();
     const cards = await promise;
     expect(cards).toHaveLength(5);

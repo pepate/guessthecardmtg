@@ -38,6 +38,68 @@ export function createRound(
   };
 }
 
+/** A target card plus its pre-shuffled answer options for one round. */
+export interface PlannedRound {
+  target: ScryfallCard;
+  options: string[];
+}
+
+/**
+ * Pre-plan a whole game so the player never sees a card or a name twice. Picks
+ * `totalRounds` distinct target cards, then fills each round's distractors from
+ * the remaining names so all `totalRounds * optionCount` names are unique across
+ * the game. Falls back to reusing names only when the pool is too small to keep
+ * them globally unique (always keeping each round's own options distinct).
+ */
+export function planGame(
+  pool: ScryfallCard[],
+  config: TimeAttackConfig = DEFAULT_TIME_ATTACK_CONFIG,
+): PlannedRound[] {
+  const { optionCount, totalRounds } = config;
+
+  // Scryfall can return reprints sharing a name — keep one card per name.
+  const uniqueByName: ScryfallCard[] = [];
+  const seen = new Set<string>();
+  for (const c of pool) {
+    if (!seen.has(c.name)) {
+      seen.add(c.name);
+      uniqueByName.push(c);
+    }
+  }
+
+  const shuffled = shuffle(uniqueByName);
+  const targets = shuffled.slice(0, Math.min(totalRounds, shuffled.length));
+  const allNames = uniqueByName.map((c) => c.name);
+
+  // Distractor names never used as a target, each consumed at most once so no
+  // name repeats across the game while supply lasts.
+  const targetNames = new Set(targets.map((t) => t.name));
+  const bag = shuffle(allNames.filter((n) => !targetNames.has(n)));
+
+  const plan: PlannedRound[] = [];
+  for (let i = 0; i < totalRounds && targets.length > 0; i++) {
+    const target = targets[i % targets.length];
+    const picked: string[] = [];
+
+    while (picked.length < optionCount - 1 && bag.length > 0) {
+      const n = bag.shift()!;
+      if (n !== target.name && !picked.includes(n)) picked.push(n);
+    }
+
+    // Small-pool fallback: reuse other names, still distinct within the round.
+    if (picked.length < optionCount - 1) {
+      for (const n of shuffle(allNames)) {
+        if (picked.length >= optionCount - 1) break;
+        if (n !== target.name && !picked.includes(n)) picked.push(n);
+      }
+    }
+
+    plan.push({ target, options: shuffle([target.name, ...picked]) });
+  }
+
+  return plan;
+}
+
 /** Reveal stage from elapsed ms: one stage per stageMs, capped at 5. */
 export function stageAt(
   elapsedMs: number,

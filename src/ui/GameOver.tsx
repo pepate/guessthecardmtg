@@ -6,7 +6,6 @@ import { HighscoreList } from './HighscoreList';
 export function GameOver() {
   const correctCount = useGameStore((s) => s.correctCount);
   const totalScore = useGameStore((s) => s.totalScore);
-  const totalRounds = useGameStore((s) => s.config.totalRounds);
   const highscores = useGameStore((s) => s.highscores);
   const restart = useGameStore((s) => s.restart);
   const reset = useGameStore((s) => s.reset);
@@ -44,13 +43,16 @@ export function GameOver() {
             color: isBest ? 'var(--ember-hot)' : 'var(--ink-2)',
           }}
         >
-          {isBest ? 'Neuer Rekord' : 'Spiel beendet'}
+          {isBest ? 'New record' : 'Time up'}
         </div>
         <div data-testid="final-correct" style={{ fontSize: 52, fontWeight: 700, color: 'var(--ink-0)', margin: '4px 0' }}>
-          {correctCount}/{totalRounds}
+          {correctCount}
         </div>
-        <div style={{ color: 'var(--ember-hot)', fontSize: 24, fontWeight: 600 }}>
-          <span data-testid="final-score">{animatedScore}</span> Punkte
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ink-2)' }}>
+          cards correct
+        </div>
+        <div style={{ color: 'var(--ember-hot)', fontSize: 24, fontWeight: 600, marginTop: 6 }}>
+          <span data-testid="final-score">{animatedScore}</span> points
         </div>
       </div>
 
@@ -63,10 +65,10 @@ export function GameOver() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
         <button className="ember-btn" style={{ width: '100%' }} onClick={restart}>
-          Nochmal spielen
+          Play again
         </button>
         <button className="ghost-btn" style={{ width: '100%' }} onClick={reset}>
-          Zur Auswahl
+          Back to menu
         </button>
       </div>
     </motion.div>

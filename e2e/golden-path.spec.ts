@@ -24,11 +24,11 @@ function card(name: string, colors: string[], cmc: number, type_line: string, po
   };
 }
 
-// Math.random is pinned to 0. The client shuffles the fetched pool before the
-// store draws from it, so with this fixed POOL the deterministic target is
-// always 'Counterspell' and the shuffled options are
-// [Doom Blade, Serra Angel, Grizzly Bears, Counterspell] every round.
-const TARGET = 'Counterspell';
+// Math.random is pinned to 0. The client shuffles the fetched pool, then
+// planGame shuffles again while pre-planning the game, so with this fixed POOL
+// the deterministic round-1 target is 'Llanowar Elves' and the options are
+// [Doom Blade, Serra Angel, Grizzly Bears, Llanowar Elves].
+const TARGET = 'Llanowar Elves';
 const POOL = [
   card('Lightning Bolt', ['R'], 1, 'Instant'),
   card('Counterspell', ['U'], 2, 'Instant'),
@@ -76,13 +76,16 @@ async function elapse(page: Page, ms: number) {
 async function startRound(page: Page) {
   await page.goto('/');
   await page.clock.setFixedTime(ROUND_START);
-  await page.getByRole('button', { name: 'Beliebte Karten' }).click();
+  await page.getByRole('button', { name: 'Popular cards' }).click();
   await expect(page.getByTestId('card-image')).toBeVisible();
   await expect(page.getByTestId('name-option')).toHaveCount(4);
 }
 
 const idleOption = (page: Page, name: string) =>
   page.locator('[data-testid="name-option"][data-state="idle"]', { hasText: name });
+
+const idleOptions = (page: Page) =>
+  page.locator('[data-testid="name-option"][data-state="idle"]');
 
 test('staged reveal: art-only → color → type → mana → text over 15s', async ({ page }) => {
   await setup(page);
@@ -116,7 +119,8 @@ test('correct guess highlights the answer, shows a points snackbar, then auto-ad
   await setup(page);
   await startRound(page);
 
-  await expect(page.getByTestId('round-progress')).toHaveText('1/15');
+  // The HUD CORRECT counter starts at zero.
+  await expect(page.getByTestId('round-progress')).toHaveText('0');
   await idleOption(page, TARGET).click();
 
   // No overlay — the chosen (correct) option turns green in place.
@@ -128,8 +132,9 @@ test('correct guess highlights the answer, shows a points snackbar, then auto-ad
   await expect(page.getByTestId('snackbar')).toBeVisible();
   await expect(page.getByTestId('snackbar-points')).toHaveText('1000');
 
-  // Auto-advances to the next card (~1s) with no extra click.
-  await expect(page.getByTestId('round-progress')).toHaveText('2/15', { timeout: 4000 });
+  // The CORRECT counter ticks up and the game auto-advances to a fresh round.
+  await expect(page.getByTestId('round-progress')).toHaveText('1');
+  await expect(idleOptions(page)).toHaveCount(4, { timeout: 4000 });
 });
 
 test('a later correct guess scores fewer points (smooth decay)', async ({ page }) => {
@@ -147,10 +152,12 @@ test('wrong guess marks both answers, reveals the card, shows no snackbar, then 
   await setup(page);
   await startRound(page);
 
-  await idleOption(page, 'Doom Blade').click();
+  const wrong = idleOptions(page).filter({ hasNotText: TARGET }).first();
+  const wrongName = (await wrong.textContent())?.trim() ?? '';
+  await wrong.click();
 
   await expect(
-    page.locator('[data-testid="name-option"][data-state="wrong"]', { hasText: 'Doom Blade' }),
+    page.locator('[data-testid="name-option"][data-state="wrong"]', { hasText: wrongName }),
   ).toBeVisible();
   await expect(
     page.locator('[data-testid="name-option"][data-state="correct"]', { hasText: TARGET }),
@@ -158,8 +165,8 @@ test('wrong guess marks both answers, reveals the card, shows no snackbar, then 
   await expect(page.getByTestId('card-image')).toHaveAttribute('data-status', 'lost');
   await expect(page.getByTestId('snackbar')).toHaveCount(0);
 
-  // Reveal lingers ~2s then auto-advances.
-  await expect(page.getByTestId('round-progress')).toHaveText('2/15', { timeout: 5000 });
+  // Reveal lingers ~2s then auto-advances to a fresh round.
+  await expect(idleOptions(page)).toHaveCount(4, { timeout: 5000 });
 });
 
 test('running out of time loses the round and auto-advances', async ({ page }) => {
@@ -173,21 +180,25 @@ test('running out of time loses the round and auto-advances', async ({ page }) =
     page.locator('[data-testid="name-option"][data-state="correct"]', { hasText: TARGET }),
   ).toBeVisible();
   await expect(page.getByTestId('snackbar')).toHaveCount(0);
-  await expect(page.getByTestId('round-progress')).toHaveText('2/15', { timeout: 5000 });
+  await expect(idleOptions(page)).toHaveCount(4, { timeout: 5000 });
 });
 
-test('the game ends after 15 cards and records a highscore', async ({ page }) => {
+test('the 90-second clock ends the game and records a highscore', async ({ page }) => {
   await setup(page);
   await startRound(page);
 
-  for (let i = 0; i < 15; i++) {
-    await page.clock.setFixedTime(ROUND_START);
-    await idleOption(page, TARGET).click();
-  }
+  // Guess one card correctly so the run records a non-zero score, then let it
+  // auto-advance to a fresh round.
+  await idleOption(page, TARGET).click();
+  await expect(idleOptions(page)).toHaveCount(4, { timeout: 4000 });
+
+  // Run the overall clock past 90 seconds — the game ends no matter how many
+  // pre-planned cards remain.
+  await elapse(page, 91000);
 
   const over = page.getByTestId('gameover');
   await expect(over).toBeVisible({ timeout: 10000 });
-  await expect(page.getByTestId('final-correct')).toHaveText('15/15');
+  await expect(page.getByTestId('final-correct')).toHaveText(/^\d+$/);
   await expect(page.getByTestId('highscore-entry').first()).toBeVisible();
 });
 
@@ -195,16 +206,22 @@ test('start screen offers only the popular and all pools', async ({ page }) => {
   await setup(page);
   await page.goto('/');
 
-  await expect(page.getByRole('button', { name: 'Beliebte Karten' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Alle Karten' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Nach Set' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Popular cards' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'All cards' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'By set' })).toHaveCount(0);
+});
+
+test('the start screen excludes Universe Beyond cards by default', async ({ page }) => {
+  await setup(page);
+  await page.goto('/');
+  await expect(page.getByTestId('exclude-ub')).toBeChecked();
 });
 
 test('error path: a pool with fewer cards than options shows the error screen', async ({ page }) => {
   await setup(page, POOL.slice(0, 3));
   await page.goto('/');
-  await page.getByRole('button', { name: 'Beliebte Karten' }).click();
+  await page.getByRole('button', { name: 'Popular cards' }).click();
 
-  await expect(page.getByText('Zu wenige Karten im gewählten Pool.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Neue Karte' })).toBeVisible();
+  await expect(page.getByText('Not enough cards in the selected pool.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Back to menu' })).toBeVisible();
 });

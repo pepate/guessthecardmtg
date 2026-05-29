@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CardStage } from './scene/CardStage';
+import { fetchRandomCard } from './scryfall/client';
 import { useGameStore } from './state/gameStore';
-import { useGameClock } from './state/useGameClock';
+import { useGameClock, useGameTimeLeft } from './state/useGameClock';
 import { stageAt } from './engine/timeAttack';
 import { PoolSelect } from './ui/PoolSelect';
 import { HUD } from './ui/HUD';
@@ -14,6 +15,51 @@ import { GameOver } from './ui/GameOver';
 // After a round resolves: a correct guess flashes green briefly, a miss / timeout
 // reveals the full card for a beat — then we auto-advance to the next card.
 const ADVANCE_DELAY = { won: 1000, lost: 2000 } as const;
+
+// A random card's artwork, shown faded behind the start screen for a splash of
+// colour. Best-effort: if the fetch fails we simply render nothing.
+function StartArtwork() {
+  const [art, setArt] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchRandomCard()
+      .then((card) => {
+        const url = card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop ?? null;
+        if (!cancelled) setArt(url);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!art) return null;
+  return (
+    <motion.div
+      key="start-art"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 1.2 }}
+      aria-hidden
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '58%',
+        backgroundImage: `url(${art})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }}
+    />
+  );
+}
 
 function LoadingScreen() {
   return (
@@ -43,7 +89,7 @@ function LoadingScreen() {
         }}
       />
       <div style={{ color: 'var(--ink-2)', letterSpacing: 2, textTransform: 'uppercase', fontSize: 13 }}>
-        Beschwöre Karten…
+        Summoning cards…
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </motion.div>
@@ -71,10 +117,10 @@ function ErrorScreen() {
       }}
     >
       <p style={{ color: 'var(--ember-hot)', fontSize: 19, textAlign: 'center', margin: 0 }}>
-        {error ?? 'Unbekannter Fehler'}
+        {error ?? 'Unknown error'}
       </p>
       <button className="ember-btn" onClick={reset}>
-        Neue Karte
+        Back to menu
       </button>
     </motion.div>
   );
@@ -87,6 +133,7 @@ export function App() {
   const advance = useGameStore((s) => s.advance);
 
   const elapsedMs = useGameClock();
+  const timeLeftMs = useGameTimeLeft();
   const stage = stageAt(elapsedMs, config);
   const playingNow = phase === 'playing' && round?.status === 'playing';
 
@@ -103,9 +150,10 @@ export function App() {
     <div className="stage-root">
       <header className="brandbar">
         <span className="brand-name">Arcane Drift</span>
-        <span className="brand-sub">errate die Karte</span>
+        <span className="brand-sub">guess the card</span>
       </header>
 
+      {phase === 'idle' && <StartArtwork />}
       {round && <CardStage stage={playingNow ? stage : 5} />}
 
       <div className="overlay">
@@ -135,7 +183,7 @@ export function App() {
               style={{ display: 'flex', flexDirection: 'column', height: '100%', pointerEvents: 'none' }}
             >
               <div style={{ pointerEvents: 'all' }}>
-                <HUD />
+                <HUD timeLeftMs={timeLeftMs} />
               </div>
               <div style={{ flex: 1 }} />
               <div className="bottom-sheet" style={{ pointerEvents: 'all', display: 'flex', flexDirection: 'column', gap: 14 }}>

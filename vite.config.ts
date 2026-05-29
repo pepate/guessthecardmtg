@@ -16,7 +16,7 @@ export default defineConfig({
       manifest: {
         name: 'GuessTheCard — MTG',
         short_name: 'GuessTheCard',
-        description: 'Errate Magic-the-Gathering-Karten im Progressive-Reveal-Modus.',
+        description: 'Guess Magic: The Gathering cards in progressive-reveal mode.',
         theme_color: '#0b0b14',
         background_color: '#0b0b14',
         display: 'standalone',

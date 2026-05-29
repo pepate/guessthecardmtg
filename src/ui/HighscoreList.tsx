@@ -13,7 +13,7 @@ export function HighscoreList({
         data-testid="highscore-empty"
         style={{ color: 'var(--ink-2)', fontSize: 13, textAlign: 'center', margin: 0 }}
       >
-        Noch keine Spiele — los geht's!
+        No games yet — get started!
       </p>
     );
   }
@@ -33,8 +33,8 @@ export function HighscoreList({
         }}
       >
         <span>#</span>
-        <span>TREFFER</span>
-        <span>PUNKTE</span>
+        <span>CORRECT</span>
+        <span>SCORE</span>
       </div>
       {entries.map((e, i) => {
         const on = highlight?.(e) ?? false;
@@ -56,7 +56,7 @@ export function HighscoreList({
           >
             <span style={{ color: 'var(--ink-2)', fontSize: 13 }}>{i + 1}</span>
             <span style={{ color: 'var(--ink-0)', fontSize: 14 }}>
-              {e.correct}/{e.total}
+              {e.correct}
             </span>
             <span style={{ color: 'var(--ember-hot)', fontSize: 15, fontWeight: 700 }}>{e.score}</span>
           </div>

@@ -34,3 +34,37 @@ export function useGameClock(): number {
 
   return elapsedMs;
 }
+
+/**
+ * Drives the overall 90-second game timer. Returns the remaining ms and calls
+ * store.endGame() once the game duration elapses. Like useGameClock it uses
+ * requestAnimationFrame so Playwright's page.clock can drive it in e2e.
+ */
+export function useGameTimeLeft(): number {
+  const phase = useGameStore((s) => s.phase);
+  const gameStartedAt = useGameStore((s) => s.gameStartedAt);
+  const gameDurationMs = useGameStore((s) => s.config.gameDurationMs);
+  const endGame = useGameStore((s) => s.endGame);
+  const [remainingMs, setRemainingMs] = useState(gameDurationMs);
+
+  const running = phase === 'playing' && gameStartedAt > 0;
+
+  useEffect(() => {
+    if (!running) return;
+    let raf = 0;
+    const tick = () => {
+      const left = gameStartedAt + gameDurationMs - Date.now();
+      if (left <= 0) {
+        setRemainingMs(0);
+        endGame();
+        return;
+      }
+      setRemainingMs(left);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [running, gameStartedAt, gameDurationMs, endGame]);
+
+  return remainingMs;
+}

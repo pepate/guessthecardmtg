@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildOptions, createRound, stageAt, scoreAt, resolveGuess, expire } from './timeAttack';
+import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire } from './timeAttack';
 import { DEFAULT_TIME_ATTACK_CONFIG as CFG } from './types';
 import type { Round } from './types';
 import type { ScryfallCard } from '../scryfall/types';
@@ -51,6 +51,46 @@ describe('createRound', () => {
     expect(round.guess).toBeNull();
     expect(round.score).toBe(0);
     expect(round.options).toContain('Lightning Bolt');
+  });
+});
+
+describe('planGame', () => {
+  // Needs at least totalRounds * optionCount unique names to prove no repeats.
+  const bigPool = Array.from({ length: 200 }, (_, i) => makeCard(`Card ${i}`));
+
+  it('plans exactly totalRounds rounds when the pool is large enough', () => {
+    const plan = planGame(bigPool, CFG);
+    expect(plan).toHaveLength(CFG.totalRounds);
+  });
+
+  it('uses a distinct target card in every round', () => {
+    const plan = planGame(bigPool, CFG);
+    const targets = plan.map((r) => r.target.name);
+    expect(new Set(targets).size).toBe(targets.length);
+  });
+
+  it('never repeats a name anywhere across the game when the pool is large', () => {
+    const plan = planGame(bigPool, CFG);
+    const everyName = plan.flatMap((r) => r.options);
+    expect(everyName).toHaveLength(CFG.totalRounds * CFG.optionCount);
+    expect(new Set(everyName).size).toBe(everyName.length);
+  });
+
+  it('always includes the target among its own options, with no in-round duplicates', () => {
+    for (const round of planGame(bigPool, CFG)) {
+      expect(round.options).toContain(round.target.name);
+      expect(new Set(round.options).size).toBe(round.options.length);
+    }
+  });
+
+  it('falls back gracefully for a small pool: distinct in-round options, cycled targets', () => {
+    const plan = planGame(POOL, CFG);
+    expect(plan).toHaveLength(CFG.totalRounds);
+    for (const round of plan) {
+      expect(round.options).toHaveLength(CFG.optionCount);
+      expect(round.options).toContain(round.target.name);
+      expect(new Set(round.options).size).toBe(round.options.length);
+    }
   });
 });
 

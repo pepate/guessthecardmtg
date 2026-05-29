@@ -52,7 +52,7 @@ export function Snackbar() {
               boxShadow: '0 8px 30px rgba(255,122,44,0.45)',
             }}
           >
-            +<span data-testid="snackbar-points">{shown}</span> Punkte
+            +<span data-testid="snackbar-points">{shown}</span> points
           </motion.div>
         )}
       </AnimatePresence>

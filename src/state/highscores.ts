@@ -1,15 +1,13 @@
 export interface HighscoreEntry {
   /** Total points scored across the game. */
   score: number;
-  /** Number of cards guessed correctly. */
+  /** Number of cards guessed correctly within the time limit. */
   correct: number;
-  /** Cards in the game (e.g. 15). */
-  total: number;
   /** Date.now() when the game finished. */
   date: number;
 }
 
-const KEY = 'guessthecard.highscores.v1';
+const KEY = 'guessthecard.highscores.v2';
 const MAX_ENTRIES = 10;
 
 function isEntry(x: unknown): x is HighscoreEntry {
@@ -18,7 +16,6 @@ function isEntry(x: unknown): x is HighscoreEntry {
   return (
     typeof e.score === 'number' &&
     typeof e.correct === 'number' &&
-    typeof e.total === 'number' &&
     typeof e.date === 'number'
   );
 }

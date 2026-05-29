@@ -22,12 +22,13 @@ const label: React.CSSProperties = {
   fontFamily: "'JetBrains Mono', monospace",
 };
 
-export function HUD() {
+export function HUD({ timeLeftMs }: { timeLeftMs: number }) {
   const totalScore = useGameStore((s) => s.totalScore);
-  const roundIndex = useGameStore((s) => s.roundIndex);
-  const totalRounds = useGameStore((s) => s.config.totalRounds);
+  const correctCount = useGameStore((s) => s.correctCount);
 
   const animatedScore = useCountUp(totalScore, 900);
+  const seconds = Math.max(0, Math.ceil(timeLeftMs / 1000));
+  const low = seconds <= 10;
 
   return (
     <motion.div
@@ -35,7 +36,7 @@ export function HUD() {
       animate={{ opacity: 1, y: 0 }}
       style={{
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'flex-start',
         gap: 10,
         padding: '12px 16px',
@@ -43,9 +44,18 @@ export function HUD() {
       }}
     >
       <div style={chip}>
-        <span style={label}>KARTE</span>
+        <span style={label}>TIME</span>
+        <span
+          data-testid="game-time"
+          style={{ color: low ? 'var(--ember-hot)' : 'var(--ink-0)', fontSize: 20, fontWeight: 700, transition: 'color 0.3s ease' }}
+        >
+          {seconds}s
+        </span>
+      </div>
+      <div style={chip}>
+        <span style={label}>CORRECT</span>
         <span data-testid="round-progress" style={{ color: 'var(--ink-0)', fontSize: 20, fontWeight: 700 }}>
-          {Math.min(roundIndex + 1, totalRounds)}/{totalRounds}
+          {correctCount}
         </span>
       </div>
       <div style={chip}>

@@ -3,8 +3,10 @@ import type { ScryfallCard } from '../scryfall/types';
 export type RoundStatus = 'playing' | 'won' | 'lost';
 
 export interface TimeAttackConfig {
-  /** Total time the player has to guess, in ms. */
+  /** Time the player has to guess a single card, in ms. */
   durationMs: number;
+  /** Total length of one game, in ms — guess as many cards as you can. */
+  gameDurationMs: number;
   /** Score awarded for an instant correct guess. */
   maxScore: number;
   /** Score awarded for a correct guess at the last moment. */
@@ -13,17 +15,19 @@ export interface TimeAttackConfig {
   stageMs: number;
   /** Number of name choices (incl. the correct one). */
   optionCount: number;
-  /** How many cards make up one game. */
+  /** How many cards to pre-plan — an upper bound on cards a fast player can reach
+   *  in one game, kept high enough that names never repeat within a game. */
   totalRounds: number;
 }
 
 export const DEFAULT_TIME_ATTACK_CONFIG: TimeAttackConfig = {
   durationMs: 15000,
+  gameDurationMs: 90000,
   maxScore: 1000,
   minScore: 100,
   stageMs: 3000,
   optionCount: 4,
-  totalRounds: 15,
+  totalRounds: 40,
 };
 
 /**

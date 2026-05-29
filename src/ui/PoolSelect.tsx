@@ -1,6 +1,6 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
-import type { PoolSelection } from '../scryfall/types';
 import { HighscoreList } from './HighscoreList';
 
 const btn: React.CSSProperties = {
@@ -34,9 +34,10 @@ const sub: React.CSSProperties = {
 export function PoolSelect() {
   const selectPool = useGameStore((s) => s.selectPool);
   const highscores = useGameStore((s) => s.highscores);
+  const [excludeUniverseBeyond, setExcludeUniverseBeyond] = useState(true);
 
-  function pick(sel: PoolSelection) {
-    void selectPool(sel);
+  function pick(kind: 'popular' | 'all') {
+    void selectPool({ kind, excludeUniverseBeyond });
   }
 
   return (
@@ -67,19 +68,42 @@ export function PoolSelect() {
             color: 'var(--ink-2)',
           }}
         >
-          15 Karten · errate so viele wie möglich
+          90 seconds · guess as many as you can
         </p>
       </div>
 
-      <button style={btn} onClick={() => pick({ kind: 'popular' })}>
-        Beliebte Karten
-        <span style={sub}>Bekannte Commander-Karten</span>
+      <button style={btn} onClick={() => pick('popular')}>
+        Popular cards
+        <span style={sub}>Well-known Commander staples</span>
       </button>
 
-      <button style={btn} onClick={() => pick({ kind: 'all' })}>
-        Alle Karten
-        <span style={sub}>Alles ab 2015</span>
+      <button style={btn} onClick={() => pick('all')}>
+        All cards
+        <span style={sub}>Everything from 2015 on</span>
       </button>
+
+      <label
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 12,
+          letterSpacing: 0.5,
+          color: 'var(--ink-1)',
+          cursor: 'pointer',
+          padding: '2px 4px',
+        }}
+      >
+        <input
+          type="checkbox"
+          data-testid="exclude-ub"
+          checked={excludeUniverseBeyond}
+          onChange={(e) => setExcludeUniverseBeyond(e.target.checked)}
+          style={{ width: 16, height: 16, accentColor: 'var(--ember)' }}
+        />
+        No Universe Beyond cards
+      </label>
 
       <div style={{ marginTop: 6 }}>
         <div
@@ -93,7 +117,7 @@ export function PoolSelect() {
             marginBottom: 8,
           }}
         >
-          Bestenliste
+          Leaderboard
         </div>
         <HighscoreList entries={highscores} />
       </div>

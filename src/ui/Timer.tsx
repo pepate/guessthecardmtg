@@ -42,7 +42,7 @@ export function Timer({ elapsedMs }: { elapsedMs: number }) {
           <span data-testid="live-score" style={{ color: 'var(--ember-hot)', fontWeight: 600 }}>
             {score}
           </span>{' '}
-          Pkt
+          pts
         </span>
       </div>
       <div
