@@ -11,6 +11,7 @@ import { Timer } from './ui/Timer';
 import { NameChoice } from './ui/NameChoice';
 import { Snackbar } from './ui/Snackbar';
 import { GameOver } from './ui/GameOver';
+import { StartShare } from './ui/StartShare';
 
 // After a round resolves: a correct guess flashes green briefly, a miss / timeout
 // reveals the full card for a beat — then we auto-advance to the next card.
@@ -154,6 +155,7 @@ export function App() {
         <span className="brand-sub">guess the card</span>
       </header>
 
+      {phase === 'idle' && <StartShare />}
       {phase === 'idle' && <StartArtwork />}
       {round && <CardStage stage={playingNow ? stage : 5} />}
 
