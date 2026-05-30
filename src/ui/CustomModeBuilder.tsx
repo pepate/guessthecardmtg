@@ -3,7 +3,7 @@ import {
   CARD_TYPES, COLORS, RARITIES, validateFilter,
   type CardType, type ColorCode, type CustomFilter, type Range, type Rarity,
 } from '../customModes/filter';
-import { countFilteredCards, createMode } from '../customModes/client';
+import { countFilteredCards, createMode, listSets, findExistingMode, type SetItem } from '../customModes/client';
 import type { CustomMode } from '../customModes/types';
 
 const COLOR_LABEL: Record<ColorCode, string> = {
@@ -65,15 +65,25 @@ function RangeRow({ label, value, onChange, disabled }: {
   );
 }
 
-export function CustomModeBuilder({ onCreated, onCancel }: {
+export function CustomModeBuilder({ onCreated, onCancel, onExisting }: {
   onCreated: (mode: CustomMode, existed: boolean) => void;
   onCancel: () => void;
+  onExisting: (mode: CustomMode) => void;
 }) {
   const [filter, setFilter] = useState<CustomFilter>({});
   const [count, setCount] = useState<number | null>(null);
   const [counting, setCounting] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sets, setSets] = useState<SetItem[]>([]);
+  const [setQuery, setSetQuery] = useState('');
+  const [existing, setExisting] = useState<CustomMode | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    listSets().then((s) => { if (!cancelled) setSets(s); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const validation = useMemo(() => validateFilter(filter), [filter]);
   const creatureOnly = filter.types?.length === 1 && filter.types[0] === 'Creature';
@@ -108,16 +118,52 @@ export function CustomModeBuilder({ onCreated, onCancel }: {
       <h2 style={{ margin: 0, textAlign: 'center', color: 'var(--ink-0)', fontSize: 24 }}>Build a mode</h2>
 
       <div style={section}>
-        <span style={legend}>Set code (exclusive)</span>
-        <input
-          type="text" placeholder="e.g. dom — locks out other filters"
-          value={(filter.sets ?? []).join(', ')}
-          onChange={(e) => {
-            const sets = e.target.value.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-            patch({ sets: sets.length ? sets : undefined });
-          }}
-          style={{ ...numInput, width: '100%' }}
-        />
+        <span style={legend}>Set filter (exclusive)</span>
+        {filter.sets?.length === 1 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span data-testid="set-chosen" style={{ flex: 1, color: 'var(--ink-0)', fontSize: 14 }}>
+              {sets.find((s) => s.code === filter.sets![0])?.name ?? filter.sets![0].toUpperCase()}
+              {(() => { const y = sets.find((s) => s.code === filter.sets![0])?.released_at?.slice(0, 4); return y ? ` · ${y}` : ''; })()}
+            </span>
+            <button type="button" className="ghost-btn" style={{ padding: '4px 10px' }}
+              onClick={() => { patch({ sets: undefined }); setExisting(null); setSetQuery(''); }}>×</button>
+          </div>
+        ) : (
+          <>
+            <input
+              type="text" data-testid="set-search" placeholder="Search a set by name — locks out other filters"
+              value={setQuery}
+              onChange={(e) => setSetQuery(e.target.value)}
+              style={{ ...numInput, width: '100%' }}
+            />
+            {setQuery.trim().length >= 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 180, overflowY: 'auto' }}>
+                {sets
+                  .filter((s) => s.name.toLowerCase().includes(setQuery.trim().toLowerCase()) || s.code.includes(setQuery.trim().toLowerCase()))
+                  .slice(0, 30)
+                  .map((s) => (
+                    <button key={s.code} type="button" data-testid="set-option"
+                      onClick={async () => {
+                        patch({ sets: [s.code] });
+                        setSetQuery('');
+                        const m = await findExistingMode({ sets: [s.code] }).catch(() => null);
+                        setExisting(m);
+                      }}
+                      style={{ textAlign: 'left', padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line-strong)',
+                        background: 'rgba(20,17,28,0.5)', color: 'var(--ink-1)', cursor: 'pointer', fontSize: 13 }}>
+                      {s.name}{s.released_at ? ` · ${s.released_at.slice(0, 4)}` : ''}
+                    </button>
+                  ))}
+              </div>
+            )}
+          </>
+        )}
+        {existing && (
+          <button type="button" data-testid="existing-mode-link" onClick={() => onExisting(existing)}
+            style={{ textAlign: 'left', color: 'var(--ember-hot)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, padding: 0 }}>
+            This set already has a mode → View it
+          </button>
+        )}
       </div>
 
       <fieldset style={{ ...section, border: 'none', padding: 0, margin: 0, opacity: singleSet ? 0.4 : 1 }} disabled={singleSet}>
@@ -158,14 +204,15 @@ export function CustomModeBuilder({ onCreated, onCancel }: {
         <span style={legend}>Ranges</span>
         <RangeRow label="CMC" value={filter.cmc} onChange={(r) => patch({ cmc: r })} />
         <RangeRow label="EDH rank" value={filter.edhrec} onChange={(r) => patch({ edhrec: r })} />
+        <RangeRow label="Year" value={filter.year} onChange={(r) => patch({ year: r })} />
         {creatureOnly && <RangeRow label="Power" value={filter.power} onChange={(r) => patch({ power: r })} />}
         {creatureOnly && <RangeRow label="Toughness" value={filter.toughness} onChange={(r) => patch({ toughness: r })} />}
 
         <span style={legend}>Universe Beyond</span>
         <div style={{ display: 'flex', gap: 6 }}>
-          {(['yes', 'no', 'only'] as const).map((v) => (
-            <Chip key={v} active={(filter.ub ?? 'yes') === v} onClick={() => patch({ ub: v })}>
-              {v === 'yes' ? 'Include' : v === 'no' ? 'Exclude' : 'Only UB'}
+          {(['no', 'yes', 'only'] as const).map((v) => (
+            <Chip key={v} active={(filter.ub ?? 'no') === v} onClick={() => patch({ ub: v })}>
+              {v === 'no' ? 'Exclude' : v === 'yes' ? 'Include' : 'Only UB'}
             </Chip>
           ))}
         </div>
