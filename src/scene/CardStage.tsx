@@ -145,7 +145,7 @@ export function CardStage({
         <AnimatePresence>
           {mode === 'scanner' ? (
             <>
-              {!over && (
+              {!over && progress < 1 && (
                 <motion.div
                   key="scan-cover"
                   data-testid="scan-cover"

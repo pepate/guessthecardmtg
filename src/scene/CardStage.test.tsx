@@ -52,6 +52,12 @@ describe('CardStage scanner mode', () => {
     expect(screen.queryByTestId('blur-name')).toBeNull();
     expect(screen.queryByTestId('scan-cover')).toBeNull();
   });
+
+  it('drops the cover once the sweep completes but keeps the name hidden', () => {
+    render(<CardStage mode="scanner" stage={5} progress={1} angle={30} />);
+    expect(screen.queryByTestId('scan-cover')).toBeNull();
+    expect(screen.getByTestId('blur-name')).toBeTruthy();
+  });
 });
 
 describe('CardStage blur mode (unchanged)', () => {
