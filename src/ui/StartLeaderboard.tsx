@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Leaderboard } from './Leaderboard';
 
-export function StartLeaderboard() {
+export function StartLeaderboard({ refreshKey = 0 }: { refreshKey?: number }) {
   return (
     <motion.div
       data-testid="start-leaderboard"
@@ -20,7 +20,7 @@ export function StartLeaderboard() {
       >
         Leaderboard
       </span>
-      <Leaderboard />
+      <Leaderboard refreshKey={refreshKey} />
     </motion.div>
   );
 }

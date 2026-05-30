@@ -4,7 +4,12 @@ import type { GlobalEntry } from './types';
 import { fetchTopScores } from './client';
 import { windowCutoff, type TimeWindow } from './window';
 
-export function useLeaderboard(pool: PoolKind, limit: number, window: TimeWindow = 'all') {
+export function useLeaderboard(
+  pool: PoolKind,
+  limit: number,
+  window: TimeWindow = 'all',
+  refreshKey = 0,
+) {
   const [entries, setEntries] = useState<GlobalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -26,7 +31,7 @@ export function useLeaderboard(pool: PoolKind, limit: number, window: TimeWindow
     return () => {
       cancelled = true;
     };
-  }, [pool, limit, window]);
+  }, [pool, limit, window, refreshKey]);
 
   useEffect(() => reload(), [reload]);
 

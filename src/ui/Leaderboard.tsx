@@ -50,14 +50,14 @@ function GlobalView({
   );
 }
 
-export function Leaderboard() {
+export function Leaderboard({ refreshKey = 0 }: { refreshKey?: number }) {
   const [tab, setTab] = useState<Tab>('all');
   const [win, setWin] = useState<TimeWindow>('today');
   const [allExpanded, setAllExpanded] = useState(false);
   const [popExpanded, setPopExpanded] = useState(false);
 
-  const all = useLeaderboard('all', allExpanded ? 100 : PROBE, win);
-  const popular = useLeaderboard('popular', popExpanded ? 100 : PROBE, win);
+  const all = useLeaderboard('all', allExpanded ? 100 : PROBE, win, refreshKey);
+  const popular = useLeaderboard('popular', popExpanded ? 100 : PROBE, win, refreshKey);
   const mine = loadHighscores();
 
   const showPopular = popular.entries.length >= 1;

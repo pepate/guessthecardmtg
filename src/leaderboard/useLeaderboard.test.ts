@@ -26,4 +26,14 @@ describe('useLeaderboard', () => {
     expect(result.current.error).toBe(true);
     expect(result.current.entries).toEqual([]);
   });
+
+  it('refetches when refreshKey changes', async () => {
+    const spy = vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
+    const { rerender } = renderHook(({ k }) => useLeaderboard('all', 5, 'all', k), {
+      initialProps: { k: 0 },
+    });
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    rerender({ k: 1 });
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+  });
 });
