@@ -13,6 +13,7 @@ import { Timer } from './ui/Timer';
 import { NameChoice } from './ui/NameChoice';
 import { Snackbar } from './ui/Snackbar';
 import { GameOver } from './ui/GameOver';
+import { GameOverArtwork } from './ui/GameOverArtwork';
 import { StartShare } from './ui/StartShare';
 import { InstallButton } from './ui/InstallButton';
 import { StartLeaderboard } from './ui/StartLeaderboard';
@@ -30,7 +31,7 @@ const FALLBACK_ART = `${import.meta.env.BASE_URL}og-image.jpeg`;
 
 // A random card's artwork, shown faded behind the start screen for a splash of
 // colour. Best-effort: if the fetch fails we simply render nothing.
-function StartArtwork({ variant = 'banner' }: { variant?: 'banner' | 'full' }) {
+function StartArtwork() {
   const [art, setArt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,40 +48,6 @@ function StartArtwork({ variant = 'banner' }: { variant?: 'banner' | 'full' }) {
   }, []);
 
   const bg = art ?? FALLBACK_ART;
-
-  if (variant === 'full') {
-    return (
-      <motion.div
-        key="full-art"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 1.2 }}
-        aria-hidden
-        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `url(${bg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        />
-        {/* Scrim that darkens toward the bottom: artwork stays visible up top while
-            the lower buttons (esp. Share) sit over near-solid ink for readability. */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background:
-              'linear-gradient(180deg, rgba(7,6,10,0.34) 0%, rgba(7,6,10,0.46) 32%, rgba(7,6,10,0.80) 72%, rgba(7,6,10,0.95) 100%)',
-          }}
-        />
-      </motion.div>
-    );
-  }
 
   return (
     <motion.div
@@ -269,7 +236,7 @@ export function App() {
       {phase === 'idle' && <StartShare />}
       {phase === 'gameover' && <InstallButton />}
       {phase === 'idle' && <StartArtwork />}
-      {phase === 'gameover' && <StartArtwork variant="full" />}
+      {phase === 'gameover' && <GameOverArtwork />}
       {round && !(wide && phase === 'playing') && (
         <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} />
       )}
