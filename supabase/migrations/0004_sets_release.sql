@@ -134,3 +134,21 @@ begin
 end;
 $$;
 grant execute on function public.get_mode_game_cards(uuid, int) to anon, authenticated;
+
+-- Recompute each card's debut date from its printings. Idempotent; run after
+-- card_set is (re)populated.
+create or replace function public.backfill_card_released_at()
+returns void
+language sql
+as $$
+  update public.card c
+  set released_at = sub.debut
+  from (
+    select a.oracle_id, min(s.released_at) as debut
+    from public.card_art a
+    join public.card_set s on s.code = a.set_code
+    group by a.oracle_id
+  ) sub
+  where sub.oracle_id = c.oracle_id;
+$$;
+grant execute on function public.backfill_card_released_at() to service_role;

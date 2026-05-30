@@ -71,6 +71,31 @@ async function fetchUbOracleIds(): Promise<Set<string>> {
   return ids;
 }
 
+interface SetRow { code: string; name: string; released_at: string | null; set_type: string | null; card_count: number | null; }
+
+/** Fetch every set from Scryfall's /sets endpoint (single paginated list). */
+async function fetchSets(): Promise<SetRow[]> {
+  const rows: SetRow[] = [];
+  let next: string | null = `${SCRYFALL}/sets`;
+  while (next) {
+    const res = await scryfallGet(next);
+    const json: { data?: any[]; has_more?: boolean; next_page?: string } = await res.json();
+    for (const s of json.data ?? []) {
+      if (!s.code || !s.name) continue;
+      rows.push({
+        code: String(s.code).toLowerCase(),
+        name: s.name,
+        released_at: s.released_at ?? null,
+        set_type: s.set_type ?? null,
+        card_count: typeof s.card_count === 'number' ? s.card_count : null,
+      });
+    }
+    next = json.has_more ? (json.next_page ?? null) : null;
+    await sleep(150);
+  }
+  return rows;
+}
+
 async function insertBatched<T>(table: string, rows: T[]): Promise<void> {
   for (let i = 0; i < rows.length; i += BATCH) {
     const slice = rows.slice(i, i + BATCH);
@@ -120,6 +145,16 @@ async function main(): Promise<void> {
   await insertBatched('card', cardList);
   console.log('Inserting arts…');
   await insertBatched('card_art', arts);
+
+  console.log('Fetching sets from Scryfall…');
+  const sets = await fetchSets();
+  console.log(`  ${sets.length} sets`);
+  const upsert = await db.from('card_set').upsert(sets, { onConflict: 'code' });
+  if (upsert.error) throw new Error(`upsert card_set failed: ${upsert.error.message}`);
+
+  console.log('Backfilling card.released_at…');
+  const backfill = await db.rpc('backfill_card_released_at');
+  if (backfill.error) throw new Error(`backfill failed: ${backfill.error.message}`);
 
   console.log('Done.');
 }
