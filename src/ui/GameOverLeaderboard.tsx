@@ -7,6 +7,8 @@ import {
   fetchModeTopScores,
   submitScore,
 } from '../leaderboard/client';
+import { findExistingMode, createMode } from '../modes/client';
+import type { CustomFilter } from '../modes/filter';
 import { GlobalScoreList } from './GlobalScoreList';
 
 const NAME_KEY = 'guessthecard.playername';
@@ -17,11 +19,13 @@ export function GameOverLeaderboard({
   correct,
   modeId,
   modeName,
+  modeFilter,
 }: {
   score: number;
   correct: number;
   modeId: string;
   modeName?: string;
+  modeFilter?: CustomFilter;
 }) {
   const enabled = isLeaderboardEnabled();
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? '');
@@ -33,6 +37,7 @@ export function GameOverLeaderboard({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // When modeId is absent (unplayed set), skip fetching — no board exists yet.
     if (!enabled || score <= 0 || !modeId) return;
     let cancelled = false;
     const rankP = fetchModeProjectedRank(modeId, score);
@@ -70,13 +75,34 @@ export function GameOverLeaderboard({
       return;
     }
     setStatus('sending');
-    const res = await submitScore({ name: clean, score, correct, modeId });
+
+    // Resolve the mode id — may need lazy creation for unplayed sets.
+    let resolvedModeId = modeId;
+    if (!resolvedModeId) {
+      if (!modeFilter) {
+        setStatus('error');
+        return;
+      }
+      const existing = await findExistingMode(modeFilter).catch(() => null);
+      if (existing) {
+        resolvedModeId = existing.id;
+      } else {
+        const created = await createMode(modeFilter).catch(() => null);
+        if (!created || !created.ok) {
+          setStatus('error');
+          return;
+        }
+        resolvedModeId = created.mode.id;
+      }
+    }
+
+    const res = await submitScore({ name: clean, score, correct, modeId: resolvedModeId });
     if (!res.ok) {
       setStatus('error');
       return;
     }
     localStorage.setItem(NAME_KEY, clean);
-    const list = await fetchModeTopScores(modeId, VISIBLE).catch(() => []);
+    const list = await fetchModeTopScores(resolvedModeId, VISIBLE).catch(() => []);
     setTop(list);
     setPosted({ rank: res.rank, id: res.id, name: clean });
     setStatus('done');

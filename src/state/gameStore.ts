@@ -24,6 +24,8 @@ interface GameState {
   currentModeId: string | null;
   /** Display name of the current mode, for the game-over header. */
   currentModeName: string | null;
+  /** The filter used to deal cards for the current game; needed for lazy mode creation on submit. */
+  currentModeFilter: CustomFilter | null;
   /** The selection that built the current game, so "play again" can re-fetch. */
   lastSelection: PoolSelection | null;
   /** The whole game pre-planned so no card or name repeats across rounds. */
@@ -113,6 +115,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   poolKind: 'popular',
   currentModeId: null,
   currentModeName: null,
+  currentModeFilter: null,
   lastSelection: null,
   plan: [],
   round: null,
@@ -137,11 +140,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       const { config } = get();
 
       let filter: CustomFilter;
-      let modeId: string;
+      let modeId: string | null;
       let modeName: string;
       let poolKind: PoolKind;
 
-      if (selection.kind === 'custom') {
+      if (selection.kind === 'set') {
+        filter = { sets: [selection.code] };
+        modeId = selection.modeId;
+        modeName = selection.name;
+        poolKind = 'custom';
+      } else if (selection.kind === 'custom') {
         filter = selection.filter;
         modeId = selection.modeId;
         modeName = selection.name;
@@ -178,6 +186,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         poolKind,
         currentModeId: modeId,
         currentModeName: modeName,
+        currentModeFilter: filter,
         lastSelection: selection,
         plan,
         round: startPlanned(plan[0], Date.now()),
@@ -250,6 +259,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       pool: [],
       currentModeId: null,
       currentModeName: null,
+      currentModeFilter: null,
       plan: [],
       round: null,
       roundIndex: 0,
