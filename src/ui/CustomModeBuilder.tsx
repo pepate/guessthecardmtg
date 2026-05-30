@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CARD_TYPES, COLORS, RARITIES, validateFilter,
   type CardType, type ColorCode, type CustomFilter, type Range, type Rarity,
-} from '../customModes/filter';
-import { countFilteredCards, createMode, listSets, findExistingMode, type SetItem } from '../customModes/client';
-import type { CustomMode } from '../customModes/types';
+} from '../modes/filter';
+import { countFilteredCards, createMode, listSets, findExistingMode, type SetItem } from '../modes/client';
+import type { CustomMode } from '../modes/types';
 
 const COLOR_LABEL: Record<ColorCode, string> = {
   W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless',

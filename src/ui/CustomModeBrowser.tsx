@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../state/gameStore';
-import { listModes, randomMode } from '../customModes/client';
-import type { CustomMode, CustomModeListItem } from '../customModes/types';
+import { listModes, randomMode } from '../modes/client';
+import type { CustomMode, CustomModeListItem } from '../modes/types';
 import { FilterChips } from './FilterChips';
 import { CustomModeBuilder } from './CustomModeBuilder';
 import { CustomModeDetail } from './CustomModeDetail';

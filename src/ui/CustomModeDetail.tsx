@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { CustomMode } from '../customModes/types';
+import type { CustomMode } from '../modes/types';
 import type { GlobalEntry } from '../leaderboard/types';
 import { fetchModeTopScores } from '../leaderboard/client';
 import { FilterChips } from './FilterChips';

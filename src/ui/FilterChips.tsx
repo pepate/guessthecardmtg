@@ -1,4 +1,4 @@
-import { modeName, type CustomFilter } from '../customModes/filter';
+import { modeName, type CustomFilter } from '../modes/filter';
 
 export function FilterChips({ filter }: { filter: CustomFilter }) {
   const label = modeName(filter);
