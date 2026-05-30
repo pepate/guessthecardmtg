@@ -79,7 +79,19 @@ function Mask({ style }: { style: CSSProperties }) {
   );
 }
 
-export function CardStage({ stage, wide = false }: { stage: RevealStage; wide?: boolean }) {
+export function CardStage({
+  stage,
+  wide = false,
+  mode = 'blur',
+  progress = 0,
+  angle = 0,
+}: {
+  stage: RevealStage;
+  wide?: boolean;
+  mode?: 'blur' | 'scanner';
+  progress?: number;
+  angle?: number;
+}) {
   const round = useGameStore((s) => s.round);
   if (!round) return null;
 
@@ -131,29 +143,57 @@ export function CardStage({ stage, wide = false }: { stage: RevealStage; wide?: 
         />
 
         <AnimatePresence>
-          {artOnly && (
+          {mode === 'scanner' ? (
             <>
-              <Mask key="m-top" style={{ top: 0, left: 0, width: '100%', height: '11.5%' }} />
-              <Mask key="m-bottom" style={{ top: '56%', left: 0, width: '100%', height: '44%' }} />
-              <Mask key="m-left" style={{ top: '11.5%', left: 0, width: '7.5%', height: '44.5%' }} />
-              <Mask key="m-right" style={{ top: '11.5%', left: '92.5%', width: '7.5%', height: '44.5%' }} />
+              {!over && progress < 1 && (
+                <motion.div
+                  key="scan-cover"
+                  data-testid="scan-cover"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: `linear-gradient(${angle}deg, transparent ${Math.max(0, progress * 100 - 3)}%, #ffd79a ${progress * 100}%, rgba(255,150,60,0.6) ${progress * 100 + 1}%, #07050a ${progress * 100 + 4}%, #07050a 100%)`,
+                  }}
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                />
+              )}
+              {blurName && (
+                <Blur
+                  key="name"
+                  testid="blur-name"
+                  style={{ top: '3.2%', left: '5%', width: '60%', height: '6.5%', zIndex: 2 }}
+                />
+              )}
             </>
-          )}
+          ) : (
+            <>
+              {artOnly && (
+                <>
+                  <Mask key="m-top" style={{ top: 0, left: 0, width: '100%', height: '11.5%' }} />
+                  <Mask key="m-bottom" style={{ top: '56%', left: 0, width: '100%', height: '44%' }} />
+                  <Mask key="m-left" style={{ top: '11.5%', left: 0, width: '7.5%', height: '44.5%' }} />
+                  <Mask key="m-right" style={{ top: '11.5%', left: '92.5%', width: '7.5%', height: '44.5%' }} />
+                </>
+              )}
 
-          {blurName && (
-            <Blur key="name" testid="blur-name" style={{ top: '3.2%', left: '5%', width: '60%', height: '6.5%' }} />
-          )}
-          {blurMana && (
-            <Blur key="mana" testid="blur-mana" style={{ top: '3.2%', left: '58%', width: '37%', height: '6.5%' }} />
-          )}
-          {blurType && (
-            <Blur key="type" testid="blur-type" style={{ top: '56.3%', left: '5%', width: '90%', height: '5.5%' }} />
-          )}
-          {blurText && (
-            <Blur key="text" testid="blur-text" style={{ top: '62.5%', left: '5%', width: '90%', height: '26%' }} />
-          )}
-          {blurPower && (
-            <Blur key="power" testid="blur-power" style={{ top: '88%', left: '75%', width: '18%', height: '6.5%' }} />
+              {blurName && (
+                <Blur key="name" testid="blur-name" style={{ top: '3.2%', left: '5%', width: '60%', height: '6.5%' }} />
+              )}
+              {blurMana && (
+                <Blur key="mana" testid="blur-mana" style={{ top: '3.2%', left: '58%', width: '37%', height: '6.5%' }} />
+              )}
+              {blurType && (
+                <Blur key="type" testid="blur-type" style={{ top: '56.3%', left: '5%', width: '90%', height: '5.5%' }} />
+              )}
+              {blurText && (
+                <Blur key="text" testid="blur-text" style={{ top: '62.5%', left: '5%', width: '90%', height: '26%' }} />
+              )}
+              {blurPower && (
+                <Blur key="power" testid="blur-power" style={{ top: '88%', left: '75%', width: '18%', height: '6.5%' }} />
+              )}
+            </>
           )}
         </AnimatePresence>
       </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire } from './timeAttack';
+import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, revealModeFor, scanAngleFor } from './timeAttack';
 import { DEFAULT_TIME_ATTACK_CONFIG as CFG } from './types';
 import type { Round } from './types';
 import type { ScryfallCard } from '../scryfall/types';
@@ -188,6 +188,56 @@ describe('expire', () => {
   it('does not override an already-won round', () => {
     const won = resolveGuess(createRound(TARGET, POOL, 1000), 'Lightning Bolt', 1000);
     expect(expire(won)).toBe(won);
+  });
+});
+
+describe('scanProgressAt', () => {
+  it('is 0 at or before the start', () => {
+    expect(scanProgressAt(0)).toBe(0);
+    expect(scanProgressAt(-500)).toBe(0);
+  });
+
+  it('is 1 at or after scanRevealMs', () => {
+    expect(scanProgressAt(CFG.scanRevealMs)).toBe(1);
+    expect(scanProgressAt(CFG.scanRevealMs + 5000)).toBe(1);
+  });
+
+  it('is linear in between (half way at half the time)', () => {
+    expect(scanProgressAt(CFG.scanRevealMs / 2)).toBeCloseTo(0.5, 5);
+  });
+});
+
+describe('revealModeFor', () => {
+  it('strictly alternates blur/scanner with parity 0 (blur first)', () => {
+    expect(revealModeFor(0, 0)).toBe('blur');
+    expect(revealModeFor(1, 0)).toBe('scanner');
+    expect(revealModeFor(2, 0)).toBe('blur');
+    expect(revealModeFor(3, 0)).toBe('scanner');
+  });
+
+  it('flips which mode is first with parity 1 (scanner first)', () => {
+    expect(revealModeFor(0, 1)).toBe('scanner');
+    expect(revealModeFor(1, 1)).toBe('blur');
+    expect(revealModeFor(2, 1)).toBe('scanner');
+  });
+});
+
+describe('scanAngleFor', () => {
+  it('is deterministic for the same seed + round', () => {
+    expect(scanAngleFor(12345, 3)).toBe(scanAngleFor(12345, 3));
+  });
+
+  it('returns an angle in [0, 360)', () => {
+    for (let i = 0; i < 10; i++) {
+      const a = scanAngleFor(987, i);
+      expect(a).toBeGreaterThanOrEqual(0);
+      expect(a).toBeLessThan(360);
+    }
+  });
+
+  it('varies across rounds for one game seed', () => {
+    const angles = new Set([0, 1, 2, 3, 4].map((i) => scanAngleFor(42, i)));
+    expect(angles.size).toBeGreaterThan(1);
   });
 });
 

@@ -2,6 +2,8 @@ import type { Round, RevealStage, TimeAttackConfig } from './types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from './types';
 import type { ScryfallCard } from '../scryfall/types';
 
+export type RevealMode = 'blur' | 'scanner';
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -108,6 +110,31 @@ export function stageAt(
   if (elapsedMs <= 0) return 0;
   const s = Math.floor(elapsedMs / config.stageMs);
   return Math.min(5, s) as RevealStage;
+}
+
+/** Scanner-mode reveal fraction from elapsed ms: linear 0→1 over scanRevealMs. */
+export function scanProgressAt(
+  elapsedMs: number,
+  config: TimeAttackConfig = DEFAULT_TIME_ATTACK_CONFIG,
+): number {
+  if (elapsedMs <= 0) return 0;
+  return Math.min(1, elapsedMs / config.scanRevealMs);
+}
+
+/** Which reveal animation a round uses: strict A/B/A/B; parity flips round 1. */
+export function revealModeFor(roundIndex: number, parity: 0 | 1): RevealMode {
+  return (roundIndex + parity) % 2 === 0 ? 'blur' : 'scanner';
+}
+
+/**
+ * Deterministic pseudo-random sweep angle (degrees, [0,360)) for a round.
+ * Stable across re-renders for a given (seed, roundIndex) so the sweep
+ * direction never changes mid-round, but varies from card to card.
+ */
+export function scanAngleFor(seed: number, roundIndex: number): number {
+  const x = Math.sin(seed * 374761393 + roundIndex * 668265263 + 1) * 43758.5453;
+  const frac = x - Math.floor(x);
+  return Math.floor(frac * 360);
 }
 
 /**
