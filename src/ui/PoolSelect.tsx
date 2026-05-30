@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
+import { RevealModePicker } from './RevealModePicker';
 
 // Delay before the play icons start pulsing to invite a tap.
 const HINT_DELAY_MS = 4000;
@@ -113,6 +114,8 @@ export function PoolSelect({ onOpenCustom }: { onOpenCustom: () => void }) {
           Can you beat them?
         </div>
       )}
+
+      <RevealModePicker />
 
       <button style={btn} onClick={() => pick('popular')}>
         Popular cards
