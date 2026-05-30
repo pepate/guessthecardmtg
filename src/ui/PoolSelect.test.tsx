@@ -7,12 +7,12 @@ afterEach(() => vi.useRealTimers());
 
 describe('PoolSelect', () => {
   it('renders a play icon on each pool button', () => {
-    render(<PoolSelect onOpenCustom={() => {}} />);
-    expect(screen.getAllByTestId('play-icon')).toHaveLength(3);
+    render(<PoolSelect onOpenCustom={() => {}} onOpenSets={() => {}} />);
+    expect(screen.getAllByTestId('play-icon')).toHaveLength(4);
   });
 
   it('does not pulse initially, then pulses after the hint delay', () => {
-    render(<PoolSelect onOpenCustom={() => {}} />);
+    render(<PoolSelect onOpenCustom={() => {}} onOpenSets={() => {}} />);
     expect(screen.getAllByTestId('play-icon')[0]).not.toHaveClass('play-hint');
     act(() => {
       vi.advanceTimersByTime(4000);

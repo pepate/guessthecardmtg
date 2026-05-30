@@ -7,6 +7,7 @@ import { useGameClock, useGameTimeLeft } from './state/useGameClock';
 import { stageAt, scanProgressAt, revealModeFor, scanAngleFor, tilesRevealedAt, tileOrderFor } from './engine/timeAttack';
 import { PoolSelect } from './ui/PoolSelect';
 import { CustomModeBrowser } from './ui/CustomModeBrowser';
+import { SetsBrowser } from './ui/SetsBrowser';
 import { HUD } from './ui/HUD';
 import { Timer } from './ui/Timer';
 import { NameChoice } from './ui/NameChoice';
@@ -218,7 +219,7 @@ export function App() {
   const tileOrder = tileOrderFor(revealSeed, roundIndex, tileCount);
   const wide = useWideLayout();
 
-  const [screen, setScreen] = useState<'home' | 'custom'>('home');
+  const [screen, setScreen] = useState<'home' | 'custom' | 'sets'>('home');
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
   const { ref: pullRef, pull } = usePullToRefresh<HTMLDivElement>(() =>
     setLbRefreshKey((k) => k + 1),
@@ -280,6 +281,17 @@ export function App() {
             </motion.div>
           )}
 
+          {phase === 'idle' && screen === 'sets' && (
+            <motion.div
+              key="sets"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <SetsBrowser onBack={() => setScreen('home')} />
+            </motion.div>
+          )}
+
           {phase === 'idle' && screen === 'home' && (
             <motion.div
               key="idle"
@@ -302,7 +314,7 @@ export function App() {
                 <StartLeaderboard refreshKey={lbRefreshKey} />
               </div>
               <div style={{ flexShrink: 0 }}>
-                <PoolSelect onOpenCustom={() => setScreen('custom')} />
+                <PoolSelect onOpenCustom={() => setScreen('custom')} onOpenSets={() => setScreen('sets')} />
               </div>
             </motion.div>
           )}

@@ -44,7 +44,7 @@ const sub: React.CSSProperties = {
   marginTop: 2,
 };
 
-export function PoolSelect({ onOpenCustom }: { onOpenCustom: () => void }) {
+export function PoolSelect({ onOpenCustom, onOpenSets }: { onOpenCustom: () => void; onOpenSets: () => void }) {
   const selectPool = useGameStore((s) => s.selectPool);
   const challenge = useGameStore((s) => s.challenge);
   const [excludeUniverseBeyond, setExcludeUniverseBeyond] = useState(true);
@@ -129,6 +129,12 @@ export function PoolSelect({ onOpenCustom }: { onOpenCustom: () => void }) {
       <button style={btn} onClick={onOpenCustom} data-testid="open-custom">
         Custom Mode
         <span style={sub}>Build &amp; play your own filter</span>
+        <PlayIcon hint={hint} />
+      </button>
+
+      <button style={btn} onClick={onOpenSets} data-testid="open-sets">
+        Sets
+        <span style={sub}>Play any set&apos;s leaderboard</span>
         <PlayIcon hint={hint} />
       </button>
 
