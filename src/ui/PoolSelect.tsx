@@ -1,6 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
+
+// Delay before the play icons start pulsing to invite a tap.
+const HINT_DELAY_MS = 4000;
+
+function PlayIcon({ hint }: { hint: boolean }) {
+  return (
+    <span className={hint ? 'play-icon play-hint' : 'play-icon'} data-testid="play-icon" aria-hidden>
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M8 5v14l11-7z" />
+      </svg>
+    </span>
+  );
+}
 
 const btn: React.CSSProperties = {
   display: 'flex',
@@ -17,7 +30,8 @@ const btn: React.CSSProperties = {
   fontSize: 19,
   fontWeight: 600,
   cursor: 'pointer',
-  padding: '10px 16px',
+  padding: '10px 44px',
+  position: 'relative',
   backdropFilter: 'blur(8px)',
 };
 
@@ -34,6 +48,12 @@ export function PoolSelect() {
   const selectPool = useGameStore((s) => s.selectPool);
   const challenge = useGameStore((s) => s.challenge);
   const [excludeUniverseBeyond, setExcludeUniverseBeyond] = useState(true);
+  const [hint, setHint] = useState(false);
+
+  useEffect(() => {
+    const id = setTimeout(() => setHint(true), HINT_DELAY_MS);
+    return () => clearTimeout(id);
+  }, []);
 
   function pick(kind: 'popular' | 'all') {
     void selectPool({ kind, excludeUniverseBeyond });
@@ -97,11 +117,13 @@ export function PoolSelect() {
       <button style={btn} onClick={() => pick('popular')}>
         Popular cards
         <span style={sub}>Well-known Commander staples</span>
+        <PlayIcon hint={hint} />
       </button>
 
       <button style={btn} onClick={() => pick('all')}>
         All cards
         <span style={sub}>Everything from 2015 on</span>
+        <PlayIcon hint={hint} />
       </button>
 
       <label
