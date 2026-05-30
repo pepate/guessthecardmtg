@@ -16,6 +16,13 @@ export function CustomModeBrowser({ onBack }: { onBack: () => void }) {
   const [existed, setExisted] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  function refreshModes() {
+    listModes()
+      .then((m) => setModes(m))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }
+
   useEffect(() => {
     let cancelled = false;
     listModes()
@@ -23,6 +30,11 @@ export function CustomModeBrowser({ onBack }: { onBack: () => void }) {
       .catch(() => { if (!cancelled) { setModes([]); setLoading(false); } });
     return () => { cancelled = true; };
   }, []);
+
+  function backToList() {
+    refreshModes();
+    setView('list');
+  }
 
   function openDetail(mode: CustomMode, didExist = false) {
     setSelected(mode);
@@ -44,7 +56,7 @@ export function CustomModeBrowser({ onBack }: { onBack: () => void }) {
       <div className="bottom-sheet" style={{ maxHeight: '92%', overflowY: 'auto' }}>
         <CustomModeBuilder
           onCreated={(mode, didExist) => openDetail(mode, didExist)}
-          onCancel={() => setView('list')}
+          onCancel={backToList}
         />
       </div>
     );
@@ -53,7 +65,7 @@ export function CustomModeBrowser({ onBack }: { onBack: () => void }) {
   if (view === 'detail' && selected) {
     return (
       <div className="bottom-sheet" style={{ maxHeight: '92%', overflowY: 'auto' }}>
-        <CustomModeDetail mode={selected} existed={existed} onBack={() => setView('list')} onPlay={onPlay} />
+        <CustomModeDetail mode={selected} existed={existed} onBack={backToList} onPlay={onPlay} />
       </div>
     );
   }
