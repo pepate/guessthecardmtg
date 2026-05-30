@@ -226,17 +226,20 @@ describe('tilesRevealedAt', () => {
 });
 
 describe('revealModeFor', () => {
-  it('strictly alternates blur/scanner with parity 0 (blur first)', () => {
+  it('rotates blur → scanner → mosaic with offset 0', () => {
     expect(revealModeFor(0, 0)).toBe('blur');
     expect(revealModeFor(1, 0)).toBe('scanner');
-    expect(revealModeFor(2, 0)).toBe('blur');
-    expect(revealModeFor(3, 0)).toBe('scanner');
+    expect(revealModeFor(2, 0)).toBe('mosaic');
+    expect(revealModeFor(3, 0)).toBe('blur');
   });
 
-  it('flips which mode is first with parity 1 (scanner first)', () => {
+  it('offset shifts which mode is round 1', () => {
     expect(revealModeFor(0, 1)).toBe('scanner');
-    expect(revealModeFor(1, 1)).toBe('blur');
-    expect(revealModeFor(2, 1)).toBe('scanner');
+    expect(revealModeFor(0, 2)).toBe('mosaic');
+  });
+
+  it('wraps every 3 rounds', () => {
+    expect(revealModeFor(6, 2)).toBe(revealModeFor(0, 2));
   });
 });
 

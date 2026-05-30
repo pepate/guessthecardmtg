@@ -131,9 +131,11 @@ export function tilesRevealedAt(
   return Math.min(tileCount, Math.floor(elapsedMs / config.mosaicTileMs));
 }
 
-/** Which reveal animation a round uses: strict A/B/A/B; parity flips round 1. */
-export function revealModeFor(roundIndex: number, parity: 0 | 1): RevealMode {
-  return (roundIndex + parity) % 2 === 0 ? 'blur' : 'scanner';
+const REVEAL_MODES: RevealMode[] = ['blur', 'scanner', 'mosaic'];
+
+/** Which reveal animation a round uses: strict rotation blur→scanner→mosaic; offset shifts round 1. */
+export function revealModeFor(roundIndex: number, offset: 0 | 1 | 2): RevealMode {
+  return REVEAL_MODES[(roundIndex + offset) % REVEAL_MODES.length];
 }
 
 /**
