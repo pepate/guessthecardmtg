@@ -22,6 +22,8 @@ export interface TimeAttackConfig {
   mosaicRows: number;
   /** Mosaic mode: interval after which one more random tile is uncovered, in ms. */
   mosaicTileMs: number;
+  /** Zoom mode: how long the rules text stays hidden before auto-revealing, in ms. */
+  zoomTextRevealMs: number;
   /** Number of name choices (incl. the correct one). */
   optionCount: number;
   /** How many cards to pre-plan — an upper bound on cards a fast player can reach
@@ -40,6 +42,7 @@ export const DEFAULT_TIME_ATTACK_CONFIG: TimeAttackConfig = {
   mosaicCols: 4,
   mosaicRows: 6,
   mosaicTileMs: 500,
+  zoomTextRevealMs: 7000,
   optionCount: 4,
   totalRounds: 40,
 };
