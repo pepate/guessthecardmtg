@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
 import { useCountUp } from './useCountUp';
-import { HighscoreList } from './HighscoreList';
+import { GameOverLeaderboard } from './GameOverLeaderboard';
 import { shareUrl } from '../share/score';
 
 export function GameOver() {
@@ -80,12 +80,7 @@ export function GameOver() {
         </div>
       </div>
 
-      <div style={{ width: '100%', maxWidth: 420 }}>
-        <HighscoreList
-          entries={highscores}
-          highlight={(e) => e.score === totalScore && e.correct === correctCount}
-        />
-      </div>
+      <GameOverLeaderboard score={totalScore} correct={correctCount} pool={poolKind} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
         <button className="ember-btn" style={{ width: '100%' }} onClick={restart}>
