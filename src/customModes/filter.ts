@@ -16,6 +16,7 @@ export interface CustomFilter {
   types?: CardType[];
   power?: Range;
   toughness?: Range;
+  year?: Range;
   ub?: 'yes' | 'no' | 'only';
   edhrec?: Range;
   sets?: string[];
@@ -49,9 +50,11 @@ export function canonicalizeFilter(f: CustomFilter): CustomFilter {
   if (power) out.power = power;
   const toughness = cleanRange(f.toughness);
   if (toughness) out.toughness = toughness;
-  if (f.ub && f.ub !== 'yes') out.ub = f.ub; // 'yes' == no filter == default
+  if (f.ub && f.ub !== 'no') out.ub = f.ub; // 'no' (exclude) is the default
   const edhrec = cleanRange(f.edhrec);
   if (edhrec) out.edhrec = edhrec;
+  const year = cleanRange(f.year);
+  if (year) out.year = year;
   if (f.sets && f.sets.length) out.sets = [...new Set(f.sets)].sort();
   if (f.rarities && f.rarities.length) out.rarities = sortUnique(f.rarities, RARITIES);
   return out;
@@ -68,7 +71,7 @@ function rangeOrdered(r?: Range): boolean {
 // exclusivity rule (one set ⇒ no other filters).
 export function validateFilter(filter: CustomFilter): ValidateResult {
   const f = canonicalizeFilter(filter);
-  for (const r of [f.cmc, f.power, f.toughness, f.edhrec]) {
+  for (const r of [f.cmc, f.power, f.toughness, f.edhrec, f.year]) {
     if (!rangeOrdered(r)) return { ok: false, reason: 'bad-range' };
   }
   const hasPT = !!(f.power || f.toughness);
@@ -122,8 +125,13 @@ export function modeName(filter: CustomFilter): string {
   if (tou) parts.push(tou);
   const edh = rangeLabel('EDH', f.edhrec);
   if (edh) parts.push(edh);
+  if (f.year) {
+    if (f.year.min != null && f.year.max != null) parts.push(`${f.year.min}–${f.year.max}`);
+    else if (f.year.min != null) parts.push(`≥${f.year.min}`);
+    else if (f.year.max != null) parts.push(`≤${f.year.max}`);
+  }
   if (f.ub === 'only') parts.push('Universe Beyond');
-  if (f.ub === 'no') parts.push('No UB');
+  if (f.ub === 'yes') parts.push('Incl. UB');
   if (f.sets?.length) parts.push(f.sets.length === 1 ? f.sets[0].toUpperCase() : `${f.sets.length} sets`);
   if (f.rarities?.length) parts.push(f.rarities.map((r) => r[0].toUpperCase() + r.slice(1)).join('/'));
 

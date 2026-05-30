@@ -75,3 +75,36 @@ describe('canonicalizeFilter', () => {
     expect(canonicalizeFilter({ cmc: { min: 2 } })).toEqual({ cmc: { min: 2 } });
   });
 });
+
+describe('year filter', () => {
+  it('canonicalizes year between edhrec and sets', () => {
+    const c = canonicalizeFilter({ year: { min: 1993, max: 1999 }, edhrec: { min: 1 } });
+    expect(c.year).toEqual({ min: 1993, max: 1999 });
+    expect(JSON.stringify(c)).toContain('"edhrec"');
+  });
+  it('rejects an inverted year range', () => {
+    expect(validateFilter({ year: { min: 2010, max: 2000 } })).toEqual({ ok: false, reason: 'bad-range' });
+  });
+  it('labels a year range in the mode name', () => {
+    expect(modeName({ year: { min: 1993, max: 1999 } })).toContain('1993–1999');
+  });
+  it('single set is still exclusive when year is set', () => {
+    expect(validateFilter({ sets: ['dom'], year: { min: 2018 } })).toEqual({ ok: false, reason: 'single-set-exclusive' });
+  });
+});
+
+describe('UB default = exclude', () => {
+  it('drops ub when no/undefined (exclude is the default)', () => {
+    expect(canonicalizeFilter({ ub: 'no' }).ub).toBeUndefined();
+    expect(canonicalizeFilter({}).ub).toBeUndefined();
+  });
+  it('keeps yes and only', () => {
+    expect(canonicalizeFilter({ ub: 'yes' }).ub).toBe('yes');
+    expect(canonicalizeFilter({ ub: 'only' }).ub).toBe('only');
+  });
+  it('labels include/only but not the default exclude', () => {
+    expect(modeName({ ub: 'yes' })).toContain('Incl. UB');
+    expect(modeName({ ub: 'only' })).toContain('Universe Beyond');
+    expect(modeName({})).not.toContain('UB');
+  });
+});
