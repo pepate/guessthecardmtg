@@ -153,7 +153,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           b = await getBuiltinModes();
           if (b) set({ builtinModes: b });
         }
-        if (!b) throw new Error('Leaderboard unavailable');
+        if (!b) throw new Error('Card database is not configured.');
 
         const bm = selection.kind === 'all' ? b.all : b.popular;
         modeId = bm.id;

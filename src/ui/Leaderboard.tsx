@@ -61,12 +61,13 @@ export function Leaderboard({ refreshKey = 0 }: { refreshKey?: number }) {
   const [allExpanded, setAllExpanded] = useState(false);
   const [popExpanded, setPopExpanded] = useState(false);
   const [builtins, setBuiltins] = useState<{ all: CustomMode; popular: CustomMode } | null>(null);
+  const [builtinsError, setBuiltinsError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     getBuiltinModes()
       .then((b) => { if (!cancelled && b) setBuiltins(b); })
-      .catch(() => {});
+      .catch(() => { if (!cancelled) setBuiltinsError(true); });
     return () => { cancelled = true; };
   }, []);
 
@@ -89,6 +90,14 @@ export function Leaderboard({ refreshKey = 0 }: { refreshKey?: number }) {
   const tabs: { key: Tab; label: string }[] = [{ key: 'all', label: 'All Cards' }];
   if (showPopular) tabs.push({ key: 'popular', label: 'Popular' });
   if (showMe) tabs.push({ key: 'me', label: 'Me' });
+
+  if (builtinsError) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', maxWidth: 420 }}>
+        <p style={{ color: 'var(--ember-hot)', fontSize: 13, textAlign: 'center' }}>Leaderboard unavailable.</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', maxWidth: 420 }}>

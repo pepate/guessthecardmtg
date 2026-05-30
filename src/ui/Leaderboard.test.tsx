@@ -114,7 +114,8 @@ describe('Leaderboard', () => {
       }),
     );
     render(<Leaderboard />);
-    expect(screen.getAllByTestId('leaderboard-spinner').length).toBeGreaterThanOrEqual(1);
+    // The spinner appears once builtin mode ids resolve and the row fetch is in flight.
+    await waitFor(() => expect(screen.getAllByTestId('leaderboard-spinner').length).toBeGreaterThanOrEqual(1));
     resolve([entry]);
     await waitFor(() => expect(screen.getByText('Al')).toBeInTheDocument());
   });

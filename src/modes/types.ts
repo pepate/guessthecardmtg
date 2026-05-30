@@ -5,6 +5,7 @@ export interface CustomMode {
   name: string;
   filter: CustomFilter;
   card_count: number;
+  slug?: string;
 }
 export interface CustomModeListItem extends CustomMode {
   entry_count: number;

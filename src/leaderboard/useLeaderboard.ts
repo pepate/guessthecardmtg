@@ -14,6 +14,7 @@ export function useLeaderboard(
   const [error, setError] = useState(false);
 
   const reload = useCallback(() => {
+    if (!modeId) { setLoading(false); return () => {}; }
     let cancelled = false;
     setLoading(true);
     setError(false);

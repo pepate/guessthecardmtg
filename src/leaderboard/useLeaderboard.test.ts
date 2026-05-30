@@ -27,6 +27,14 @@ describe('useLeaderboard', () => {
     expect(result.current.entries).toEqual([]);
   });
 
+  it('does not fetch when the mode id is empty (builtins not yet resolved)', async () => {
+    const spy = vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([entry]);
+    const { result } = renderHook(() => useLeaderboard('', 5));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(spy).not.toHaveBeenCalled();
+    expect(result.current.entries).toEqual([]);
+  });
+
   it('refetches when refreshKey changes', async () => {
     const spy = vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([entry]);
     const { rerender } = renderHook(({ k }) => useLeaderboard('mode-uuid', 5, 'all', k), {
