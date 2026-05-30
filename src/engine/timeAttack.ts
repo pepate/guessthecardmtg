@@ -2,7 +2,7 @@ import type { Round, RevealStage, TimeAttackConfig } from './types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from './types';
 import type { ScryfallCard } from '../scryfall/types';
 
-export type RevealMode = 'blur' | 'scanner';
+export type RevealMode = 'blur' | 'scanner' | 'mosaic';
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
