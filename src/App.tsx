@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CardStage } from './scene/CardStage';
-import { fetchRandomCard } from './scryfall/client';
+import { fetchRandomCard } from './cards/client';
 import { useGameStore } from './state/gameStore';
 import { useGameClock, useGameTimeLeft } from './state/useGameClock';
 import { stageAt } from './engine/timeAttack';

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Round, TimeAttackConfig } from '../engine/types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from '../engine/types';
 import { planGame, resolveGuess, expire as expireRound, type PlannedRound } from '../engine/timeAttack';
-import { fetchCandidates } from '../scryfall/client';
+import { fetchCandidates } from '../cards/client';
 import type { PoolSelection, ScryfallCard } from '../scryfall/types';
 import { loadHighscores, saveHighscore, type HighscoreEntry, type PoolKind } from './highscores';
 import { decodeResult, type SharedResult } from '../share/score';
