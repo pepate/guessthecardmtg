@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeName, validateScore, validateSubmission, NAME_MAX } from './validation';
+import { sanitizeName, validateScore, NAME_MAX } from './validation';
 
 describe('sanitizeName', () => {
   it('trims and collapses whitespace', () => {
@@ -40,20 +40,5 @@ describe('validateScore', () => {
   it('rejects non-integers', () => {
     expect(validateScore(100.5, 1)).toBe(false);
     expect(validateScore(500, 1.5)).toBe(false);
-  });
-});
-
-describe('validateSubmission', () => {
-  it('accepts a well-formed submission', () => {
-    expect(validateSubmission({ name: 'Alice', score: 5000, correct: 10, pool: 'popular' })).toBe(true);
-  });
-  it('rejects an unknown pool', () => {
-    expect(validateSubmission({ name: 'Alice', score: 5000, correct: 10, pool: 'weird' })).toBe(false);
-  });
-  it('rejects a too-short name', () => {
-    expect(validateSubmission({ name: 'al', score: 5000, correct: 10, pool: 'all' })).toBe(false);
-  });
-  it('rejects an implausible score', () => {
-    expect(validateSubmission({ name: 'Alice', score: 999999, correct: 10, pool: 'all' })).toBe(false);
   });
 });

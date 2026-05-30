@@ -14,7 +14,7 @@ const MAX_PER_CARD = 1000;
 const RATE_MAX = 5;
 const RATE_WINDOW_MS = 60_000;
 const BANNED = ['fuck', 'shit', 'nigger', 'cunt', 'bitch', 'asshole'];
-const VALID_GAME_MODES = ['blur', 'scanner', 'mosaic', 'zoom'] as const;
+const VALID_GAME_MODES = ['blur', 'scanner', 'mosaic', 'zoom', 'silhouette', 'spotlight'] as const;
 
 function sanitizeName(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;

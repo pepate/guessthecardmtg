@@ -22,14 +22,3 @@ export function validateScore(score: number, correct: number): boolean {
   if (correct === 0) return score === 0;
   return score >= correct * MIN_PER_CARD && score <= correct * MAX_PER_CARD;
 }
-
-export function validateSubmission(p: {
-  name: string;
-  score: number;
-  correct: number;
-  pool: string;
-}): boolean {
-  if (p.pool !== 'popular' && p.pool !== 'all') return false;
-  if (sanitizeName(p.name) === null) return false;
-  return validateScore(p.score, p.correct);
-}
