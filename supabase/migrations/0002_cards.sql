@@ -45,6 +45,13 @@ as $$
   truncate public.card_art, public.card restart identity cascade;
 $$;
 
+-- reset_cards() is SECURITY DEFINER and destructive. Postgres grants EXECUTE to
+-- PUBLIC on new functions by default, which would let any anon/authenticated
+-- client truncate the catalogue via PostgREST. Lock it down to the seed's
+-- service_role only.
+revoke execute on function public.reset_cards() from public, anon, authenticated;
+grant execute on function public.reset_cards() to service_role;
+
 -- Game query: `p_count` random distinct cards (filtered to popular and/or
 -- non-UB), each joined to one random artwork. Fresh on every call.
 create or replace function public.get_game_cards(
@@ -79,7 +86,10 @@ as $$
     where (p_pool <> 'popular' or is_popular)
       and (not p_exclude_ub or not is_ub)
     order by random()
-    limit greatest(p_count, 0)
+    -- Clamp p_count: this RPC is public (granted to anon), and an unbounded
+    -- count would force `order by random()` over the whole table plus one
+    -- lateral random scan per row. The app never asks for more than 175.
+    limit least(greatest(p_count, 0), 500)
   ) c
   cross join lateral (
     select ca.rarity, ca.set_code, ca.set_name, ca.image_normal, ca.image_art_crop
