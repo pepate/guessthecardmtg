@@ -1,19 +1,9 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { getSupabase } from '../supabase/client';
 import type { PoolKind } from '../state/highscores';
 import type { GlobalEntry, SubmitPayload } from './types';
 
-let cached: SupabaseClient | null | undefined;
-
-function getClient(): SupabaseClient | null {
-  if (cached !== undefined) return cached;
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  cached = url && key ? createClient(url, key) : null;
-  return cached;
-}
-
 export function isLeaderboardEnabled(): boolean {
-  return getClient() !== null;
+  return getSupabase() !== null;
 }
 
 interface Row {
@@ -39,7 +29,7 @@ function toEntry(r: Row): GlobalEntry {
 }
 
 export async function fetchTopScores(pool: PoolKind, limit = 5): Promise<GlobalEntry[]> {
-  const c = getClient();
+  const c = getSupabase();
   if (!c) return [];
   const { data, error } = await c
     .from('leaderboard_top')
@@ -56,7 +46,7 @@ export async function fetchProjectedRank(
   pool: PoolKind,
   score: number,
 ): Promise<{ rank: number; total: number }> {
-  const c = getClient();
+  const c = getSupabase();
   if (!c) return { rank: 1, total: 0 };
   const higher = await c
     .from('leaderboard_top')
@@ -77,7 +67,7 @@ export type SubmitResult =
   | { ok: false; reason: string };
 
 export async function submitScore(payload: SubmitPayload): Promise<SubmitResult> {
-  const c = getClient();
+  const c = getSupabase();
   if (!c) return { ok: false, reason: 'disabled' };
   const { data, error } = await c.functions.invoke('submit-score', { body: payload });
   if (error) return { ok: false, reason: error.message };
