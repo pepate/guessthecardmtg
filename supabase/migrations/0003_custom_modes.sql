@@ -96,3 +96,69 @@ begin
 end;
 $$;
 grant execute on function public.count_filtered_cards(jsonb) to anon, authenticated;
+
+-- Random distinct cards for one custom game, same row shape as get_game_cards.
+-- Reads the stored filter by mode id (mode is authoritative). When sets/rarities
+-- are set, the lateral art-join is restricted to a matching printing so the shown
+-- art actually belongs to the filtered set/rarity.
+create or replace function public.get_mode_game_cards(p_mode_id uuid, p_count int)
+returns table (
+  oracle_id uuid, name text, cmc real, colors text[], color_identity text[],
+  type_line text, power text, toughness text, rarity text, set_code text,
+  set_name text, image_normal text, image_art_crop text
+)
+language plpgsql
+stable
+as $$
+declare
+  p_filter jsonb;
+  v_colors text[];
+  v_match text; v_types text[]; v_sets text[]; v_rar text[]; v_ub text;
+begin
+  select filter into p_filter from public.custom_mode where id = p_mode_id;
+  if p_filter is null then return; end if;
+  v_colors := coalesce(array(select jsonb_array_elements_text(p_filter#>'{colors,values}')), '{}');
+  v_match  := coalesce(p_filter#>>'{colors,match}', 'any');
+  v_types  := coalesce(array(select jsonb_array_elements_text(p_filter->'types')), '{}');
+  v_sets   := coalesce(array(select jsonb_array_elements_text(p_filter->'sets')), '{}');
+  v_rar    := coalesce(array(select jsonb_array_elements_text(p_filter->'rarities')), '{}');
+  v_ub     := p_filter->>'ub';
+
+  return query
+  select c.oracle_id, c.name, c.cmc, c.colors, c.color_identity,
+         c.type_line, c.power, c.toughness,
+         a.rarity, a.set_code, a.set_name, a.image_normal, a.image_art_crop
+  from (
+    select * from public.card c
+    where (p_filter->'cmc'->>'min' is null or c.cmc >= (p_filter->'cmc'->>'min')::real)
+      and (p_filter->'cmc'->>'max' is null or c.cmc <= (p_filter->'cmc'->>'max')::real)
+      and (p_filter->'edhrec'->>'min' is null or (c.edhrec_rank is not null and c.edhrec_rank >= (p_filter->'edhrec'->>'min')::int))
+      and (p_filter->'edhrec'->>'max' is null or (c.edhrec_rank is not null and c.edhrec_rank <= (p_filter->'edhrec'->>'max')::int))
+      and (p_filter->'power'->>'min' is null or (c.power ~ '^[0-9]+$' and c.power::int >= (p_filter->'power'->>'min')::int))
+      and (p_filter->'power'->>'max' is null or (c.power ~ '^[0-9]+$' and c.power::int <= (p_filter->'power'->>'max')::int))
+      and (p_filter->'toughness'->>'min' is null or (c.toughness ~ '^[0-9]+$' and c.toughness::int >= (p_filter->'toughness'->>'min')::int))
+      and (p_filter->'toughness'->>'max' is null or (c.toughness ~ '^[0-9]+$' and c.toughness::int <= (p_filter->'toughness'->>'max')::int))
+      and (v_ub is null or v_ub = 'yes' or (v_ub = 'no' and not c.is_ub) or (v_ub = 'only' and c.is_ub))
+      and (cardinality(v_colors) = 0 or (
+        (case when v_match = 'all'
+              then c.colors @> (select array_agg(x) from unnest(v_colors) x where x <> 'C')
+              else c.colors && (select array_agg(x) from unnest(v_colors) x where x <> 'C') end)
+        or ('C' = any(v_colors) and (c.colors is null or cardinality(c.colors) = 0))))
+      and (cardinality(v_types) = 0 or exists (select 1 from unnest(v_types) t where c.type_line ilike '%' || t || '%'))
+      and (cardinality(v_sets) = 0 or exists (select 1 from public.card_art a where a.oracle_id = c.oracle_id and a.set_code = any(v_sets)))
+      and (cardinality(v_rar) = 0 or exists (select 1 from public.card_art a where a.oracle_id = c.oracle_id and a.rarity = any(v_rar)))
+    order by random()
+    limit least(greatest(p_count, 0), 500)
+  ) c
+  cross join lateral (
+    select ca.rarity, ca.set_code, ca.set_name, ca.image_normal, ca.image_art_crop
+    from public.card_art ca
+    where ca.oracle_id = c.oracle_id
+      and (cardinality(v_sets) = 0 or ca.set_code = any(v_sets))
+      and (cardinality(v_rar) = 0 or ca.rarity = any(v_rar))
+    order by random()
+    limit 1
+  ) a;
+end;
+$$;
+grant execute on function public.get_mode_game_cards(uuid, int) to anon, authenticated;
