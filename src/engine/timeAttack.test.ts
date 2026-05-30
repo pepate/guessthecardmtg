@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt } from './timeAttack';
+import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, revealModeFor, scanAngleFor } from './timeAttack';
 import { DEFAULT_TIME_ATTACK_CONFIG as CFG } from './types';
 import type { Round } from './types';
 import type { ScryfallCard } from '../scryfall/types';
@@ -204,6 +204,21 @@ describe('scanProgressAt', () => {
 
   it('is linear in between (half way at half the time)', () => {
     expect(scanProgressAt(CFG.scanRevealMs / 2)).toBeCloseTo(0.5, 5);
+  });
+});
+
+describe('revealModeFor', () => {
+  it('strictly alternates blur/scanner with parity 0 (blur first)', () => {
+    expect(revealModeFor(0, 0)).toBe('blur');
+    expect(revealModeFor(1, 0)).toBe('scanner');
+    expect(revealModeFor(2, 0)).toBe('blur');
+    expect(revealModeFor(3, 0)).toBe('scanner');
+  });
+
+  it('flips which mode is first with parity 1 (scanner first)', () => {
+    expect(revealModeFor(0, 1)).toBe('scanner');
+    expect(revealModeFor(1, 1)).toBe('blur');
+    expect(revealModeFor(2, 1)).toBe('scanner');
   });
 });
 

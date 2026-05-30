@@ -2,6 +2,8 @@ import type { Round, RevealStage, TimeAttackConfig } from './types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from './types';
 import type { ScryfallCard } from '../scryfall/types';
 
+export type RevealMode = 'blur' | 'scanner';
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -117,6 +119,11 @@ export function scanProgressAt(
 ): number {
   if (elapsedMs <= 0) return 0;
   return Math.min(1, elapsedMs / config.scanRevealMs);
+}
+
+/** Which reveal animation a round uses: strict A/B/A/B; parity flips round 1. */
+export function revealModeFor(roundIndex: number, parity: 0 | 1): RevealMode {
+  return (roundIndex + parity) % 2 === 0 ? 'blur' : 'scanner';
 }
 
 /**
