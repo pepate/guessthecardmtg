@@ -109,7 +109,7 @@ function LoadingScreen() {
   useEffect(() => {
     const id = setInterval(
       () => setIdx((i) => (i + 1) % SUMMONING_TEXTS.length),
-      1900,
+      5000,
     );
     return () => clearInterval(id);
   }, []);
@@ -142,11 +142,12 @@ function LoadingScreen() {
         style={{
           color: 'var(--ink-1)',
           fontFamily: "'Cormorant Garamond', serif",
-          fontSize: 17,
+          fontSize: 22,
+          lineHeight: 1.3,
           fontStyle: 'italic',
           textAlign: 'center',
-          maxWidth: 440,
-          minHeight: 48,
+          maxWidth: 460,
+          minHeight: 58,
         }}
       >
         {SUMMONING_TEXTS[idx]}
