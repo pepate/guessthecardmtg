@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalizeFilter, filterHash, modeName, type CustomFilter } from './filter';
+import { canonicalizeFilter, filterHash, modeName, validateFilter, type CustomFilter } from './filter';
+
+describe('validateFilter', () => {
+  it('accepts a normal filter', () => {
+    expect(validateFilter({ types: ['Creature'], cmc: { min: 1, max: 4 } })).toEqual({ ok: true });
+  });
+  it('rejects power/toughness unless types is exactly [Creature]', () => {
+    expect(validateFilter({ types: ['Creature', 'Instant'], power: { min: 2 } }))
+      .toEqual({ ok: false, reason: 'pt-requires-creature' });
+    expect(validateFilter({ power: { min: 2 } })).toEqual({ ok: false, reason: 'pt-requires-creature' });
+  });
+  it('rejects extra filters when exactly one set is selected', () => {
+    expect(validateFilter({ sets: ['dom'], cmc: { min: 1 } })).toEqual({ ok: false, reason: 'single-set-exclusive' });
+    expect(validateFilter({ sets: ['dom'] })).toEqual({ ok: true });
+  });
+  it('rejects inverted ranges', () => {
+    expect(validateFilter({ cmc: { min: 5, max: 2 } })).toEqual({ ok: false, reason: 'bad-range' });
+  });
+});
 
 describe('modeName', () => {
   it('names mono-color creatures with a cmc range', () => {

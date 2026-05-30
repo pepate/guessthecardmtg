@@ -57,6 +57,31 @@ export function canonicalizeFilter(f: CustomFilter): CustomFilter {
   return out;
 }
 
+export type ValidateResult = { ok: true } | { ok: false; reason: string };
+
+function rangeOrdered(r?: Range): boolean {
+  return !r || r.min == null || r.max == null || r.min <= r.max;
+}
+
+// Cross-field rules the canonical shape can't express: ordered ranges,
+// power/toughness only with a creature-only type selection, and the single-set
+// exclusivity rule (one set ⇒ no other filters).
+export function validateFilter(filter: CustomFilter): ValidateResult {
+  const f = canonicalizeFilter(filter);
+  for (const r of [f.cmc, f.power, f.toughness, f.edhrec]) {
+    if (!rangeOrdered(r)) return { ok: false, reason: 'bad-range' };
+  }
+  const hasPT = !!(f.power || f.toughness);
+  const creatureOnly = f.types?.length === 1 && f.types[0] === 'Creature';
+  if (hasPT && !creatureOnly) return { ok: false, reason: 'pt-requires-creature' };
+
+  if (f.sets?.length === 1) {
+    const otherKeys = Object.keys(f).filter((k) => k !== 'sets');
+    if (otherKeys.length > 0) return { ok: false, reason: 'single-set-exclusive' };
+  }
+  return { ok: true };
+}
+
 const COLOR_WORD: Record<ColorCode, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless' };
 const TYPE_PLURAL: Record<CardType, string> = {
   Creature: 'Creatures', Instant: 'Instants', Sorcery: 'Sorceries', Artifact: 'Artifacts',
