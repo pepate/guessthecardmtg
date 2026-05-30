@@ -85,16 +85,26 @@ const FRAME = 'frame:2015 border:black -is:showcase -is:extendedart -is:fullart 
 const PAGE_SIZE = 175;
 // Cap how deep we jump for the "all" pool so the offset stays sane.
 const MAX_RANDOM_PAGE = 40;
-// A search page is a contiguous slice of one sort order, so ordering by `name`
-// would make every card in a game share a starting letter. These orders all
-// scatter starting letters across a single page (verified against Scryfall);
-// orders whose secondary sort is name — color, rarity, cmc, artist — cluster
-// by letter and are deliberately excluded. Combined with a random page +
-// direction, each "all" game and each replay pulls a different, varied mix.
-const ALL_POOL_ORDERS = ['released', 'set', 'usd', 'eur', 'edhrec'] as const;
+// A search page is a contiguous slice of one sort order. Orders like `set` or
+// `released` group a whole set together, so a single page ends up dominated by
+// one set (e.g. Theros). These orders rank by popularity / price instead, which
+// interleaves sets across every page. `name`/`color`/`rarity`/`cmc`/`artist`
+// are excluded too — they cluster cards by starting letter.
+const ALL_POOL_ORDERS = ['edhrec', 'usd', 'eur'] as const;
+// How many search pages we sample and merge for one "all" game. Each page is a
+// separate API call (spaced by the rate limiter), so keep this small to avoid
+// hammering Scryfall while still mixing several slices of the catalogue.
+const ALL_POOL_FETCHES = 3;
 
 function randomFrom<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** `count` distinct page numbers from 1..pageCount, never returning `exclude`. */
+function pickPages(pageCount: number, count: number, exclude: number): number[] {
+  const pool: number[] = [];
+  for (let p = 1; p <= pageCount; p++) if (p !== exclude) pool.push(p);
+  return shuffle(pool).slice(0, count);
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -138,22 +148,30 @@ export async function fetchCandidates(
 ): Promise<ScryfallCard[]> {
   const q = encodeURIComponent(buildSearchQuery(input));
   const isAll = input.kind === 'all';
-  // "popular" is sorted by EDHREC rank so the first page is genuinely well-known
-  // cards. "all" picks a random sort order + direction + page so each game pulls
-  // a different, letter-diverse slice.
-  const order = isAll ? randomFrom(ALL_POOL_ORDERS) : 'edhrec';
-  const dir = isAll && Math.random() < 0.5 ? 'desc' : 'asc';
-  const first = await fetchSearchPage(q, order, 1, dir);
 
-  let data = first.data;
-  if (isAll && first.total_cards && first.total_cards > PAGE_SIZE) {
-    const pages = Math.min(Math.ceil(first.total_cards / PAGE_SIZE), MAX_RANDOM_PAGE);
-    const page = 1 + Math.floor(Math.random() * pages);
-    if (page !== 1) {
-      const more = await fetchSearchPage(q, order, page, dir);
-      if (more.data?.length) data = more.data;
-    }
+  if (!isAll) {
+    // "popular" is sorted by EDHREC rank so the first page is genuinely
+    // well-known cards.
+    const page = await fetchSearchPage(q, 'edhrec', 1, 'asc');
+    return shuffle(page.data.filter(hasNormalImage)).slice(0, limit);
   }
 
-  return shuffle(data.filter(hasNormalImage)).slice(0, limit);
+  // "all" picks a random popularity/price order + direction, then samples a few
+  // distinct random pages and merges them so one game isn't dominated by a
+  // single set. Page 1 also tells us how many pages exist.
+  const order = randomFrom(ALL_POOL_ORDERS);
+  const dir = Math.random() < 0.5 ? 'desc' : 'asc';
+  const first = await fetchSearchPage(q, order, 1, dir);
+
+  const total = first.total_cards ?? first.data.length;
+  const pageCount = Math.max(1, Math.min(Math.ceil(total / PAGE_SIZE), MAX_RANDOM_PAGE));
+
+  const byId = new Map<string, ScryfallCard>();
+  for (const c of first.data) byId.set(c.id, c);
+  for (const page of pickPages(pageCount, ALL_POOL_FETCHES - 1, 1)) {
+    const more = await fetchSearchPage(q, order, page, dir);
+    for (const c of more.data ?? []) byId.set(c.id, c);
+  }
+
+  return shuffle([...byId.values()].filter(hasNormalImage)).slice(0, limit);
 }

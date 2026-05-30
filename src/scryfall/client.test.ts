@@ -184,19 +184,32 @@ describe('fetchCandidates', () => {
     expect(url).toContain('-is%3Afunny');
   });
 
-  it('jumps to a random page for the all pool when there are many results', async () => {
+  it('samples several distinct random pages for the all pool and merges them', async () => {
     mockFetch
       .mockResolvedValueOnce(okResponse({ data: [makeCard({ id: 'p1' })], has_more: true, total_cards: 1000 }))
-      .mockResolvedValueOnce(okResponse({ data: [makeCard({ id: 'pN' })], has_more: true }));
+      .mockResolvedValueOnce(okResponse({ data: [makeCard({ id: 'pA' })], has_more: true }))
+      .mockResolvedValueOnce(okResponse({ data: [makeCard({ id: 'pB' })], has_more: true }));
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const promise = fetchCandidates({ kind: 'all', excludeUniverseBeyond: false });
     await vi.runAllTimersAsync();
     const cards = await promise;
     randomSpy.mockRestore();
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+    // 1 anchor page + (ALL_POOL_FETCHES - 1) extra pages = 3 calls.
+    expect(mockFetch).toHaveBeenCalledTimes(3);
     const secondUrl = mockFetch.mock.calls[1][0] as string;
     expect(secondUrl).toContain('page=');
-    expect(cards[0].id).toBe('pN');
+    expect(cards.map((c) => c.id).sort()).toEqual(['p1', 'pA', 'pB']);
+  });
+
+  it('does not order the all pool by set or released (avoids one-set games)', async () => {
+    mockFetch.mockResolvedValue(okResponse({ data: [makeCard()], has_more: false }));
+    const promise = fetchCandidates({ kind: 'all', excludeUniverseBeyond: false });
+    await vi.runAllTimersAsync();
+    await promise;
+    const url = mockFetch.mock.calls[0][0] as string;
+    expect(url).toMatch(/order=(edhrec|usd|eur)/);
+    expect(url).not.toContain('order=set');
+    expect(url).not.toContain('order=released');
   });
 
   it('filters out cards without art', async () => {
