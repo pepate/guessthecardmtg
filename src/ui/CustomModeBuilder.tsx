@@ -9,7 +9,7 @@ import type { CustomMode } from '../modes/types';
 const COLOR_LABEL: Record<ColorCode, string> = {
   W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless',
 };
-const MIN_CARDS = 100;
+const MIN_CARDS = 50;
 
 const section: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6 };
 const legend: React.CSSProperties = {
