@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import type { Round, TimeAttackConfig } from '../engine/types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from '../engine/types';
-import { planGame, resolveGuess, expire as expireRound, type PlannedRound } from '../engine/timeAttack';
+import { planGame, resolveGuess, expire as expireRound, type PlannedRound, type RevealMode } from '../engine/timeAttack';
+import { fetchEnabledRevealModes } from '../reveal/client';
 import { fetchCandidates } from '../cards/client';
 import type { PoolSelection, ScryfallCard } from '../scryfall/types';
 import { loadHighscores, saveHighscore, type HighscoreEntry, type PoolKind } from './highscores';
@@ -28,8 +29,9 @@ interface GameState {
   round: Round | null;
   /** 0-based index of the current card within the game. */
   roundIndex: number;
-  /** Reveal-mode rotation offset for this game (0/1/2 = which mode is round 1). */
-  revealOffset: 0 | 1 | 2;
+  /** Reveal-mode rotation offset for this game (shifts which mode is round 1). */
+  revealOffset: number;
+  enabledModes: RevealMode[];
   /** Per-game seed for deterministic scanner sweep angles. */
   revealSeed: number;
   /** Date.now() when the 90-second game started. */
@@ -112,6 +114,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   round: null,
   roundIndex: 0,
   revealOffset: 0,
+  enabledModes: ['blur', 'scanner', 'mosaic'],
   revealSeed: 0,
   gameStartedAt: 0,
 
@@ -128,7 +131,15 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ phase: 'loading', error: null });
     try {
       const { config } = get();
-      const pool = await fetchCandidates(selection);
+      const [rawPool, enabledModes] = await Promise.all([
+        fetchCandidates(selection),
+        fetchEnabledRevealModes(),
+      ]);
+      const pool = enabledModes.includes('zoom')
+        ? rawPool.filter(
+            (c) => !!(c.image_uris?.art_crop ?? c.card_faces?.[0]?.image_uris?.art_crop),
+          )
+        : rawPool;
       if (uniqueNameCount(pool) < config.optionCount) {
         throw new Error('Not enough cards in the selected pool.');
       }
@@ -144,7 +155,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         plan,
         round: startPlanned(plan[0], Date.now()),
         roundIndex: 0,
-        revealOffset: Math.floor(Math.random() * 3) as 0 | 1 | 2,
+        enabledModes,
+        revealOffset: Math.floor(Math.random() * enabledModes.length),
         revealSeed: Math.floor(Math.random() * 1_000_000),
         gameStartedAt: Date.now(),
         correctCount: 0,
@@ -216,6 +228,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       round: null,
       roundIndex: 0,
       revealOffset: 0,
+      enabledModes: ['blur', 'scanner', 'mosaic'],
       revealSeed: 0,
       gameStartedAt: 0,
       correctCount: 0,

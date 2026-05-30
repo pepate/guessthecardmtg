@@ -134,11 +134,9 @@ export function tilesRevealedAt(
   return Math.min(tileCount, Math.floor(elapsedMs / config.mosaicTileMs));
 }
 
-const REVEAL_MODES: RevealMode[] = ['blur', 'scanner', 'mosaic'];
-
-/** Which reveal animation a round uses: strict rotation blur→scanner→mosaic; offset shifts round 1. */
-export function revealModeFor(roundIndex: number, offset: 0 | 1 | 2): RevealMode {
-  return REVEAL_MODES[(roundIndex + offset) % REVEAL_MODES.length];
+/** Which reveal animation a round uses: rotates through the enabled `modes`; offset shifts round 1. */
+export function revealModeFor(roundIndex: number, offset: number, modes: RevealMode[]): RevealMode {
+  return modes[(roundIndex + offset) % modes.length];
 }
 
 /**

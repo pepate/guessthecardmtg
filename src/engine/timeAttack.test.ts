@@ -3,6 +3,7 @@ import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, ex
 import { DEFAULT_TIME_ATTACK_CONFIG as CFG } from './types';
 import type { Round } from './types';
 import type { ScryfallCard } from '../scryfall/types';
+import type { RevealMode } from './timeAttack';
 
 function makeCard(name: string): ScryfallCard {
   return { id: name.toLowerCase().replace(/\s+/g, '-'), name, cmc: 1, type_line: 'Instant' };
@@ -226,20 +227,28 @@ describe('tilesRevealedAt', () => {
 });
 
 describe('revealModeFor', () => {
-  it('rotates blur → scanner → mosaic with offset 0', () => {
-    expect(revealModeFor(0, 0)).toBe('blur');
-    expect(revealModeFor(1, 0)).toBe('scanner');
-    expect(revealModeFor(2, 0)).toBe('mosaic');
-    expect(revealModeFor(3, 0)).toBe('blur');
+  const M3: RevealMode[] = ['blur', 'scanner', 'mosaic'];
+
+  it('rotates through the given modes with offset 0', () => {
+    expect(revealModeFor(0, 0, M3)).toBe('blur');
+    expect(revealModeFor(1, 0, M3)).toBe('scanner');
+    expect(revealModeFor(2, 0, M3)).toBe('mosaic');
+    expect(revealModeFor(3, 0, M3)).toBe('blur');
   });
 
   it('offset shifts which mode is round 1', () => {
-    expect(revealModeFor(0, 1)).toBe('scanner');
-    expect(revealModeFor(0, 2)).toBe('mosaic');
+    expect(revealModeFor(0, 1, M3)).toBe('scanner');
+    expect(revealModeFor(0, 2, M3)).toBe('mosaic');
   });
 
-  it('wraps every 3 rounds', () => {
-    expect(revealModeFor(6, 2)).toBe(revealModeFor(0, 2));
+  it('rotates through a longer enabled list', () => {
+    const all: RevealMode[] = ['blur', 'scanner', 'mosaic', 'zoom', 'silhouette', 'spotlight'];
+    expect(revealModeFor(4, 0, all)).toBe('silhouette');
+    expect(revealModeFor(6, 0, all)).toBe('blur');
+  });
+
+  it('degenerates to a single mode', () => {
+    expect(revealModeFor(7, 0, ['zoom'])).toBe('zoom');
   });
 });
 
