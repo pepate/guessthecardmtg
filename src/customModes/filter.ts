@@ -57,6 +57,54 @@ export function canonicalizeFilter(f: CustomFilter): CustomFilter {
   return out;
 }
 
+const COLOR_WORD: Record<ColorCode, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless' };
+const TYPE_PLURAL: Record<CardType, string> = {
+  Creature: 'Creatures', Instant: 'Instants', Sorcery: 'Sorceries', Artifact: 'Artifacts',
+  Enchantment: 'Enchantments', Planeswalker: 'Planeswalkers', Land: 'Lands', Battle: 'Battles',
+};
+
+function rangeLabel(prefix: string, r?: Range): string | null {
+  if (!r || (r.min == null && r.max == null)) return null;
+  if (r.min != null && r.max != null) return `${prefix} ${r.min}–${r.max}`;
+  if (r.min != null) return `${prefix} ≥${r.min}`;
+  return `${prefix} ≤${r.max}`;
+}
+
+// Human-readable label derived deterministically from the filter, used as the
+// auto-generated mode name and for the filter chips.
+export function modeName(filter: CustomFilter): string {
+  const f = canonicalizeFilter(filter);
+  const parts: string[] = [];
+
+  let head = '';
+  if (f.colors) {
+    const words = f.colors.values.map((c) => COLOR_WORD[c]);
+    if (f.colors.values.length === 1) head = `Mono-${words[0]}`;
+    else head = f.colors.match === 'all' ? words.join('+') : words.join('/');
+  }
+  const typeWords = (f.types ?? []).map((t) => TYPE_PLURAL[t]);
+  const typeLabel = typeWords.length
+    ? typeWords.slice(0, -1).join(', ') + (typeWords.length > 1 ? ' & ' : '') + typeWords[typeWords.length - 1]
+    : '';
+  const headline = [head, typeLabel || (head ? 'Cards' : '')].filter(Boolean).join(' ');
+  if (headline) parts.push(headline);
+
+  const cmc = rangeLabel('CMC', f.cmc);
+  if (cmc) parts.push(cmc);
+  const pow = rangeLabel('Pow', f.power);
+  if (pow) parts.push(pow);
+  const tou = rangeLabel('Tou', f.toughness);
+  if (tou) parts.push(tou);
+  const edh = rangeLabel('EDH', f.edhrec);
+  if (edh) parts.push(edh);
+  if (f.ub === 'only') parts.push('Universe Beyond');
+  if (f.ub === 'no') parts.push('No UB');
+  if (f.sets?.length) parts.push(f.sets.length === 1 ? f.sets[0].toUpperCase() : `${f.sets.length} sets`);
+  if (f.rarities?.length) parts.push(f.rarities.map((r) => r[0].toUpperCase() + r.slice(1)).join('/'));
+
+  return parts.length ? parts.join(' · ') : 'All cards (custom)';
+}
+
 // SHA-256 of the canonical filter JSON. Stable across input ordering, so the
 // same filter always dedupes to the same mode. Web Crypto is available in the
 // browser, Deno, and the jsdom test env.
