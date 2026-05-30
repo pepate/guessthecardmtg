@@ -117,20 +117,10 @@ function LoadingScreen() {
         gap: 18,
       }}
     >
-      <div
-        style={{
-          width: 46,
-          height: 46,
-          borderRadius: '50%',
-          border: '3px solid rgba(255,186,120,0.18)',
-          borderTopColor: 'var(--ember)',
-          animation: 'spin 0.9s linear infinite',
-        }}
-      />
+      <div className="spinner" style={{ width: 46, height: 46, borderWidth: 3 }} />
       <div style={{ color: 'var(--ink-2)', letterSpacing: 2, textTransform: 'uppercase', fontSize: 13 }}>
         Summoning cards…
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </motion.div>
   );
 }

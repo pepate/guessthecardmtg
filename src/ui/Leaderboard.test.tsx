@@ -94,6 +94,19 @@ describe('Leaderboard', () => {
     await waitFor(() => expect(spy).toHaveBeenCalledWith('all', 11, null));
   });
 
+  it('shows a spinner while loading before rows arrive', async () => {
+    let resolve!: (v: GlobalEntry[]) => void;
+    vi.spyOn(client, 'fetchTopScores').mockReturnValue(
+      new Promise<GlobalEntry[]>((r) => {
+        resolve = r;
+      }),
+    );
+    render(<Leaderboard />);
+    expect(screen.getAllByTestId('leaderboard-spinner').length).toBeGreaterThanOrEqual(1);
+    resolve([entry]);
+    await waitFor(() => expect(screen.getByText('Al')).toBeInTheDocument());
+  });
+
   it('hides the window sub-tabs on the Me tab', async () => {
     vi.spyOn(client, 'fetchTopScores').mockResolvedValue([]);
     localStorage.setItem(

@@ -24,6 +24,13 @@ function GlobalView({
   if (state.error) {
     return <p style={{ color: 'var(--ember-hot)', fontSize: 13, textAlign: 'center' }}>Leaderboard unavailable.</p>;
   }
+  if (state.loading && state.entries.length === 0) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0' }}>
+        <span className="spinner" data-testid="leaderboard-spinner" aria-label="Loading" />
+      </div>
+    );
+  }
   const visible = expanded ? state.entries : state.entries.slice(0, VISIBLE);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
