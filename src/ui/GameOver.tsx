@@ -11,6 +11,7 @@ export function GameOver() {
   const poolKind = useGameStore((s) => s.poolKind);
   const currentModeId = useGameStore((s) => s.currentModeId);
   const currentModeName = useGameStore((s) => s.currentModeName);
+  const gameMode = useGameStore((s) => s.gameMode);
   const highscores = useGameStore((s) => s.highscores);
   const restart = useGameStore((s) => s.restart);
   const reset = useGameStore((s) => s.reset);
@@ -88,6 +89,7 @@ export function GameOver() {
         pool={poolKind}
         modeId={currentModeId ?? undefined}
         modeName={currentModeName ?? undefined}
+        gameMode={gameMode}
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>

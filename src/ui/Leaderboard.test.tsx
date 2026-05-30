@@ -4,7 +4,7 @@ import { Leaderboard } from './Leaderboard';
 import * as client from '../leaderboard/client';
 import type { GlobalEntry } from '../leaderboard/types';
 
-const entry: GlobalEntry = { id: '1', name: 'Al', score: 900, correct: 9, pool: 'all', country: 'DE', createdAt: 0 };
+const entry: GlobalEntry = { id: '1', name: 'Al', score: 900, correct: 9, pool: 'all', gameMode: 'blur', country: 'DE', createdAt: 0 };
 
 const manyEntries = (n: number): GlobalEntry[] =>
   Array.from({ length: n }, (_, i) => ({
@@ -12,7 +12,8 @@ const manyEntries = (n: number): GlobalEntry[] =>
     name: `P${i}`,
     score: 1000 - i,
     correct: 9,
-    pool: 'all',
+    pool: 'all' as const,
+    gameMode: null as null,
     country: 'DE',
     createdAt: 0,
   }));

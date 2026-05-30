@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PoolKind } from '../state/highscores';
 import type { GlobalEntry } from '../leaderboard/types';
+import type { RevealMode } from '../engine/timeAttack';
 import { sanitizeName, NAME_MAX, NAME_MIN } from '../leaderboard/validation';
 import {
   isLeaderboardEnabled,
@@ -21,12 +22,14 @@ export function GameOverLeaderboard({
   pool,
   modeId,
   modeName,
+  gameMode,
 }: {
   score: number;
   correct: number;
   pool: PoolKind;
   modeId?: string;
   modeName?: string;
+  gameMode: RevealMode;
 }) {
   const enabled = isLeaderboardEnabled();
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? '');
@@ -40,14 +43,14 @@ export function GameOverLeaderboard({
   useEffect(() => {
     if (!enabled || score <= 0) return;
     let cancelled = false;
-    const rankP = modeId ? fetchModeProjectedRank(modeId, score) : fetchProjectedRank(pool, score);
-    const topP = modeId ? fetchModeTopScores(modeId, VISIBLE) : fetchTopScores(pool, VISIBLE);
+    const rankP = modeId ? fetchModeProjectedRank(modeId, score) : fetchProjectedRank(pool, score, gameMode);
+    const topP = modeId ? fetchModeTopScores(modeId, VISIBLE) : fetchTopScores(pool, VISIBLE, null, gameMode);
     rankP.then((r) => !cancelled && setProjected(r)).catch(() => {});
     topP.then((list) => !cancelled && setTop(list)).catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [enabled, pool, modeId, score]);
+  }, [enabled, pool, modeId, score, gameMode]);
 
   if (!enabled || score <= 0) return null;
 
@@ -75,13 +78,13 @@ export function GameOverLeaderboard({
       return;
     }
     setStatus('sending');
-    const res = await submitScore({ name: clean, score, correct, pool, modeId });
+    const res = await submitScore({ name: clean, score, correct, pool, modeId, gameMode });
     if (!res.ok) {
       setStatus('error');
       return;
     }
     localStorage.setItem(NAME_KEY, clean);
-    const list = await (modeId ? fetchModeTopScores(modeId, VISIBLE) : fetchTopScores(pool, VISIBLE)).catch(() => []);
+    const list = await (modeId ? fetchModeTopScores(modeId, VISIBLE) : fetchTopScores(pool, VISIBLE, null, gameMode)).catch(() => []);
     setTop(list);
     setPosted({ rank: res.rank, id: res.id, name: clean });
     setStatus('done');
@@ -96,6 +99,7 @@ export function GameOverLeaderboard({
     score,
     correct,
     pool,
+    gameMode,
     country: null,
     createdAt: Date.now(),
   };

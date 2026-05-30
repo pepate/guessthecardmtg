@@ -58,7 +58,7 @@ describe('fetchTopScores', () => {
     const { fetchTopScores } = await importClient();
     const rows = await fetchTopScores('all', 5);
     expect(rows[0]).toEqual({
-      id: '1', name: 'Al', score: 900, correct: 9, pool: 'all', country: 'DE',
+      id: '1', name: 'Al', score: 900, correct: 9, pool: 'all', gameMode: null, country: 'DE',
       createdAt: Date.parse('2026-01-01T00:00:00.000Z'),
     });
   });
@@ -97,16 +97,16 @@ describe('submitScore', () => {
   it('returns ok with id and rank on success', async () => {
     invoke.mockResolvedValueOnce({ data: { ok: true, id: 'x', rank: 7 }, error: null });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 900, correct: 9, pool: 'all' })).toEqual({ ok: true, id: 'x', rank: 7 });
+    expect(await submitScore({ name: 'Al', score: 900, correct: 9, pool: 'all', gameMode: 'blur' })).toEqual({ ok: true, id: 'x', rank: 7 });
   });
   it('returns a reason on function error', async () => {
     invoke.mockResolvedValueOnce({ data: null, error: { message: 'rate-limited' } });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 900, correct: 9, pool: 'all' })).toEqual({ ok: false, reason: 'rate-limited' });
+    expect(await submitScore({ name: 'Al', score: 900, correct: 9, pool: 'all', gameMode: 'blur' })).toEqual({ ok: false, reason: 'rate-limited' });
   });
   it('returns a reason when the function rejects the payload', async () => {
     invoke.mockResolvedValueOnce({ data: { ok: false, reason: 'score' }, error: null });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 1, correct: 9, pool: 'all' })).toEqual({ ok: false, reason: 'score' });
+    expect(await submitScore({ name: 'Al', score: 1, correct: 9, pool: 'all', gameMode: 'blur' })).toEqual({ ok: false, reason: 'score' });
   });
 });
