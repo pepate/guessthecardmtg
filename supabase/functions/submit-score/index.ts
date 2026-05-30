@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const GAME_MODES = ['blur', 'scanner', 'mosaic', 'zoom', 'silhouette', 'spotlight'];
+
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -88,6 +90,11 @@ Deno.serve(async (req) => {
   const score = body.score as number;
   const correct = body.correct as number;
 
+  const gameMode = body.game_mode;
+  if (typeof gameMode !== 'string' || !GAME_MODES.includes(gameMode)) {
+    return json({ ok: false, reason: 'game-mode' }, 400);
+  }
+
   const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'unknown';
   const salt = Deno.env.get('IP_HASH_SALT') ?? '';
   const ipHash = await sha256(ip + salt);
@@ -114,7 +121,7 @@ Deno.serve(async (req) => {
 
   const inserted = await supabase
     .from('leaderboard')
-    .insert({ name, score, correct, pool, mode_id: modeId, country, ip_hash: ipHash })
+    .insert({ name, score, correct, pool, mode_id: modeId, game_mode: gameMode, country, ip_hash: ipHash })
     .select('id')
     .single();
   if (inserted.error) return json({ ok: false, reason: 'insert' }, 500);
@@ -124,6 +131,7 @@ Deno.serve(async (req) => {
     .select('id', { count: 'exact', head: true })
     .gt('score', score);
   rankQuery = modeId ? rankQuery.eq('mode_id', modeId) : rankQuery.eq('pool', pool);
+  rankQuery = rankQuery.eq('game_mode', gameMode);
   const higher = await rankQuery;
   const rank = (higher.count ?? 0) + 1;
 
