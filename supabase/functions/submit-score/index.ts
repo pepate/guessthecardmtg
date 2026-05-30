@@ -71,7 +71,14 @@ Deno.serve(async (req) => {
   }
 
   const pool = body.pool;
-  if (pool !== 'popular' && pool !== 'all') return json({ ok: false, reason: 'pool' }, 400);
+  if (pool !== 'popular' && pool !== 'all' && pool !== 'custom') return json({ ok: false, reason: 'pool' }, 400);
+
+  let modeId: string | null = null;
+  if (pool === 'custom') {
+    const raw = body.mode_id;
+    if (typeof raw !== 'string' || !/^[0-9a-f-]{36}$/.test(raw)) return json({ ok: false, reason: 'mode' }, 400);
+    modeId = raw;
+  }
 
   const name = sanitizeName(body.name);
   if (!name) return json({ ok: false, reason: 'name' }, 400);
@@ -98,20 +105,26 @@ Deno.serve(async (req) => {
     .gte('created_at', since);
   if ((recent.count ?? 0) >= RATE_MAX) return json({ ok: false, reason: 'rate-limited' }, 429);
 
+  if (modeId) {
+    const m = await supabase.from('custom_mode').select('id', { head: true, count: 'exact' }).eq('id', modeId);
+    if ((m.count ?? 0) === 0) return json({ ok: false, reason: 'mode-not-found' }, 400);
+  }
+
   const country = await lookupCountry(ip);
 
   const inserted = await supabase
     .from('leaderboard')
-    .insert({ name, score, correct, pool, country, ip_hash: ipHash })
+    .insert({ name, score, correct, pool, mode_id: modeId, country, ip_hash: ipHash })
     .select('id')
     .single();
   if (inserted.error) return json({ ok: false, reason: 'insert' }, 500);
 
-  const higher = await supabase
+  let rankQuery = supabase
     .from('leaderboard')
     .select('id', { count: 'exact', head: true })
-    .eq('pool', pool)
     .gt('score', score);
+  rankQuery = modeId ? rankQuery.eq('mode_id', modeId) : rankQuery.eq('pool', pool);
+  const higher = await rankQuery;
   const rank = (higher.count ?? 0) + 1;
 
   return json({ ok: true, id: inserted.data.id, rank }, 200);
