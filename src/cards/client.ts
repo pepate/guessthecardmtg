@@ -1,8 +1,8 @@
 import { getSupabase } from '../supabase/client';
-import type { ScryfallCard, PoolSelection, Color } from '../scryfall/types';
-import { fetchModeCandidates } from '../modes/client';
+import type { ScryfallCard, Color } from '../scryfall/types';
+import type { CustomFilter } from '../modes/filter';
 
-// Matches one row returned by the get_game_cards RPC.
+// Matches one row returned by the get_filtered_game_cards RPC.
 export interface GameCardRow {
   oracle_id: string;
   name: string;
@@ -40,34 +40,22 @@ export function rowToCard(r: GameCardRow): ScryfallCard {
   };
 }
 
-async function queryGameCards(
-  pool: 'popular' | 'all',
-  count: number,
-  excludeUb: boolean,
-): Promise<ScryfallCard[]> {
+export async function fetchFilteredCards(filter: CustomFilter, count = DEFAULT_LIMIT): Promise<ScryfallCard[]> {
   const c = getSupabase();
   if (!c) throw new Error('Card database is not configured.');
-  const { data, error } = await c.rpc('get_game_cards', {
-    p_pool: pool,
-    p_count: count,
-    p_exclude_ub: excludeUb,
-  });
+  const { data, error } = await c.rpc('get_filtered_game_cards', { p_filter: filter, p_count: count });
   if (error) throw new Error(error.message);
   return ((data ?? []) as GameCardRow[]).map(rowToCard);
 }
 
 /** Random distinct cards for one game, each with a random artwork. */
-export function fetchCandidates(
-  input: PoolSelection,
-  limit = DEFAULT_LIMIT,
-): Promise<ScryfallCard[]> {
-  if (input.kind === 'custom') return fetchModeCandidates(input.modeId, limit);
-  return queryGameCards(input.kind, limit, input.excludeUniverseBeyond);
+export function fetchCandidates(filter: CustomFilter, limit = DEFAULT_LIMIT): Promise<ScryfallCard[]> {
+  return fetchFilteredCards(filter, limit);
 }
 
 /** One random card — used for the start-screen splash artwork. */
 export async function fetchRandomCard(): Promise<ScryfallCard> {
-  const cards = await queryGameCards('all', 1, false);
+  const cards = await fetchFilteredCards({}, 1);
   if (cards.length === 0) throw new Error('No card returned.');
   return cards[0];
 }

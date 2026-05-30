@@ -1,11 +1,8 @@
-import type { PoolKind } from '../state/highscores';
-
 export interface GlobalEntry {
   id: string;
   name: string;
   score: number;
   correct: number;
-  pool: PoolKind;
   /** ISO 3166-1 alpha-2 (uppercase), or null when unknown. */
   country: string | null;
   /** Epoch milliseconds. */
@@ -16,7 +13,5 @@ export interface SubmitPayload {
   name: string;
   score: number;
   correct: number;
-  pool: PoolKind;
-  /** Set only for custom-mode runs; scopes the score to that mode's board. */
-  modeId?: string;
+  modeId: string;
 }

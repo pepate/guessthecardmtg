@@ -4,6 +4,8 @@ import { useLeaderboard } from '../leaderboard/useLeaderboard';
 import { WINDOW_TABS, type TimeWindow } from '../leaderboard/window';
 import { GlobalScoreList } from './GlobalScoreList';
 import { HighscoreList } from './HighscoreList';
+import { getBuiltinModes } from '../modes/client';
+import type { CustomMode } from '../modes/types';
 
 type Tab = 'all' | 'popular' | 'me';
 
@@ -11,6 +13,9 @@ type Tab = 'all' | 'popular' | 'me';
 // whether a "Show more" button is warranted (i.e. there are more than VISIBLE).
 const VISIBLE = 10;
 const PROBE = VISIBLE + 1;
+
+// Sentinel used while builtin mode ids are loading.
+const LOADING_ID = '';
 
 function GlobalView({
   state,
@@ -55,9 +60,21 @@ export function Leaderboard({ refreshKey = 0 }: { refreshKey?: number }) {
   const [win, setWin] = useState<TimeWindow>('today');
   const [allExpanded, setAllExpanded] = useState(false);
   const [popExpanded, setPopExpanded] = useState(false);
+  const [builtins, setBuiltins] = useState<{ all: CustomMode; popular: CustomMode } | null>(null);
 
-  const all = useLeaderboard('all', allExpanded ? 100 : PROBE, win, refreshKey);
-  const popular = useLeaderboard('popular', popExpanded ? 100 : PROBE, win, refreshKey);
+  useEffect(() => {
+    let cancelled = false;
+    getBuiltinModes()
+      .then((b) => { if (!cancelled && b) setBuiltins(b); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const allModeId = builtins?.all.id ?? LOADING_ID;
+  const popularModeId = builtins?.popular.id ?? LOADING_ID;
+
+  const all = useLeaderboard(allModeId, allExpanded ? 100 : PROBE, win, refreshKey);
+  const popular = useLeaderboard(popularModeId, popExpanded ? 100 : PROBE, win, refreshKey);
   const mine = loadHighscores();
 
   const showPopular = popular.entries.length >= 1;

@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PoolKind } from '../state/highscores';
 import type { GlobalEntry } from '../leaderboard/types';
 import { sanitizeName, NAME_MAX, NAME_MIN } from '../leaderboard/validation';
 import {
   isLeaderboardEnabled,
-  fetchProjectedRank,
-  fetchTopScores,
   fetchModeProjectedRank,
   fetchModeTopScores,
   submitScore,
@@ -18,14 +15,12 @@ const VISIBLE = 5;
 export function GameOverLeaderboard({
   score,
   correct,
-  pool,
   modeId,
   modeName,
 }: {
   score: number;
   correct: number;
-  pool: PoolKind;
-  modeId?: string;
+  modeId: string;
   modeName?: string;
 }) {
   const enabled = isLeaderboardEnabled();
@@ -38,16 +33,16 @@ export function GameOverLeaderboard({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!enabled || score <= 0) return;
+    if (!enabled || score <= 0 || !modeId) return;
     let cancelled = false;
-    const rankP = modeId ? fetchModeProjectedRank(modeId, score) : fetchProjectedRank(pool, score);
-    const topP = modeId ? fetchModeTopScores(modeId, VISIBLE) : fetchTopScores(pool, VISIBLE);
+    const rankP = fetchModeProjectedRank(modeId, score);
+    const topP = fetchModeTopScores(modeId, VISIBLE);
     rankP.then((r) => !cancelled && setProjected(r)).catch(() => {});
     topP.then((list) => !cancelled && setTop(list)).catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [enabled, pool, modeId, score]);
+  }, [enabled, modeId, score]);
 
   if (!enabled || score <= 0) return null;
 
@@ -75,19 +70,19 @@ export function GameOverLeaderboard({
       return;
     }
     setStatus('sending');
-    const res = await submitScore({ name: clean, score, correct, pool, modeId });
+    const res = await submitScore({ name: clean, score, correct, modeId });
     if (!res.ok) {
       setStatus('error');
       return;
     }
     localStorage.setItem(NAME_KEY, clean);
-    const list = await (modeId ? fetchModeTopScores(modeId, VISIBLE) : fetchTopScores(pool, VISIBLE)).catch(() => []);
+    const list = await fetchModeTopScores(modeId, VISIBLE).catch(() => []);
     setTop(list);
     setPosted({ rank: res.rank, id: res.id, name: clean });
     setStatus('done');
   }
 
-  // The online board for this pool, with the player's own row pinned below when
+  // The online board for this mode, with the player's own row pinned below when
   // they'd land outside the visible top five (projected before posting; actual
   // rank after). Highlight the player's real row once posted and present.
   const youEntry: GlobalEntry = {
@@ -95,7 +90,6 @@ export function GameOverLeaderboard({
     name: posted?.name ?? (sanitizeName(name) ?? 'You'),
     score,
     correct,
-    pool,
     country: null,
     createdAt: Date.now(),
   };

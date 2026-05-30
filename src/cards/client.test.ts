@@ -48,41 +48,38 @@ describe('rowToCard', () => {
 });
 
 describe('fetchCandidates', () => {
-  it('calls get_game_cards with pool/exclude_ub and maps rows', async () => {
+  it('calls get_filtered_game_cards with the filter and maps rows', async () => {
     rpc.mockResolvedValue({ data: [row(), row({ oracle_id: 'o2', name: 'Counterspell' })], error: null });
-    const cards = await fetchCandidates({ kind: 'popular', excludeUniverseBeyond: true });
-    expect(rpc).toHaveBeenCalledWith('get_game_cards', {
-      p_pool: 'popular',
+    const cards = await fetchCandidates({ popular: true });
+    expect(rpc).toHaveBeenCalledWith('get_filtered_game_cards', {
+      p_filter: { popular: true },
       p_count: 175,
-      p_exclude_ub: true,
     });
     expect(cards.map((c) => c.name)).toEqual(['Lightning Bolt', 'Counterspell']);
   });
 
   it('forwards a custom limit as p_count', async () => {
     rpc.mockResolvedValue({ data: [], error: null });
-    await fetchCandidates({ kind: 'all', excludeUniverseBeyond: false }, 40);
-    expect(rpc).toHaveBeenCalledWith('get_game_cards', {
-      p_pool: 'all',
+    await fetchCandidates({}, 40);
+    expect(rpc).toHaveBeenCalledWith('get_filtered_game_cards', {
+      p_filter: {},
       p_count: 40,
-      p_exclude_ub: false,
     });
   });
 
   it('throws on an RPC error', async () => {
     rpc.mockResolvedValue({ data: null, error: { message: 'boom' } });
-    await expect(fetchCandidates({ kind: 'all', excludeUniverseBeyond: false })).rejects.toThrow('boom');
+    await expect(fetchCandidates({})).rejects.toThrow('boom');
   });
 });
 
 describe('fetchRandomCard', () => {
-  it('returns the single card from a count-1 all query', async () => {
+  it('returns the single card from a count-1 empty-filter query', async () => {
     rpc.mockResolvedValue({ data: [row()], error: null });
     const card = await fetchRandomCard();
-    expect(rpc).toHaveBeenCalledWith('get_game_cards', {
-      p_pool: 'all',
+    expect(rpc).toHaveBeenCalledWith('get_filtered_game_cards', {
+      p_filter: {},
       p_count: 1,
-      p_exclude_ub: false,
     });
     expect(card.image_uris?.art_crop).toBe('a.jpg');
   });

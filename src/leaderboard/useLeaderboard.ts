@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { PoolKind } from '../state/highscores';
 import type { GlobalEntry } from './types';
-import { fetchTopScores } from './client';
+import { fetchModeTopScores } from './client';
 import { windowCutoff, type TimeWindow } from './window';
 
 export function useLeaderboard(
-  pool: PoolKind,
+  modeId: string,
   limit: number,
   window: TimeWindow = 'all',
   refreshKey = 0,
@@ -18,7 +17,7 @@ export function useLeaderboard(
     let cancelled = false;
     setLoading(true);
     setError(false);
-    fetchTopScores(pool, limit, windowCutoff(window))
+    fetchModeTopScores(modeId, limit, windowCutoff(window))
       .then((rows) => {
         if (!cancelled) setEntries(rows);
       })
@@ -31,7 +30,7 @@ export function useLeaderboard(
     return () => {
       cancelled = true;
     };
-  }, [pool, limit, window, refreshKey]);
+  }, [modeId, limit, window, refreshKey]);
 
   useEffect(() => reload(), [reload]);
 

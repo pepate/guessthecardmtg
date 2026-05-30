@@ -61,6 +61,18 @@ export async function fetchModeCandidates(modeId: string, limit = 175): Promise<
   return ((data ?? []) as GameCardRow[]).map(rowToCard);
 }
 
+export async function getBuiltinModes(): Promise<{ all: CustomMode; popular: CustomMode } | null> {
+  const c = getSupabase();
+  if (!c) return null;
+  const { data, error } = await c.from('mode').select('id,name,filter,card_count,slug').in('slug', ['all', 'popular']);
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as (CustomMode & { slug: string })[];
+  const all = rows.find((r) => r.slug === 'all');
+  const popular = rows.find((r) => r.slug === 'popular');
+  if (!all || !popular) return null;
+  return { all, popular };
+}
+
 export async function listSets(): Promise<SetItem[]> {
   const c = getSupabase();
   if (!c) return [];

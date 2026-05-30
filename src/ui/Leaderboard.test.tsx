@@ -2,9 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Leaderboard } from './Leaderboard';
 import * as client from '../leaderboard/client';
+import * as modesClient from '../modes/client';
 import type { GlobalEntry } from '../leaderboard/types';
 
-const entry: GlobalEntry = { id: '1', name: 'Al', score: 900, correct: 9, pool: 'all', country: 'DE', createdAt: 0 };
+const ALL_MODE_ID = 'all-mode-uuid';
+const POP_MODE_ID = 'pop-mode-uuid';
+
+const builtins = {
+  all: { id: ALL_MODE_ID, name: 'All Cards', filter: {}, card_count: 1000 },
+  popular: { id: POP_MODE_ID, name: 'Popular', filter: { popular: true }, card_count: 500 },
+};
+
+const entry: GlobalEntry = { id: '1', name: 'Al', score: 900, correct: 9, country: 'DE', createdAt: 0 };
 
 const manyEntries = (n: number): GlobalEntry[] =>
   Array.from({ length: n }, (_, i) => ({
@@ -12,7 +21,6 @@ const manyEntries = (n: number): GlobalEntry[] =>
     name: `P${i}`,
     score: 1000 - i,
     correct: 9,
-    pool: 'all',
     country: 'DE',
     createdAt: 0,
   }));
@@ -20,31 +28,33 @@ const manyEntries = (n: number): GlobalEntry[] =>
 beforeEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
+  vi.spyOn(modesClient, 'getBuiltinModes').mockResolvedValue(builtins);
+  vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([]);
 });
 
 describe('Leaderboard', () => {
   it('shows the global all-cards tab by default', async () => {
-    const spy = vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
+    vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([entry]);
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByText('Al')).toBeInTheDocument());
-    expect(spy).toHaveBeenCalledWith('all', 11, expect.any(Number));
+    expect(client.fetchModeTopScores).toHaveBeenCalledWith(ALL_MODE_ID, 11, expect.any(Number));
   });
 
   it('hides the Show more button when there are 10 or fewer entries', async () => {
-    vi.spyOn(client, 'fetchTopScores').mockResolvedValue(manyEntries(10));
+    vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue(manyEntries(10));
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByText('P0')).toBeInTheDocument());
     expect(screen.queryByTestId('leaderboard-expand')).not.toBeInTheDocument();
   });
 
   it('shows the Show more button only when there are more than 10 entries', async () => {
-    vi.spyOn(client, 'fetchTopScores').mockResolvedValue(manyEntries(11));
+    vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue(manyEntries(11));
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByTestId('leaderboard-expand')).toBeInTheDocument());
   });
 
   it('switches to the Me tab and shows the local store', async () => {
-    vi.spyOn(client, 'fetchTopScores').mockResolvedValue([]);
+    vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([]);
     localStorage.setItem(
       'guessthecard.highscores.v3',
       JSON.stringify([{ score: 500, correct: 5, date: 1, pool: 'all' }]),
@@ -55,7 +65,9 @@ describe('Leaderboard', () => {
   });
 
   it('hides Popular and Me tabs when they have no data', async () => {
-    vi.spyOn(client, 'fetchTopScores').mockImplementation(async (pool) => (pool === 'all' ? [entry] : []));
+    vi.spyOn(client, 'fetchModeTopScores').mockImplementation(async (modeId) =>
+      modeId === ALL_MODE_ID ? [entry] : [],
+    );
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByText('Al')).toBeInTheDocument());
     expect(screen.getByRole('tab', { name: /all cards/i })).toBeInTheDocument();
@@ -64,21 +76,21 @@ describe('Leaderboard', () => {
   });
 
   it('shows the Popular tab once it has data', async () => {
-    vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
+    vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([entry]);
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByRole('tab', { name: /popular/i })).toBeInTheDocument());
   });
 
   it('expands a global tab to the top 100', async () => {
-    const spy = vi.spyOn(client, 'fetchTopScores').mockResolvedValue(manyEntries(11));
+    vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue(manyEntries(11));
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByTestId('leaderboard-expand')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('leaderboard-expand'));
-    await waitFor(() => expect(spy).toHaveBeenCalledWith('all', 100, expect.any(Number)));
+    await waitFor(() => expect(client.fetchModeTopScores).toHaveBeenCalledWith(ALL_MODE_ID, 100, expect.any(Number)));
   });
 
   it('shows window sub-tabs with Today selected by default', async () => {
-    vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
+    vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([entry]);
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByText('Al')).toBeInTheDocument());
     expect(screen.getByRole('tab', { name: /today/i })).toHaveAttribute('aria-selected', 'true');
@@ -87,16 +99,16 @@ describe('Leaderboard', () => {
   });
 
   it('selecting All-time queries with a null since', async () => {
-    const spy = vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
+    vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([entry]);
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByText('Al')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('tab', { name: /all-time/i }));
-    await waitFor(() => expect(spy).toHaveBeenCalledWith('all', 11, null));
+    await waitFor(() => expect(client.fetchModeTopScores).toHaveBeenCalledWith(ALL_MODE_ID, 11, null));
   });
 
   it('shows a spinner while loading before rows arrive', async () => {
     let resolve!: (v: GlobalEntry[]) => void;
-    vi.spyOn(client, 'fetchTopScores').mockReturnValue(
+    vi.spyOn(client, 'fetchModeTopScores').mockReturnValue(
       new Promise<GlobalEntry[]>((r) => {
         resolve = r;
       }),
@@ -108,7 +120,7 @@ describe('Leaderboard', () => {
   });
 
   it('hides the window sub-tabs on the Me tab', async () => {
-    vi.spyOn(client, 'fetchTopScores').mockResolvedValue([]);
+    vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([]);
     localStorage.setItem(
       'guessthecard.highscores.v3',
       JSON.stringify([{ score: 500, correct: 5, date: 1, pool: 'all' }]),

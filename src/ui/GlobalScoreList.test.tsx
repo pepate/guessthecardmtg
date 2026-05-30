@@ -5,7 +5,7 @@ import type { GlobalEntry } from '../leaderboard/types';
 
 const NOW = 1_000_000_000_000;
 function e(id: string, score: number): GlobalEntry {
-  return { id, name: `P${id}`, score, correct: 9, pool: 'all', country: 'DE', createdAt: NOW };
+  return { id, name: `P${id}`, score, correct: 9, country: 'DE', createdAt: NOW };
 }
 
 describe('GlobalScoreList', () => {

@@ -45,51 +45,51 @@ describe('isLeaderboardEnabled', () => {
   });
 });
 
-describe('fetchTopScores', () => {
+describe('fetchModeTopScores', () => {
   it('maps rows to GlobalEntry with epoch createdAt', async () => {
     from.mockReturnValueOnce(
       query({
         data: [
-          { id: '1', name: 'Al', score: 900, correct: 9, pool: 'all', country: 'DE', created_at: '2026-01-01T00:00:00.000Z' },
+          { id: '1', name: 'Al', score: 900, correct: 9, mode_id: 'mode-uuid', country: 'DE', created_at: '2026-01-01T00:00:00.000Z' },
         ],
         error: null,
       }),
     );
-    const { fetchTopScores } = await importClient();
-    const rows = await fetchTopScores('all', 5);
+    const { fetchModeTopScores } = await importClient();
+    const rows = await fetchModeTopScores('mode-uuid', 5);
     expect(rows[0]).toEqual({
-      id: '1', name: 'Al', score: 900, correct: 9, pool: 'all', country: 'DE',
+      id: '1', name: 'Al', score: 900, correct: 9, country: 'DE',
       createdAt: Date.parse('2026-01-01T00:00:00.000Z'),
     });
   });
   it('throws on a query error', async () => {
     from.mockReturnValueOnce(query({ data: null, error: { message: 'boom' } }));
-    const { fetchTopScores } = await importClient();
-    await expect(fetchTopScores('all', 5)).rejects.toThrow('boom');
+    const { fetchModeTopScores } = await importClient();
+    await expect(fetchModeTopScores('mode-uuid', 5)).rejects.toThrow('boom');
   });
   it('adds a created_at filter when since is provided', async () => {
     const q = query({ data: [], error: null });
     from.mockReturnValueOnce(q);
-    const { fetchTopScores } = await importClient();
-    await fetchTopScores('all', 5, 1_700_000_000_000);
+    const { fetchModeTopScores } = await importClient();
+    await fetchModeTopScores('mode-uuid', 5, 1_700_000_000_000);
     expect(q.gte).toHaveBeenCalledWith('created_at', new Date(1_700_000_000_000).toISOString());
   });
   it('omits the created_at filter when since is null', async () => {
     const q = query({ data: [], error: null });
     from.mockReturnValueOnce(q);
-    const { fetchTopScores } = await importClient();
-    await fetchTopScores('all', 5, null);
+    const { fetchModeTopScores } = await importClient();
+    await fetchModeTopScores('mode-uuid', 5, null);
     expect(q.gte).not.toHaveBeenCalled();
   });
 });
 
-describe('fetchProjectedRank', () => {
+describe('fetchModeProjectedRank', () => {
   it('returns count-of-higher + 1 and the total', async () => {
     from
       .mockReturnValueOnce(query({ count: 3, error: null })) // higher
       .mockReturnValueOnce(query({ count: 12, error: null })); // total
-    const { fetchProjectedRank } = await importClient();
-    expect(await fetchProjectedRank('popular', 500)).toEqual({ rank: 4, total: 12 });
+    const { fetchModeProjectedRank } = await importClient();
+    expect(await fetchModeProjectedRank('mode-uuid', 500)).toEqual({ rank: 4, total: 12 });
   });
 });
 
@@ -97,16 +97,27 @@ describe('submitScore', () => {
   it('returns ok with id and rank on success', async () => {
     invoke.mockResolvedValueOnce({ data: { ok: true, id: 'x', rank: 7 }, error: null });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 900, correct: 9, pool: 'all' })).toEqual({ ok: true, id: 'x', rank: 7 });
+    expect(await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid' })).toEqual({ ok: true, id: 'x', rank: 7 });
   });
   it('returns a reason on function error', async () => {
     invoke.mockResolvedValueOnce({ data: null, error: { message: 'rate-limited' } });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 900, correct: 9, pool: 'all' })).toEqual({ ok: false, reason: 'rate-limited' });
+    expect(await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid' })).toEqual({ ok: false, reason: 'rate-limited' });
   });
   it('returns a reason when the function rejects the payload', async () => {
     invoke.mockResolvedValueOnce({ data: { ok: false, reason: 'score' }, error: null });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 1, correct: 9, pool: 'all' })).toEqual({ ok: false, reason: 'score' });
+    expect(await submitScore({ name: 'Al', score: 1, correct: 9, modeId: 'mode-uuid' })).toEqual({ ok: false, reason: 'score' });
+  });
+  it('sends mode_id (not pool) in the request body', async () => {
+    invoke.mockResolvedValueOnce({ data: { ok: true, id: 'x', rank: 1 }, error: null });
+    const { submitScore } = await importClient();
+    await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid' });
+    expect(invoke).toHaveBeenCalledWith('submit-score', {
+      body: expect.objectContaining({ mode_id: 'mode-uuid' }),
+    });
+    expect(invoke).toHaveBeenCalledWith('submit-score', {
+      body: expect.not.objectContaining({ pool: expect.anything() }),
+    });
   });
 });

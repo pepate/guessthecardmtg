@@ -6,6 +6,9 @@ import { fetchCandidates } from '../cards/client';
 import type { PoolSelection, ScryfallCard } from '../scryfall/types';
 import { loadHighscores, saveHighscore, type HighscoreEntry, type PoolKind } from './highscores';
 import { decodeResult, type SharedResult } from '../share/score';
+import { getBuiltinModes } from '../modes/client';
+import type { CustomMode } from '../modes/types';
+import type { CustomFilter } from '../modes/filter';
 
 export type GamePhase = 'idle' | 'loading' | 'playing' | 'error' | 'gameover';
 
@@ -17,9 +20,9 @@ interface GameState {
   pool: ScryfallCard[];
   /** Which pool the current game is played on (recorded in highscores). */
   poolKind: PoolKind;
-  /** Custom mode id for the current game, or null for the built-in pools. */
+  /** Mode id for the current game — always set for every game. */
   currentModeId: string | null;
-  /** Display name of the current custom mode, for the game-over header. */
+  /** Display name of the current mode, for the game-over header. */
   currentModeName: string | null;
   /** The selection that built the current game, so "play again" can re-fetch. */
   lastSelection: PoolSelection | null;
@@ -45,6 +48,9 @@ interface GameState {
   highscores: HighscoreEntry[];
   /** A friend's shared result from a `?r=` link, shown as a challenge banner. */
   challenge: SharedResult | null;
+
+  /** Cached builtin mode rows loaded from DB once. */
+  builtinModes: { all: CustomMode; popular: CustomMode } | null;
 
   selectPool: (selection: PoolSelection) => Promise<void>;
   guessName: (name: string) => void;
@@ -122,13 +128,45 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   highscores: loadHighscores(),
   challenge: decodeResult(new URLSearchParams(window.location.search).get('r')),
+  builtinModes: null,
 
   async selectPool(selection) {
     const summonStart = Date.now();
     set({ phase: 'loading', error: null });
     try {
       const { config } = get();
-      const pool = await fetchCandidates(selection);
+
+      let filter: CustomFilter;
+      let modeId: string;
+      let modeName: string;
+      let poolKind: PoolKind;
+
+      if (selection.kind === 'custom') {
+        filter = selection.filter;
+        modeId = selection.modeId;
+        modeName = selection.name;
+        poolKind = 'custom';
+      } else {
+        // Resolve builtin modes lazily
+        let b = get().builtinModes;
+        if (!b) {
+          b = await getBuiltinModes();
+          if (b) set({ builtinModes: b });
+        }
+        if (!b) throw new Error('Leaderboard unavailable');
+
+        const bm = selection.kind === 'all' ? b.all : b.popular;
+        modeId = bm.id;
+        modeName = bm.name;
+        poolKind = selection.kind;
+        // When excluding UB: use the builtin filter as-is (already excludes UB by default).
+        // When NOT excluding UB: overlay ub:'yes' to include Universe Beyond cards.
+        filter = selection.excludeUniverseBeyond
+          ? { ...bm.filter }
+          : { ...bm.filter, ub: 'yes' as const };
+      }
+
+      const pool = await fetchCandidates(filter);
       if (uniqueNameCount(pool) < config.optionCount) {
         throw new Error('Not enough cards in the selected pool.');
       }
@@ -137,9 +175,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (remaining > 0) await sleep(remaining);
       set({
         pool,
-        poolKind: selection.kind,
-        currentModeId: selection.kind === 'custom' ? selection.modeId : null,
-        currentModeName: selection.kind === 'custom' ? selection.name : null,
+        poolKind,
+        currentModeId: modeId,
+        currentModeName: modeName,
         lastSelection: selection,
         plan,
         round: startPlanned(plan[0], Date.now()),

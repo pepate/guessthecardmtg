@@ -5,31 +5,31 @@ import * as client from './client';
 import type { GlobalEntry } from './types';
 
 const entry: GlobalEntry = {
-  id: '1', name: 'Al', score: 900, correct: 9, pool: 'all', country: 'DE', createdAt: 0,
+  id: '1', name: 'Al', score: 900, correct: 9, country: 'DE', createdAt: 0,
 };
 
 beforeEach(() => vi.restoreAllMocks());
 
 describe('useLeaderboard', () => {
-  it('loads entries for a pool', async () => {
-    vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
-    const { result } = renderHook(() => useLeaderboard('all', 5));
+  it('loads entries for a mode id', async () => {
+    vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([entry]);
+    const { result } = renderHook(() => useLeaderboard('mode-uuid', 5));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.entries).toEqual([entry]);
     expect(result.current.error).toBe(false);
   });
 
   it('sets error when the fetch rejects', async () => {
-    vi.spyOn(client, 'fetchTopScores').mockRejectedValue(new Error('boom'));
-    const { result } = renderHook(() => useLeaderboard('popular', 5));
+    vi.spyOn(client, 'fetchModeTopScores').mockRejectedValue(new Error('boom'));
+    const { result } = renderHook(() => useLeaderboard('popular-mode-uuid', 5));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBe(true);
     expect(result.current.entries).toEqual([]);
   });
 
   it('refetches when refreshKey changes', async () => {
-    const spy = vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
-    const { rerender } = renderHook(({ k }) => useLeaderboard('all', 5, 'all', k), {
+    const spy = vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([entry]);
+    const { rerender } = renderHook(({ k }) => useLeaderboard('mode-uuid', 5, 'all', k), {
       initialProps: { k: 0 },
     });
     await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
