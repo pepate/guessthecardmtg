@@ -11,6 +11,13 @@ function json(obj: unknown, status = 200): Response {
   return new Response(JSON.stringify(obj), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 }
 
+function modeKind(filter: Record<string, unknown>): 'set' | 'custom' {
+  const keys = Object.keys(filter);
+  const sets = (filter as { sets?: unknown }).sets;
+  if (keys.length === 1 && keys[0] === 'sets' && Array.isArray(sets) && sets.length === 1) return 'set';
+  return 'custom';
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ ok: false, reason: 'method' }, 405);
@@ -25,7 +32,7 @@ Deno.serve(async (req) => {
   const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
   // Dedup: if a mode with this hash exists, return it.
-  const existing = await supabase.from('custom_mode').select('id,name,filter,card_count').eq('filter_hash', filterHash).maybeSingle();
+  const existing = await supabase.from('mode').select('id,name,filter,card_count').eq('filter_hash', filterHash).maybeSingle();
   if (existing.data) return json({ ok: true, existed: true, mode: existing.data });
 
   // Authoritative count (server recomputes; client value is not trusted).
@@ -34,12 +41,12 @@ Deno.serve(async (req) => {
   const cardCount = counted.data as number;
   if (cardCount < MIN_CARDS) return json({ ok: false, reason: 'too-few', count: cardCount }, 400);
 
-  const inserted = await supabase.from('custom_mode')
-    .insert({ name, filter, filter_hash: filterHash, card_count: cardCount })
+  const inserted = await supabase.from('mode')
+    .insert({ name, filter, filter_hash: filterHash, card_count: cardCount, kind: modeKind(filter as Record<string, unknown>) })
     .select('id,name,filter,card_count').single();
   if (inserted.error) {
     // Lost a race on the unique hash → fetch and return the winner.
-    const again = await supabase.from('custom_mode').select('id,name,filter,card_count').eq('filter_hash', filterHash).maybeSingle();
+    const again = await supabase.from('mode').select('id,name,filter,card_count').eq('filter_hash', filterHash).maybeSingle();
     if (again.data) return json({ ok: true, existed: true, mode: again.data });
     return json({ ok: false, reason: 'insert' }, 500);
   }
