@@ -13,6 +13,7 @@ import { Snackbar } from './ui/Snackbar';
 import { GameOver } from './ui/GameOver';
 import { StartShare } from './ui/StartShare';
 import { InstallButton } from './ui/InstallButton';
+import { StartLeaderboard } from './ui/StartLeaderboard';
 
 // After a round resolves: a correct guess flashes green briefly, a miss / timeout
 // reveals the full card for a beat — then we auto-advance to the next card.
@@ -224,6 +225,7 @@ export function App() {
               className="bottom-sheet"
             >
               <PoolSelect />
+              <StartLeaderboard />
             </motion.div>
           )}
 

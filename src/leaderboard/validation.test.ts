@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeName, validateScore, validateSubmission, NAME_MIN, NAME_MAX } from './validation';
+import { sanitizeName, validateScore, validateSubmission, NAME_MAX } from './validation';
 
 describe('sanitizeName', () => {
   it('trims and collapses whitespace', () => {
