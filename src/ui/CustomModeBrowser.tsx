@@ -57,7 +57,6 @@ export function CustomModeBrowser({ onBack }: { onBack: () => void }) {
         <CustomModeBuilder
           onCreated={(mode, didExist) => openDetail(mode, didExist)}
           onCancel={backToList}
-          onExisting={(mode) => openDetail(mode, true)}
         />
       </div>
     );
