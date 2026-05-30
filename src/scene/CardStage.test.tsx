@@ -139,6 +139,69 @@ describe('CardStage mosaic mode', () => {
   });
 });
 
+describe('CardStage silhouette mode', () => {
+  beforeEach(() => seedRound('playing'));
+
+  it('renders a silhouette cover and name redaction, no stage blurs', () => {
+    render(<CardStage mode="silhouette" stage={0} progress={0.3} />);
+    expect(screen.getByTestId('card-image')).toBeTruthy();
+    expect(screen.getByTestId('silhouette-cover')).toBeTruthy();
+    expect(screen.getByTestId('blur-name')).toBeTruthy();
+    expect(screen.queryByTestId('blur-type')).toBeNull();
+  });
+
+  it('drops the cover and name when over', () => {
+    seedRound('won');
+    render(<CardStage mode="silhouette" stage={5} progress={1} />);
+    expect(screen.queryByTestId('silhouette-cover')).toBeNull();
+    expect(screen.queryByTestId('blur-name')).toBeNull();
+  });
+});
+
+describe('CardStage spotlight mode', () => {
+  beforeEach(() => seedRound('playing'));
+
+  it('renders a spotlight cover and name redaction', () => {
+    render(<CardStage mode="spotlight" stage={0} progress={0.3} spotlightOrigin={{ xPct: 40, yPct: 30 }} />);
+    expect(screen.getByTestId('spotlight-cover')).toBeTruthy();
+    expect(screen.getByTestId('blur-name')).toBeTruthy();
+  });
+
+  it('drops the cover when over', () => {
+    seedRound('won');
+    render(<CardStage mode="spotlight" stage={5} progress={1} />);
+    expect(screen.queryByTestId('spotlight-cover')).toBeNull();
+  });
+});
+
+describe('CardStage zoom mode', () => {
+  beforeEach(() => seedRound('playing'));
+
+  it('renders both image layers and name redaction while playing', () => {
+    render(<CardStage mode="zoom" stage={0} progress={0.2} zoomFocus={{ xPct: 50, yPct: 45 }} />);
+    expect(screen.getByTestId('zoom-art')).toBeTruthy();
+    expect(screen.getByTestId('zoom-card')).toBeTruthy();
+    expect(screen.getByTestId('blur-name')).toBeTruthy();
+  });
+
+  it('redacts the rules text while zoomTextHidden, then reveals it', () => {
+    const { rerender } = render(
+      <CardStage mode="zoom" stage={0} progress={0.2} zoomFocus={{ xPct: 50, yPct: 45 }} zoomTextHidden />,
+    );
+    expect(screen.getByTestId('blur-text')).toBeTruthy();
+    rerender(<CardStage mode="zoom" stage={0} progress={0.6} zoomFocus={{ xPct: 50, yPct: 45 }} zoomTextHidden={false} />);
+    expect(screen.queryByTestId('blur-text')).toBeNull();
+  });
+
+  it('drops the zoom layers and name when over (full card shown)', () => {
+    seedRound('won');
+    render(<CardStage mode="zoom" stage={5} progress={1} zoomFocus={{ xPct: 50, yPct: 45 }} />);
+    expect(screen.queryByTestId('zoom-art')).toBeNull();
+    expect(screen.getByTestId('card-image')).toBeTruthy();
+    expect(screen.queryByTestId('blur-name')).toBeNull();
+  });
+});
+
 describe('CardStage blur mode (unchanged)', () => {
   beforeEach(() => seedRound('playing'));
 
