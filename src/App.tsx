@@ -15,6 +15,7 @@ import { StartShare } from './ui/StartShare';
 import { InstallButton } from './ui/InstallButton';
 import { StartLeaderboard } from './ui/StartLeaderboard';
 import { useWideLayout } from './ui/useWideLayout';
+import { usePullToRefresh } from './ui/usePullToRefresh';
 
 // After a round resolves: a correct guess flashes green briefly, a miss / timeout
 // reveals the full card for a beat — then we auto-advance to the next card.
@@ -169,6 +170,11 @@ export function App() {
   const playingNow = phase === 'playing' && round?.status === 'playing';
   const wide = useWideLayout();
 
+  const [lbRefreshKey, setLbRefreshKey] = useState(0);
+  const { ref: pullRef, pull } = usePullToRefresh<HTMLDivElement>(() =>
+    setLbRefreshKey((k) => k + 1),
+  );
+
   const status = round?.status;
   const startedAt = round?.startedAt;
   useEffect(() => {
@@ -204,7 +210,7 @@ export function App() {
       {phase === 'gameover' && <InstallButton />}
       {phase === 'idle' && <StartArtwork />}
       {phase === 'gameover' && <StartArtwork variant="full" />}
-      {round && <CardStage stage={playingNow ? stage : 5} wide={wide} />}
+      {round && !(wide && phase === 'playing') && <CardStage stage={playingNow ? stage : 5} />}
 
       <div className="overlay">
         <AnimatePresence mode="wait">
@@ -215,10 +221,23 @@ export function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="bottom-sheet"
-              style={{ display: 'flex', flexDirection: 'column', gap: 18, maxHeight: '92%', overflowY: 'auto' }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: '92%' }}
             >
-              <StartLeaderboard />
-              <PoolSelect />
+              <div
+                ref={pullRef}
+                style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}
+              >
+                <div
+                  aria-hidden
+                  style={{ height: pull, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}
+                >
+                  {pull > 0 && <span className="spinner" />}
+                </div>
+                <StartLeaderboard refreshKey={lbRefreshKey} />
+              </div>
+              <div style={{ flexShrink: 0 }}>
+                <PoolSelect />
+              </div>
             </motion.div>
           )}
 
@@ -237,17 +256,22 @@ export function App() {
               <div style={{ pointerEvents: 'all' }}>
                 <HUD timeLeftMs={timeLeftMs} />
               </div>
-              <div style={{ flex: 1 }} />
               {wide ? (
-                <div className="side-panel">
-                  {playingNow && <Timer elapsedMs={elapsedMs} />}
-                  <NameChoice layout="column" />
+                <div className="play-wide">
+                  {round && <CardStage stage={playingNow ? stage : 5} wide />}
+                  <div className="options-col">
+                    {playingNow && <Timer elapsedMs={elapsedMs} />}
+                    <NameChoice layout="column" />
+                  </div>
                 </div>
               ) : (
-                <div className="bottom-sheet" style={{ pointerEvents: 'all', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {playingNow && <Timer elapsedMs={elapsedMs} />}
-                  <NameChoice />
-                </div>
+                <>
+                  <div style={{ flex: 1 }} />
+                  <div className="bottom-sheet" style={{ pointerEvents: 'all', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {playingNow && <Timer elapsedMs={elapsedMs} />}
+                    <NameChoice />
+                  </div>
+                </>
               )}
             </motion.div>
           )}
