@@ -23,7 +23,7 @@ export function GameOverLeaderboard({
 }: {
   score: number;
   correct: number;
-  modeId: string;
+  modeId: string | null;
   modeName?: string;
   modeFilter?: CustomFilter;
 }) {

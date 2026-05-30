@@ -1,13 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const rpc = vi.fn();
+const getSupabase = vi.fn<() => unknown>(() => ({ rpc }));
 vi.mock('../supabase/client', () => ({
-  getSupabase: () => ({ rpc }),
+  getSupabase: () => getSupabase(),
 }));
 
 import { fetchSetList } from './client';
 
-beforeEach(() => rpc.mockReset());
+beforeEach(() => {
+  rpc.mockReset();
+  getSupabase.mockReset();
+  getSupabase.mockReturnValue({ rpc });
+});
 
 describe('fetchSetList', () => {
   it('maps a set_list RPC row to camelCase SetListItem', async () => {
@@ -67,11 +72,17 @@ describe('fetchSetList', () => {
     expect(typeof items[0].entryCount).toBe('number');
   });
 
-  it('returns empty array when supabase is not configured', async () => {
-    // The mock always returns a client, so simulate by checking empty data
+  it('returns an empty array for an empty RPC response', async () => {
     rpc.mockResolvedValue({ data: [], error: null });
     const items = await fetchSetList();
     expect(items).toEqual([]);
+  });
+
+  it('returns an empty array without calling rpc when supabase is not configured', async () => {
+    getSupabase.mockReturnValue(null);
+    const items = await fetchSetList();
+    expect(items).toEqual([]);
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it('throws on an RPC error', async () => {

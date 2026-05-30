@@ -86,7 +86,7 @@ export function GameOver() {
       <GameOverLeaderboard
         score={totalScore}
         correct={correctCount}
-        modeId={currentModeId ?? ''}
+        modeId={currentModeId}
         modeName={currentModeName ?? undefined}
         modeFilter={currentModeFilter ?? undefined}
       />
