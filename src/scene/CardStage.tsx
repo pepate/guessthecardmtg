@@ -12,9 +12,10 @@ const RARITY_GLOW: Record<string, string> = {
   bonus: 'rgba(255,106,44,0.70)',
 };
 
-// Mosaic grid (layout). Must match mosaicCols/mosaicRows in DEFAULT_TIME_ATTACK_CONFIG.
-const MOSAIC_COLS = 4;
-const MOSAIC_ROWS = 6;
+// Mosaic grid (layout). Must match mosaicCols/mosaicRows in DEFAULT_TIME_ATTACK_CONFIG
+// (guarded by an invariant test in CardStage.test.tsx).
+export const MOSAIC_COLS = 4;
+export const MOSAIC_ROWS = 6;
 const MOSAIC_TILES = MOSAIC_COLS * MOSAIC_ROWS;
 const MOSAIC_IDENTITY = Array.from({ length: MOSAIC_TILES }, (_, i) => i);
 

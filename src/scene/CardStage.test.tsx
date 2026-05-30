@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { CardStage } from './CardStage';
+import { CardStage, MOSAIC_COLS, MOSAIC_ROWS } from './CardStage';
 import { useGameStore } from '../state/gameStore';
+import { DEFAULT_TIME_ATTACK_CONFIG } from '../engine/types';
 import type { ScryfallCard } from '../scryfall/types';
 
 const card = (name: string): ScryfallCard => ({
@@ -73,6 +74,11 @@ const IDENTITY = Array.from({ length: 24 }, (_, i) => i);
 
 describe('CardStage mosaic mode', () => {
   beforeEach(() => seedRound('playing'));
+
+  it('grid constants match the engine config (no silent drift)', () => {
+    expect(MOSAIC_COLS).toBe(DEFAULT_TIME_ATTACK_CONFIG.mosaicCols);
+    expect(MOSAIC_ROWS).toBe(DEFAULT_TIME_ATTACK_CONFIG.mosaicRows);
+  });
 
   it('renders the card image and (tileCount - tilesRevealed) tile covers, no stage blurs', () => {
     render(<CardStage mode="mosaic" stage={0} tileOrder={IDENTITY} tilesRevealed={4} />);
