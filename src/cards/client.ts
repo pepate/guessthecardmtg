@@ -1,5 +1,6 @@
 import { getSupabase } from '../supabase/client';
 import type { ScryfallCard, PoolSelection, Color } from '../scryfall/types';
+import { fetchModeCandidates } from '../customModes/client';
 
 // Matches one row returned by the get_game_cards RPC.
 export interface GameCardRow {
@@ -60,6 +61,7 @@ export function fetchCandidates(
   input: PoolSelection,
   limit = DEFAULT_LIMIT,
 ): Promise<ScryfallCard[]> {
+  if (input.kind === 'custom') return fetchModeCandidates(input.modeId, limit);
   return queryGameCards(input.kind, limit, input.excludeUniverseBeyond);
 }
 

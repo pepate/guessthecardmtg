@@ -1,4 +1,4 @@
-export type PoolKind = 'popular' | 'all';
+export type PoolKind = 'popular' | 'all' | 'custom';
 
 export interface HighscoreEntry {
   /** Total points scored across the game. */
@@ -21,7 +21,7 @@ function isEntry(x: unknown): x is HighscoreEntry {
     typeof e.score === 'number' &&
     typeof e.correct === 'number' &&
     typeof e.date === 'number' &&
-    (e.pool === 'popular' || e.pool === 'all')
+    (e.pool === 'popular' || e.pool === 'all' || e.pool === 'custom')
   );
 }
 
