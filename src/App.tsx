@@ -6,6 +6,7 @@ import { useGameStore } from './state/gameStore';
 import { useGameClock, useGameTimeLeft } from './state/useGameClock';
 import { stageAt } from './engine/timeAttack';
 import { PoolSelect } from './ui/PoolSelect';
+import { CustomModeBrowser } from './ui/CustomModeBrowser';
 import { HUD } from './ui/HUD';
 import { Timer } from './ui/Timer';
 import { NameChoice } from './ui/NameChoice';
@@ -204,10 +205,15 @@ export function App() {
   const playingNow = phase === 'playing' && round?.status === 'playing';
   const wide = useWideLayout();
 
+  const [screen, setScreen] = useState<'home' | 'custom'>('home');
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
   const { ref: pullRef, pull } = usePullToRefresh<HTMLDivElement>(() =>
     setLbRefreshKey((k) => k + 1),
   );
+
+  useEffect(() => {
+    if (phase !== 'idle') setScreen('home');
+  }, [phase]);
 
   const status = round?.status;
   const startedAt = round?.startedAt;
@@ -248,7 +254,18 @@ export function App() {
 
       <div className="overlay">
         <AnimatePresence mode="wait">
-          {phase === 'idle' && (
+          {phase === 'idle' && screen === 'custom' && (
+            <motion.div
+              key="custom"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <CustomModeBrowser onBack={() => setScreen('home')} />
+            </motion.div>
+          )}
+
+          {phase === 'idle' && screen === 'home' && (
             <motion.div
               key="idle"
               initial={{ opacity: 0 }}
@@ -270,7 +287,7 @@ export function App() {
                 <StartLeaderboard refreshKey={lbRefreshKey} />
               </div>
               <div style={{ flexShrink: 0 }}>
-                <PoolSelect />
+                <PoolSelect onOpenCustom={() => setScreen('custom')} />
               </div>
             </motion.div>
           )}
