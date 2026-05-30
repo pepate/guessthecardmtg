@@ -56,6 +56,15 @@ describe('CardStage scanner mode', () => {
     expect(screen.queryByTestId('blur-mana')).toBeNull();
   });
 
+  it('redacts the rules text while textHidden, then reveals it', () => {
+    const { rerender } = render(
+      <CardStage mode="scanner" stage={0} progress={0.2} angle={30} textHidden />,
+    );
+    expect(screen.getByTestId('blur-text')).toBeTruthy();
+    rerender(<CardStage mode="scanner" stage={0} progress={0.5} angle={30} textHidden={false} />);
+    expect(screen.queryByTestId('blur-text')).toBeNull();
+  });
+
   it('reveals the name and drops the cover when the round is over', () => {
     seedRound('won');
     render(<CardStage mode="scanner" stage={5} progress={1} angle={30} />);
@@ -103,6 +112,23 @@ describe('CardStage mosaic mode', () => {
       <CardStage mode="mosaic" stage={0} tileOrder={IDENTITY} tilesRevealed={6} manaHidden={false} />,
     );
     expect(screen.queryByTestId('blur-mana')).toBeNull();
+  });
+
+  it('redacts the rules text while textHidden (name can leak via card text), then reveals it', () => {
+    const { rerender } = render(
+      <CardStage mode="mosaic" stage={0} tileOrder={IDENTITY} tilesRevealed={2} textHidden />,
+    );
+    expect(screen.getByTestId('blur-text')).toBeTruthy();
+    rerender(
+      <CardStage mode="mosaic" stage={0} tileOrder={IDENTITY} tilesRevealed={6} textHidden={false} />,
+    );
+    expect(screen.queryByTestId('blur-text')).toBeNull();
+  });
+
+  it('drops the rules-text redaction when the round is over', () => {
+    seedRound('won');
+    render(<CardStage mode="mosaic" stage={5} tileOrder={IDENTITY} tilesRevealed={24} textHidden />);
+    expect(screen.queryByTestId('blur-text')).toBeNull();
   });
 
   it('drops all tiles and the name when the round is over', () => {

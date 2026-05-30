@@ -93,6 +93,7 @@ export function CardStage({
   progress = 0,
   angle = 0,
   manaHidden = false,
+  textHidden = false,
   tileOrder = MOSAIC_IDENTITY,
   tilesRevealed = 0,
 }: {
@@ -102,6 +103,7 @@ export function CardStage({
   progress?: number;
   angle?: number;
   manaHidden?: boolean;
+  textHidden?: boolean;
   tileOrder?: number[];
   tilesRevealed?: number;
 }) {
@@ -186,6 +188,13 @@ export function CardStage({
                   style={{ top: '3.2%', left: '58%', width: '37%', height: '6.5%', zIndex: 2 }}
                 />
               )}
+              {!over && textHidden && (
+                <Blur
+                  key="text"
+                  testid="blur-text"
+                  style={{ top: '62.5%', left: '5%', width: '90%', height: '26%', zIndex: 2 }}
+                />
+              )}
             </>
           ) : mode === 'mosaic' ? (
             <>
@@ -229,6 +238,13 @@ export function CardStage({
                   key="mana"
                   testid="blur-mana"
                   style={{ top: '3.2%', left: '58%', width: '37%', height: '6.5%', zIndex: 2 }}
+                />
+              )}
+              {!over && textHidden && (
+                <Blur
+                  key="text"
+                  testid="blur-text"
+                  style={{ top: '62.5%', left: '5%', width: '90%', height: '26%', zIndex: 2 }}
                 />
               )}
             </>

@@ -210,6 +210,9 @@ export function App() {
   const scanProgress = playingNow ? scanProgressAt(elapsedMs, config) : 1;
   const scanAngle = scanAngleFor(revealSeed, roundIndex);
   const scanManaHidden = playingNow && elapsedMs < config.scanManaRevealMs;
+  // Cards often print their own name in the rules text — keep the text box redacted
+  // early (same 5s window as mana) in the spatial-reveal modes so it can't leak the answer.
+  const scanTextHidden = playingNow && elapsedMs < config.scanManaRevealMs;
   const tileCount = config.mosaicCols * config.mosaicRows;
   const tilesRevealed = playingNow ? tilesRevealedAt(elapsedMs, config) : tileCount;
   const tileOrder = tileOrderFor(revealSeed, roundIndex, tileCount);
@@ -261,7 +264,7 @@ export function App() {
       {phase === 'idle' && <StartArtwork />}
       {phase === 'gameover' && <StartArtwork variant="full" />}
       {round && !(wide && phase === 'playing') && (
-        <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} tileOrder={tileOrder} tilesRevealed={tilesRevealed} />
+        <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} tileOrder={tileOrder} tilesRevealed={tilesRevealed} />
       )}
 
       <div className="overlay">
@@ -322,7 +325,7 @@ export function App() {
               {wide ? (
                 <div className="play-wide">
                   {round && (
-                    <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} tileOrder={tileOrder} tilesRevealed={tilesRevealed} wide />
+                    <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} tileOrder={tileOrder} tilesRevealed={tilesRevealed} wide />
                   )}
                   <div className="options-col">
                     {playingNow && <Timer elapsedMs={elapsedMs} />}
