@@ -12,6 +12,12 @@ const RARITY_GLOW: Record<string, string> = {
   bonus: 'rgba(255,106,44,0.70)',
 };
 
+// Mosaic grid (layout). Must match mosaicCols/mosaicRows in DEFAULT_TIME_ATTACK_CONFIG.
+const MOSAIC_COLS = 4;
+const MOSAIC_ROWS = 6;
+const MOSAIC_TILES = MOSAIC_COLS * MOSAIC_ROWS;
+const MOSAIC_IDENTITY = Array.from({ length: MOSAIC_TILES }, (_, i) => i);
+
 const wrapperStyle: CSSProperties = {
   width: '100%',
   height: '100%',
@@ -86,13 +92,17 @@ export function CardStage({
   progress = 0,
   angle = 0,
   manaHidden = false,
+  tileOrder = MOSAIC_IDENTITY,
+  tilesRevealed = 0,
 }: {
   stage: RevealStage;
   wide?: boolean;
-  mode?: 'blur' | 'scanner';
+  mode?: 'blur' | 'scanner' | 'mosaic';
   progress?: number;
   angle?: number;
   manaHidden?: boolean;
+  tileOrder?: number[];
+  tilesRevealed?: number;
 }) {
   const round = useGameStore((s) => s.round);
   if (!round) return null;
@@ -161,6 +171,51 @@ export function CardStage({
                   transition={{ duration: 0.4 }}
                 />
               )}
+              {blurName && (
+                <Blur
+                  key="name"
+                  testid="blur-name"
+                  style={{ top: '3.2%', left: '5%', width: '60%', height: '6.5%', zIndex: 2 }}
+                />
+              )}
+              {!over && manaHidden && (
+                <Blur
+                  key="mana"
+                  testid="blur-mana"
+                  style={{ top: '3.2%', left: '58%', width: '37%', height: '6.5%', zIndex: 2 }}
+                />
+              )}
+            </>
+          ) : mode === 'mosaic' ? (
+            <>
+              {!over &&
+                Array.from({ length: MOSAIC_TILES }, (_, t) => {
+                  const step = tileOrder.indexOf(t);
+                  if (step >= 0 && step < tilesRevealed) return null;
+                  const row = Math.floor(t / MOSAIC_COLS);
+                  const col = t % MOSAIC_COLS;
+                  return (
+                    <motion.div
+                      key={`tile-${t}`}
+                      data-testid="mosaic-tile"
+                      data-tile={t}
+                      style={{
+                        position: 'absolute',
+                        top: `${(row / MOSAIC_ROWS) * 100}%`,
+                        left: `${(col / MOSAIC_COLS) * 100}%`,
+                        width: `${100 / MOSAIC_COLS}%`,
+                        height: `${100 / MOSAIC_ROWS}%`,
+                        backgroundColor: '#08060c',
+                      }}
+                      initial={{ opacity: 1 }}
+                      exit={{
+                        backgroundColor: ['#08060c', '#ffd79a', 'rgba(0,0,0,0)'],
+                        opacity: [1, 1, 0],
+                      }}
+                      transition={{ duration: 0.45 }}
+                    />
+                  );
+                })}
               {blurName && (
                 <Blur
                   key="name"

@@ -69,6 +69,44 @@ describe('CardStage scanner mode', () => {
   });
 });
 
+const IDENTITY = Array.from({ length: 24 }, (_, i) => i);
+
+describe('CardStage mosaic mode', () => {
+  beforeEach(() => seedRound('playing'));
+
+  it('renders the card image and (tileCount - tilesRevealed) tile covers, no stage blurs', () => {
+    render(<CardStage mode="mosaic" stage={0} tileOrder={IDENTITY} tilesRevealed={4} />);
+    expect(screen.getByTestId('card-image')).toBeTruthy();
+    expect(screen.getAllByTestId('mosaic-tile').length).toBe(20);
+    expect(screen.queryByTestId('blur-type')).toBeNull();
+    expect(screen.queryByTestId('blur-text')).toBeNull();
+    expect(screen.queryByTestId('blur-power')).toBeNull();
+  });
+
+  it('keeps the name redacted while playing', () => {
+    render(<CardStage mode="mosaic" stage={0} tileOrder={IDENTITY} tilesRevealed={4} />);
+    expect(screen.getByTestId('blur-name')).toBeTruthy();
+  });
+
+  it('redacts the mana cost while manaHidden, then reveals it', () => {
+    const { rerender } = render(
+      <CardStage mode="mosaic" stage={0} tileOrder={IDENTITY} tilesRevealed={2} manaHidden />,
+    );
+    expect(screen.getByTestId('blur-mana')).toBeTruthy();
+    rerender(
+      <CardStage mode="mosaic" stage={0} tileOrder={IDENTITY} tilesRevealed={6} manaHidden={false} />,
+    );
+    expect(screen.queryByTestId('blur-mana')).toBeNull();
+  });
+
+  it('drops all tiles and the name when the round is over', () => {
+    seedRound('won');
+    render(<CardStage mode="mosaic" stage={5} tileOrder={IDENTITY} tilesRevealed={24} />);
+    expect(screen.queryByTestId('mosaic-tile')).toBeNull();
+    expect(screen.queryByTestId('blur-name')).toBeNull();
+  });
+});
+
 describe('CardStage blur mode (unchanged)', () => {
   beforeEach(() => seedRound('playing'));
 
