@@ -177,28 +177,20 @@ describe('CardStage spotlight mode', () => {
 describe('CardStage zoom mode', () => {
   beforeEach(() => seedRound('playing'));
 
-  it('renders both image layers and name redaction while playing', () => {
-    render(<CardStage mode="zoom" stage={0} progress={0.2} zoomFocus={{ xPct: 50, yPct: 45 }} />);
+  it('renders both image layers and NO redaction overlays while playing', () => {
+    render(<CardStage mode="zoom" stage={0} progress={0.2} />);
     expect(screen.getByTestId('zoom-art')).toBeTruthy();
     expect(screen.getByTestId('zoom-card')).toBeTruthy();
-    expect(screen.getByTestId('blur-name')).toBeTruthy();
-  });
-
-  it('redacts the rules text while zoomTextHidden, then reveals it', () => {
-    const { rerender } = render(
-      <CardStage mode="zoom" stage={0} progress={0.2} zoomFocus={{ xPct: 50, yPct: 45 }} zoomTextHidden />,
-    );
-    expect(screen.getByTestId('blur-text')).toBeTruthy();
-    rerender(<CardStage mode="zoom" stage={0} progress={0.6} zoomFocus={{ xPct: 50, yPct: 45 }} zoomTextHidden={false} />);
+    expect(screen.queryByTestId('blur-name')).toBeNull();
     expect(screen.queryByTestId('blur-text')).toBeNull();
+    expect(screen.queryByTestId('blur-mana')).toBeNull();
   });
 
-  it('drops the zoom layers and name when over (full card shown)', () => {
+  it('drops the zoom layers and shows the full card when over', () => {
     seedRound('won');
-    render(<CardStage mode="zoom" stage={5} progress={1} zoomFocus={{ xPct: 50, yPct: 45 }} />);
+    render(<CardStage mode="zoom" stage={5} progress={1} />);
     expect(screen.queryByTestId('zoom-art')).toBeNull();
     expect(screen.getByTestId('card-image')).toBeTruthy();
-    expect(screen.queryByTestId('blur-name')).toBeNull();
   });
 });
 

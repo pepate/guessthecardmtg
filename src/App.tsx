@@ -4,7 +4,7 @@ import { CardStage } from './scene/CardStage';
 import { fetchRandomCard } from './cards/client';
 import { useGameStore } from './state/gameStore';
 import { useGameClock, useGameTimeLeft } from './state/useGameClock';
-import { stageAt, scanProgressAt, revealModeFor, scanAngleFor, tilesRevealedAt, tileOrderFor, zoomFocusFor, spotlightOriginFor } from './engine/timeAttack';
+import { stageAt, scanProgressAt, revealModeFor, scanAngleFor, tilesRevealedAt, tileOrderFor, spotlightOriginFor } from './engine/timeAttack';
 import { PoolSelect } from './ui/PoolSelect';
 import { CustomModeBrowser } from './ui/CustomModeBrowser';
 import { HUD } from './ui/HUD';
@@ -217,9 +217,7 @@ export function App() {
   const tileCount = config.mosaicCols * config.mosaicRows;
   const tilesRevealed = playingNow ? tilesRevealedAt(elapsedMs, config) : tileCount;
   const tileOrder = tileOrderFor(revealSeed, roundIndex, tileCount);
-  const zoomFocus = zoomFocusFor(revealSeed, roundIndex);
   const spotlightOrigin = spotlightOriginFor(revealSeed, roundIndex);
-  const zoomTextHidden = playingNow && elapsedMs < config.zoomTextRevealMs;
   const wide = useWideLayout();
 
   const [screen, setScreen] = useState<'home' | 'custom'>('home');
@@ -268,7 +266,7 @@ export function App() {
       {phase === 'idle' && <StartArtwork />}
       {phase === 'gameover' && <StartArtwork variant="full" />}
       {round && !(wide && phase === 'playing') && (
-        <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} zoomTextHidden={zoomTextHidden} zoomFocus={zoomFocus} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} />
+        <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} />
       )}
 
       <div className="overlay">
@@ -329,7 +327,7 @@ export function App() {
               {wide ? (
                 <div className="play-wide">
                   {round && (
-                    <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} zoomTextHidden={zoomTextHidden} zoomFocus={zoomFocus} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} wide />
+                    <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} wide />
                   )}
                   <div className="options-col">
                     {playingNow && <Timer elapsedMs={elapsedMs} />}

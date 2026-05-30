@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, tilesRevealedAt, revealModeFor, scanAngleFor, tileOrderFor, zoomFocusFor, spotlightOriginFor, KNOWN_REVEAL_MODES } from './timeAttack';
+import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, tilesRevealedAt, revealModeFor, scanAngleFor, tileOrderFor, spotlightOriginFor, KNOWN_REVEAL_MODES } from './timeAttack';
 import { DEFAULT_TIME_ATTACK_CONFIG as CFG } from './types';
 import type { Round } from './types';
 import type { ScryfallCard } from '../scryfall/types';
@@ -289,22 +289,18 @@ describe('tileOrderFor', () => {
   });
 });
 
-describe('zoomFocusFor / spotlightOriginFor', () => {
+describe('spotlightOriginFor', () => {
   it('returns percentages in [0,100) and is deterministic', () => {
-    const f = zoomFocusFor(42, 3);
-    expect(f).toEqual(zoomFocusFor(42, 3));
-    expect(f.xPct).toBeGreaterThanOrEqual(0);
-    expect(f.xPct).toBeLessThan(100);
-    expect(f.yPct).toBeGreaterThanOrEqual(0);
-    expect(f.yPct).toBeLessThan(100);
-  });
-
-  it('spotlight differs from zoom focus for the same input', () => {
-    expect(spotlightOriginFor(42, 3)).not.toEqual(zoomFocusFor(42, 3));
+    const o = spotlightOriginFor(42, 3);
+    expect(o).toEqual(spotlightOriginFor(42, 3));
+    expect(o.xPct).toBeGreaterThanOrEqual(0);
+    expect(o.xPct).toBeLessThan(100);
+    expect(o.yPct).toBeGreaterThanOrEqual(0);
+    expect(o.yPct).toBeLessThan(100);
   });
 
   it('varies across rounds', () => {
-    expect(zoomFocusFor(42, 0)).not.toEqual(zoomFocusFor(42, 1));
+    expect(spotlightOriginFor(42, 0)).not.toEqual(spotlightOriginFor(42, 1));
   });
 });
 

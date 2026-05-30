@@ -19,11 +19,16 @@ export const MOSAIC_ROWS = 6;
 const MOSAIC_TILES = MOSAIC_COLS * MOSAIC_ROWS;
 const MOSAIC_IDENTITY = Array.from({ length: MOSAIC_TILES }, (_, i) => i);
 
-// Zoom mode (layout; tunable). Art-crop zoom-in phase runs until ZOOM_CROSSFADE of the
-// reveal, then crossfades to the full card scaling from ZOOM_CARD_START down to 1.
+// Zoom mode (layout; tunable). Zooms out from the centre of the artwork: the art-crop
+// zoom-in phase runs until ZOOM_CROSSFADE of the reveal, then the full card crossfades in
+// from the same origin, scaling from ZOOM_CARD_START (art roughly fills the frame) down to
+// 1 so it continues seamlessly. ZOOM_ORIGIN sits over the art centre (top third of the card),
+// not the card centre, so the art stays put while the frame grows in around it. No redaction
+// overlays in zoom — the full card is the payoff once it lands (~scanRevealMs, 5s).
 const ZOOM_START_SCALE = 2.5;
-const ZOOM_CARD_START = 1.8;
-const ZOOM_CROSSFADE = 0.5;
+const ZOOM_CARD_START = 2.2;
+const ZOOM_CROSSFADE = 0.6;
+const ZOOM_ORIGIN = '50% 33%';
 
 const wrapperStyle: CSSProperties = {
   width: '100%',
@@ -100,10 +105,8 @@ export function CardStage({
   angle = 0,
   manaHidden = false,
   textHidden = false,
-  zoomTextHidden = false,
   tileOrder = MOSAIC_IDENTITY,
   tilesRevealed = 0,
-  zoomFocus = { xPct: 50, yPct: 45 },
   spotlightOrigin = { xPct: 50, yPct: 45 },
 }: {
   stage: RevealStage;
@@ -113,10 +116,8 @@ export function CardStage({
   angle?: number;
   manaHidden?: boolean;
   textHidden?: boolean;
-  zoomTextHidden?: boolean;
   tileOrder?: number[];
   tilesRevealed?: number;
-  zoomFocus?: { xPct: number; yPct: number };
   spotlightOrigin?: { xPct: number; yPct: number };
 }) {
   const round = useGameStore((s) => s.round);
@@ -277,7 +278,7 @@ export function CardStage({
                   data-testid="zoom-card"
                   src={cardUrl}
                   alt=""
-                  style={{ ...fillImg, transform: `scale(${zoomCardScale})`, transformOrigin: `${zoomFocus.xPct}% ${zoomFocus.yPct}%`, opacity: zoomPb }}
+                  style={{ ...fillImg, transform: `scale(${zoomCardScale})`, transformOrigin: ZOOM_ORIGIN, opacity: zoomPb }}
                   initial={{ opacity: 0 }}
                   exit={{ opacity: 0 }}
                 />
@@ -288,19 +289,10 @@ export function CardStage({
                   data-testid="zoom-art"
                   src={artUrl}
                   alt=""
-                  style={{ ...fillImg, transform: `scale(${zoomArtScale})`, transformOrigin: `${zoomFocus.xPct}% ${zoomFocus.yPct}%`, opacity: 1 - zoomPb }}
+                  style={{ ...fillImg, transform: `scale(${zoomArtScale})`, transformOrigin: ZOOM_ORIGIN, opacity: 1 - zoomPb }}
                   initial={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 />
-              )}
-              {blurName && (
-                <Blur key="name" testid="blur-name" style={{ top: '3.2%', left: '5%', width: '60%', height: '6.5%', zIndex: 2 }} />
-              )}
-              {!over && zoomTextHidden && (
-                <Blur key="text" testid="blur-text" style={{ top: '62.5%', left: '5%', width: '90%', height: '26%', zIndex: 2 }} />
-              )}
-              {!over && manaHidden && (
-                <Blur key="mana" testid="blur-mana" style={{ top: '3.2%', left: '58%', width: '37%', height: '6.5%', zIndex: 2 }} />
               )}
             </>
           ) : mode === 'silhouette' ? (

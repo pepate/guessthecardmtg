@@ -170,11 +170,6 @@ function hash01(seed: number, roundIndex: number, salt: number): number {
   return x - Math.floor(x);
 }
 
-/** Deterministic zoom focus point (percentages) for a round — stable across re-renders. */
-export function zoomFocusFor(seed: number, roundIndex: number): { xPct: number; yPct: number } {
-  return { xPct: Math.floor(hash01(seed, roundIndex, 1) * 100), yPct: Math.floor(hash01(seed, roundIndex, 2) * 100) };
-}
-
 /** Deterministic spotlight centre (percentages) for a round — stable across re-renders. */
 export function spotlightOriginFor(seed: number, roundIndex: number): { xPct: number; yPct: number } {
   return { xPct: Math.floor(hash01(seed, roundIndex, 3) * 100), yPct: Math.floor(hash01(seed, roundIndex, 4) * 100) };
