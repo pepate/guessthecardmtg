@@ -1,0 +1,82 @@
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+
+vi.mock('../cards/client', () => ({ fetchCandidates: vi.fn() }));
+vi.mock('../reveal/client', () => ({ fetchEnabledRevealModes: vi.fn() }));
+
+import { fetchCandidates } from '../cards/client';
+import { fetchEnabledRevealModes } from '../reveal/client';
+import { useGameStore } from './gameStore';
+import type { ScryfallCard } from '../scryfall/types';
+
+const POPULAR = { kind: 'popular', excludeUniverseBeyond: false } as const;
+
+function card(name: string, withArt = true): ScryfallCard {
+  return {
+    id: name,
+    name,
+    cmc: 2,
+    type_line: 'Creature',
+    rarity: 'common',
+    image_uris: withArt ? { normal: `${name}.jpg`, art_crop: `${name}-art.jpg` } : { normal: `${name}.jpg` },
+  };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  useGameStore.getState().reset();
+});
+
+describe('selectPool reveal modes', () => {
+  it('stores the fetched enabled modes and an in-range revealOffset', async () => {
+    (fetchCandidates as Mock).mockResolvedValue(['a', 'b', 'c', 'd', 'e'].map((n) => card(n)));
+    (fetchEnabledRevealModes as Mock).mockResolvedValue(['blur', 'scanner', 'mosaic', 'zoom']);
+
+    await useGameStore.getState().selectPool(POPULAR);
+
+    const s = useGameStore.getState();
+    expect(s.enabledModes).toEqual(['blur', 'scanner', 'mosaic', 'zoom']);
+    expect(s.revealOffset).toBeGreaterThanOrEqual(0);
+    expect(s.revealOffset).toBeLessThan(s.enabledModes.length);
+    expect(s.phase).toBe('playing');
+  });
+
+  it('filters the pool to art-crop cards when zoom is enabled', async () => {
+    (fetchCandidates as Mock).mockResolvedValue([
+      card('a'), card('b'), card('c'), card('d'),
+      card('noart1', false), card('noart2', false),
+    ]);
+    (fetchEnabledRevealModes as Mock).mockResolvedValue(['blur', 'scanner', 'mosaic', 'zoom']);
+
+    await useGameStore.getState().selectPool(POPULAR);
+
+    const pool = useGameStore.getState().pool;
+    expect(pool.map((c) => c.name)).toEqual(['a', 'b', 'c', 'd']);
+    expect(pool.every((c) => !!c.image_uris?.art_crop)).toBe(true);
+  });
+
+  it('keeps art-crop-less cards when zoom is NOT enabled', async () => {
+    (fetchCandidates as Mock).mockResolvedValue([
+      card('a'), card('b'), card('c'), card('noart', false),
+    ]);
+    (fetchEnabledRevealModes as Mock).mockResolvedValue(['blur', 'scanner']);
+
+    await useGameStore.getState().selectPool(POPULAR);
+
+    expect(useGameStore.getState().pool.map((c) => c.name)).toContain('noart');
+  });
+});
+
+describe('reset', () => {
+  it('restores the built-in fallback modes and a zero offset', async () => {
+    (fetchCandidates as Mock).mockResolvedValue(['a', 'b', 'c', 'd'].map((n) => card(n)));
+    (fetchEnabledRevealModes as Mock).mockResolvedValue(['zoom', 'silhouette', 'spotlight']);
+    await useGameStore.getState().selectPool(POPULAR);
+
+    useGameStore.getState().reset();
+
+    const s = useGameStore.getState();
+    expect(s.enabledModes).toEqual(['blur', 'scanner', 'mosaic']);
+    expect(s.revealOffset).toBe(0);
+    expect(s.phase).toBe('idle');
+  });
+});
