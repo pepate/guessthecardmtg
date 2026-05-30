@@ -4,7 +4,7 @@ import { CardStage } from './scene/CardStage';
 import { fetchRandomCard } from './cards/client';
 import { useGameStore } from './state/gameStore';
 import { useGameClock, useGameTimeLeft } from './state/useGameClock';
-import { stageAt, scanProgressAt, revealModeFor, scanAngleFor, tilesRevealedAt, tileOrderFor, spotlightOriginFor } from './engine/timeAttack';
+import { stageAt, scanProgressAt, scanAngleFor, tilesRevealedAt, tileOrderFor, spotlightOriginFor } from './engine/timeAttack';
 import { PoolSelect } from './ui/PoolSelect';
 import { CustomModeBrowser } from './ui/CustomModeBrowser';
 import { HUD } from './ui/HUD';
@@ -196,9 +196,9 @@ export function App() {
   const phase = useGameStore((s) => s.phase);
   const round = useGameStore((s) => s.round);
   const roundIndex = useGameStore((s) => s.roundIndex);
-  const revealOffset = useGameStore((s) => s.revealOffset);
+  const gameMode = useGameStore((s) => s.gameMode);
+  const loadRevealModes = useGameStore((s) => s.loadRevealModes);
   const revealSeed = useGameStore((s) => s.revealSeed);
-  const enabledModes = useGameStore((s) => s.enabledModes);
   const config = useGameStore((s) => s.config);
   const advance = useGameStore((s) => s.advance);
   const reset = useGameStore((s) => s.reset);
@@ -207,7 +207,7 @@ export function App() {
   const timeLeftMs = useGameTimeLeft();
   const stage = stageAt(elapsedMs, config);
   const playingNow = phase === 'playing' && round?.status === 'playing';
-  const mode = revealModeFor(roundIndex, revealOffset, enabledModes);
+  const mode = gameMode;
   const scanProgress = playingNow ? scanProgressAt(elapsedMs, config) : 1;
   const scanAngle = scanAngleFor(revealSeed, roundIndex);
   const scanManaHidden = playingNow && elapsedMs < config.scanManaRevealMs;
@@ -229,6 +229,10 @@ export function App() {
   useEffect(() => {
     if (phase !== 'idle') setScreen('home');
   }, [phase]);
+
+  useEffect(() => {
+    void loadRevealModes();
+  }, [loadRevealModes]);
 
   const status = round?.status;
   const startedAt = round?.startedAt;

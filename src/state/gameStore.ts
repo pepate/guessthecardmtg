@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Round, TimeAttackConfig } from '../engine/types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from '../engine/types';
-import { planGame, resolveGuess, expire as expireRound, type PlannedRound, type RevealMode } from '../engine/timeAttack';
+import { planGame, resolveGuess, expire as expireRound, resolveGameMode, type PlannedRound, type RevealMode } from '../engine/timeAttack';
 import { fetchEnabledRevealModes } from '../reveal/client';
 import { fetchCandidates } from '../cards/client';
 import type { PoolSelection, ScryfallCard } from '../scryfall/types';
@@ -29,8 +29,8 @@ interface GameState {
   round: Round | null;
   /** 0-based index of the current card within the game. */
   roundIndex: number;
-  /** Reveal-mode rotation offset for this game (shifts which mode is round 1). */
-  revealOffset: number;
+  gameMode: RevealMode;
+  pendingRevealChoice: RevealMode | 'random';
   enabledModes: RevealMode[];
   /** Per-game seed for deterministic scanner sweep angles. */
   revealSeed: number;
@@ -48,6 +48,8 @@ interface GameState {
   /** A friend's shared result from a `?r=` link, shown as a challenge banner. */
   challenge: SharedResult | null;
 
+  setRevealChoice: (choice: RevealMode | 'random') => void;
+  loadRevealModes: () => Promise<void>;
   selectPool: (selection: PoolSelection) => Promise<void>;
   guessName: (name: string) => void;
   /** Called by the game clock when the per-card timer reaches durationMs. */
@@ -113,7 +115,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   plan: [],
   round: null,
   roundIndex: 0,
-  revealOffset: 0,
+  gameMode: 'blur',
+  pendingRevealChoice: 'random',
   enabledModes: ['blur', 'scanner', 'mosaic'],
   revealSeed: 0,
   gameStartedAt: 0,
@@ -126,6 +129,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   highscores: loadHighscores(),
   challenge: decodeResult(new URLSearchParams(window.location.search).get('r')),
 
+  setRevealChoice(choice) {
+    set({ pendingRevealChoice: choice });
+  },
+
+  async loadRevealModes() {
+    set({ enabledModes: await fetchEnabledRevealModes() });
+  },
+
   async selectPool(selection) {
     const summonStart = Date.now();
     set({ phase: 'loading', error: null });
@@ -135,7 +146,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         fetchCandidates(selection),
         fetchEnabledRevealModes(),
       ]);
-      const pool = enabledModes.includes('zoom')
+      const gameMode = resolveGameMode(get().pendingRevealChoice, enabledModes);
+      const pool = gameMode === 'zoom'
         ? rawPool.filter(
             (c) => !!(c.image_uris?.art_crop ?? c.card_faces?.[0]?.image_uris?.art_crop),
           )
@@ -156,7 +168,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         round: startPlanned(plan[0], Date.now()),
         roundIndex: 0,
         enabledModes,
-        revealOffset: Math.floor(Math.random() * enabledModes.length),
+        gameMode,
         revealSeed: Math.floor(Math.random() * 1_000_000),
         gameStartedAt: Date.now(),
         correctCount: 0,
@@ -227,7 +239,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       plan: [],
       round: null,
       roundIndex: 0,
-      revealOffset: 0,
+      gameMode: 'blur',
+      pendingRevealChoice: 'random',
       enabledModes: ['blur', 'scanner', 'mosaic'],
       revealSeed: 0,
       gameStartedAt: 0,

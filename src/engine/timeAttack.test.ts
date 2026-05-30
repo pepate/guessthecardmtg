@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, tilesRevealedAt, revealModeFor, scanAngleFor, tileOrderFor, spotlightOriginFor, KNOWN_REVEAL_MODES } from './timeAttack';
+import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, tilesRevealedAt, resolveGameMode, scanAngleFor, tileOrderFor, spotlightOriginFor, KNOWN_REVEAL_MODES } from './timeAttack';
 import { DEFAULT_TIME_ATTACK_CONFIG as CFG } from './types';
 import type { Round } from './types';
 import type { ScryfallCard } from '../scryfall/types';
@@ -226,29 +226,21 @@ describe('tilesRevealedAt', () => {
   });
 });
 
-describe('revealModeFor', () => {
-  const M3: RevealMode[] = ['blur', 'scanner', 'mosaic'];
+describe('resolveGameMode', () => {
+  const enabled: RevealMode[] = ['blur', 'scanner', 'mosaic', 'zoom'];
 
-  it('rotates through the given modes with offset 0', () => {
-    expect(revealModeFor(0, 0, M3)).toBe('blur');
-    expect(revealModeFor(1, 0, M3)).toBe('scanner');
-    expect(revealModeFor(2, 0, M3)).toBe('mosaic');
-    expect(revealModeFor(3, 0, M3)).toBe('blur');
+  it('returns a concrete choice unchanged', () => {
+    expect(resolveGameMode('zoom', enabled)).toBe('zoom');
   });
 
-  it('offset shifts which mode is round 1', () => {
-    expect(revealModeFor(0, 1, M3)).toBe('scanner');
-    expect(revealModeFor(0, 2, M3)).toBe('mosaic');
+  it('resolves "random" to a member of the enabled set', () => {
+    for (let i = 0; i < 20; i++) {
+      expect(enabled).toContain(resolveGameMode('random', enabled));
+    }
   });
 
-  it('rotates through a longer enabled list', () => {
-    const all: RevealMode[] = ['blur', 'scanner', 'mosaic', 'zoom', 'silhouette', 'spotlight'];
-    expect(revealModeFor(4, 0, all)).toBe('silhouette');
-    expect(revealModeFor(6, 0, all)).toBe('blur');
-  });
-
-  it('degenerates to a single mode', () => {
-    expect(revealModeFor(7, 0, ['zoom'])).toBe('zoom');
+  it('falls back to blur when nothing is enabled', () => {
+    expect(resolveGameMode('random', [])).toBe('blur');
   });
 });
 

@@ -134,9 +134,12 @@ export function tilesRevealedAt(
   return Math.min(tileCount, Math.floor(elapsedMs / config.mosaicTileMs));
 }
 
-/** Which reveal animation a round uses: rotates through the enabled `modes`; offset shifts round 1. */
-export function revealModeFor(roundIndex: number, offset: number, modes: RevealMode[]): RevealMode {
-  return modes[(roundIndex + offset) % modes.length];
+/** Resolve the pre-game choice to a single concrete mode for the whole game.
+ *  A concrete choice passes through; 'random' picks a uniformly random enabled mode. */
+export function resolveGameMode(choice: RevealMode | 'random', enabled: RevealMode[]): RevealMode {
+  if (choice !== 'random') return choice;
+  if (enabled.length === 0) return 'blur';
+  return enabled[Math.floor(Math.random() * enabled.length)];
 }
 
 /**

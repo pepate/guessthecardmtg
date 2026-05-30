@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 
 describe('selectPool reveal modes', () => {
-  it('stores the fetched enabled modes and an in-range revealOffset', async () => {
+  it('stores the fetched enabled modes and resolves a gameMode', async () => {
     (fetchCandidates as Mock).mockResolvedValue(['a', 'b', 'c', 'd', 'e'].map((n) => card(n)));
     (fetchEnabledRevealModes as Mock).mockResolvedValue(['blur', 'scanner', 'mosaic', 'zoom']);
 
@@ -35,17 +35,17 @@ describe('selectPool reveal modes', () => {
 
     const s = useGameStore.getState();
     expect(s.enabledModes).toEqual(['blur', 'scanner', 'mosaic', 'zoom']);
-    expect(s.revealOffset).toBeGreaterThanOrEqual(0);
-    expect(s.revealOffset).toBeLessThan(s.enabledModes.length);
+    expect(['blur', 'scanner', 'mosaic', 'zoom']).toContain(s.gameMode);
     expect(s.phase).toBe('playing');
   });
 
-  it('filters the pool to art-crop cards when zoom is enabled', async () => {
+  it('filters the pool to art-crop cards when gameMode is zoom', async () => {
     (fetchCandidates as Mock).mockResolvedValue([
       card('a'), card('b'), card('c'), card('d'),
       card('noart1', false), card('noart2', false),
     ]);
     (fetchEnabledRevealModes as Mock).mockResolvedValue(['blur', 'scanner', 'mosaic', 'zoom']);
+    useGameStore.getState().setRevealChoice('zoom');
 
     await useGameStore.getState().selectPool(POPULAR);
 
@@ -54,7 +54,7 @@ describe('selectPool reveal modes', () => {
     expect(pool.every((c) => !!c.image_uris?.art_crop)).toBe(true);
   });
 
-  it('keeps art-crop-less cards when zoom is NOT enabled', async () => {
+  it('keeps art-crop-less cards when zoom is NOT the gameMode', async () => {
     (fetchCandidates as Mock).mockResolvedValue([
       card('a'), card('b'), card('c'), card('noart', false),
     ]);
@@ -64,10 +64,30 @@ describe('selectPool reveal modes', () => {
 
     expect(useGameStore.getState().pool.map((c) => c.name)).toContain('noart');
   });
+
+  it('resolves a concrete pendingRevealChoice into gameMode', async () => {
+    (fetchCandidates as Mock).mockResolvedValue(['a', 'b', 'c', 'd'].map((n) => card(n)));
+    (fetchEnabledRevealModes as Mock).mockResolvedValue(['blur', 'scanner', 'mosaic', 'silhouette']);
+    useGameStore.getState().setRevealChoice('silhouette');
+
+    await useGameStore.getState().selectPool(POPULAR);
+
+    expect(useGameStore.getState().gameMode).toBe('silhouette');
+  });
+
+  it('resolves "random" to one of the enabled modes', async () => {
+    (fetchCandidates as Mock).mockResolvedValue(['a', 'b', 'c', 'd'].map((n) => card(n)));
+    (fetchEnabledRevealModes as Mock).mockResolvedValue(['scanner', 'mosaic']);
+    useGameStore.getState().setRevealChoice('random');
+
+    await useGameStore.getState().selectPool(POPULAR);
+
+    expect(['scanner', 'mosaic']).toContain(useGameStore.getState().gameMode);
+  });
 });
 
 describe('reset', () => {
-  it('restores the built-in fallback modes and a zero offset', async () => {
+  it('restores the built-in fallback modes and default gameMode', async () => {
     (fetchCandidates as Mock).mockResolvedValue(['a', 'b', 'c', 'd'].map((n) => card(n)));
     (fetchEnabledRevealModes as Mock).mockResolvedValue(['zoom', 'silhouette', 'spotlight']);
     await useGameStore.getState().selectPool(POPULAR);
@@ -76,7 +96,8 @@ describe('reset', () => {
 
     const s = useGameStore.getState();
     expect(s.enabledModes).toEqual(['blur', 'scanner', 'mosaic']);
-    expect(s.revealOffset).toBe(0);
+    expect(s.gameMode).toBe('blur');
+    expect(s.pendingRevealChoice).toBe('random');
     expect(s.phase).toBe('idle');
   });
 });
