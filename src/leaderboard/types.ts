@@ -17,4 +17,6 @@ export interface SubmitPayload {
   score: number;
   correct: number;
   pool: PoolKind;
+  /** Set only for custom-mode runs; scopes the score to that mode's board. */
+  modeId?: string;
 }

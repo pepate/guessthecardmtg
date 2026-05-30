@@ -17,6 +17,10 @@ interface GameState {
   pool: ScryfallCard[];
   /** Which pool the current game is played on (recorded in highscores). */
   poolKind: PoolKind;
+  /** Custom mode id for the current game, or null for the built-in pools. */
+  currentModeId: string | null;
+  /** Display name of the current custom mode, for the game-over header. */
+  currentModeName: string | null;
   /** The selection that built the current game, so "play again" can re-fetch. */
   lastSelection: PoolSelection | null;
   /** The whole game pre-planned so no card or name repeats across rounds. */
@@ -80,12 +84,17 @@ function finishGame(
   state: { totalScore: number; correctCount: number; poolKind: PoolKind },
   set: (partial: Partial<GameState>) => void,
 ): void {
-  const highscores = saveHighscore({
-    score: state.totalScore,
-    correct: state.correctCount,
-    date: Date.now(),
-    pool: state.poolKind,
-  });
+  // Custom modes keep their history on the per-mode global board only, so we skip
+  // the local top-5 (which has no notion of which mode a score belonged to).
+  const highscores =
+    state.poolKind === 'custom'
+      ? loadHighscores()
+      : saveHighscore({
+          score: state.totalScore,
+          correct: state.correctCount,
+          date: Date.now(),
+          pool: state.poolKind,
+        });
   set({ phase: 'gameover', round: null, highscores });
 }
 
@@ -96,6 +105,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   pool: [],
   poolKind: 'popular',
+  currentModeId: null,
+  currentModeName: null,
   lastSelection: null,
   plan: [],
   round: null,
@@ -127,6 +138,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({
         pool,
         poolKind: selection.kind,
+        currentModeId: selection.kind === 'custom' ? selection.modeId : null,
+        currentModeName: selection.kind === 'custom' ? selection.name : null,
         lastSelection: selection,
         plan,
         round: startPlanned(plan[0], Date.now()),
@@ -197,6 +210,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       phase: 'idle',
       error: null,
       pool: [],
+      currentModeId: null,
+      currentModeName: null,
       plan: [],
       round: null,
       roundIndex: 0,

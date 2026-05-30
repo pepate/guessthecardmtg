@@ -44,7 +44,7 @@ const sub: React.CSSProperties = {
   marginTop: 2,
 };
 
-export function PoolSelect() {
+export function PoolSelect({ onOpenCustom }: { onOpenCustom: () => void }) {
   const selectPool = useGameStore((s) => s.selectPool);
   const challenge = useGameStore((s) => s.challenge);
   const [excludeUniverseBeyond, setExcludeUniverseBeyond] = useState(true);
@@ -123,6 +123,12 @@ export function PoolSelect() {
       <button style={btn} onClick={() => pick('all')}>
         All cards
         <span style={sub}>Everything from 2015 on</span>
+        <PlayIcon hint={hint} />
+      </button>
+
+      <button style={btn} onClick={onOpenCustom} data-testid="open-custom">
+        Custom Mode
+        <span style={sub}>Build &amp; play your own filter</span>
         <PlayIcon hint={hint} />
       </button>
 

@@ -6,6 +6,8 @@ import {
   isLeaderboardEnabled,
   fetchProjectedRank,
   fetchTopScores,
+  fetchModeProjectedRank,
+  fetchModeTopScores,
   submitScore,
 } from '../leaderboard/client';
 import { GlobalScoreList } from './GlobalScoreList';
@@ -17,10 +19,14 @@ export function GameOverLeaderboard({
   score,
   correct,
   pool,
+  modeId,
+  modeName,
 }: {
   score: number;
   correct: number;
   pool: PoolKind;
+  modeId?: string;
+  modeName?: string;
 }) {
   const enabled = isLeaderboardEnabled();
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? '');
@@ -34,16 +40,14 @@ export function GameOverLeaderboard({
   useEffect(() => {
     if (!enabled || score <= 0) return;
     let cancelled = false;
-    fetchProjectedRank(pool, score)
-      .then((r) => !cancelled && setProjected(r))
-      .catch(() => {});
-    fetchTopScores(pool, VISIBLE)
-      .then((list) => !cancelled && setTop(list))
-      .catch(() => {});
+    const rankP = modeId ? fetchModeProjectedRank(modeId, score) : fetchProjectedRank(pool, score);
+    const topP = modeId ? fetchModeTopScores(modeId, VISIBLE) : fetchTopScores(pool, VISIBLE);
+    rankP.then((r) => !cancelled && setProjected(r)).catch(() => {});
+    topP.then((list) => !cancelled && setTop(list)).catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [enabled, pool, score]);
+  }, [enabled, pool, modeId, score]);
 
   if (!enabled || score <= 0) return null;
 
@@ -71,13 +75,13 @@ export function GameOverLeaderboard({
       return;
     }
     setStatus('sending');
-    const res = await submitScore({ name: clean, score, correct, pool });
+    const res = await submitScore({ name: clean, score, correct, pool, modeId });
     if (!res.ok) {
       setStatus('error');
       return;
     }
     localStorage.setItem(NAME_KEY, clean);
-    const list = await fetchTopScores(pool, VISIBLE).catch(() => []);
+    const list = await (modeId ? fetchModeTopScores(modeId, VISIBLE) : fetchTopScores(pool, VISIBLE)).catch(() => []);
     setTop(list);
     setPosted({ rank: res.rank, id: res.id, name: clean });
     setStatus('done');
@@ -154,6 +158,14 @@ export function GameOverLeaderboard({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
+      {modeName && (
+        <div
+          data-testid="mode-board-title"
+          style={{ textAlign: 'center', color: 'var(--ink-1)', fontSize: 14, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 0.5 }}
+        >
+          {modeName}
+        </div>
+      )}
       {projected && (
         <div
           data-testid="projected-rank"
