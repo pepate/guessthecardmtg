@@ -79,15 +79,29 @@ function Mask({ style }: { style: CSSProperties }) {
   );
 }
 
-export function CardStage({ stage }: { stage: RevealStage }) {
+export function CardStage({ stage, wide = false }: { stage: RevealStage; wide?: boolean }) {
   const round = useGameStore((s) => s.round);
   if (!round) return null;
+
+  // Portrait: card centered, sized to leave room for the bottom-sheet.
+  // Wide: card anchored left, width-capped so it never overlaps the side panel.
+  const wrapper: CSSProperties = wide
+    ? { ...wrapperStyle, justifyContent: 'flex-start', padding: '0 0 0 4vw' }
+    : wrapperStyle;
+  const card: CSSProperties = wide
+    ? {
+        ...cardStyle,
+        height: 'auto',
+        width: 'min(46vw, calc(86vh * 488 / 680))',
+        maxWidth: 'none',
+      }
+    : cardStyle;
 
   const cardUrl =
     round.target.image_uris?.normal ??
     round.target.card_faces?.[0]?.image_uris?.normal ??
     '';
-  if (!cardUrl) return <div style={wrapperStyle} />;
+  if (!cardUrl) return <div style={wrapper} />;
 
   const over = round.status !== 'playing';
   const hasPower = !!round.target.power;
@@ -102,10 +116,10 @@ export function CardStage({ stage }: { stage: RevealStage }) {
   const glow = RARITY_GLOW[round.target.rarity ?? 'common'] ?? RARITY_GLOW.common;
 
   return (
-    <div style={wrapperStyle}>
+    <div style={wrapper}>
       <div
         style={{
-          ...cardStyle,
+          ...card,
           boxShadow: `0 18px 40px rgba(0,0,0,0.6), 0 0 ${over ? 48 : 26}px ${glow}`,
           transition: 'box-shadow 0.6s ease',
         }}

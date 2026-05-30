@@ -159,6 +159,25 @@ body::after {
   -webkit-backdrop-filter: blur(6px);
 }
 
+/* Wide / landscape: answer options live in a right-hand column beside the card
+   instead of the bottom-sheet. Vertically centered, same blurred scrim. */
+.side-panel {
+  pointer-events: all;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: min(42vw, 460px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px calc(20px + env(safe-area-inset-right)) 24px 18px;
+  background: linear-gradient(90deg, rgba(13, 11, 19, 0) 0%, rgba(7, 6, 10, 0.92) 36%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
 .ember-btn {
   min-height: 56px;
   min-width: 200px;

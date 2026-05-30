@@ -14,6 +14,7 @@ import { GameOver } from './ui/GameOver';
 import { StartShare } from './ui/StartShare';
 import { InstallButton } from './ui/InstallButton';
 import { StartLeaderboard } from './ui/StartLeaderboard';
+import { useWideLayout } from './ui/useWideLayout';
 
 // After a round resolves: a correct guess flashes green briefly, a miss / timeout
 // reveals the full card for a beat — then we auto-advance to the next card.
@@ -176,6 +177,7 @@ export function App() {
   const timeLeftMs = useGameTimeLeft();
   const stage = stageAt(elapsedMs, config);
   const playingNow = phase === 'playing' && round?.status === 'playing';
+  const wide = useWideLayout();
 
   const status = round?.status;
   const startedAt = round?.startedAt;
@@ -187,7 +189,7 @@ export function App() {
   }, [phase, status, startedAt, advance]);
 
   return (
-    <div className="stage-root">
+    <div className="stage-root" data-wide={wide}>
       {phase === 'playing' ? (
         <button
           type="button"
@@ -212,7 +214,7 @@ export function App() {
       {phase === 'gameover' && <InstallButton />}
       {phase === 'idle' && <StartArtwork />}
       {phase === 'gameover' && <StartArtwork variant="full" />}
-      {round && <CardStage stage={playingNow ? stage : 5} />}
+      {round && <CardStage stage={playingNow ? stage : 5} wide={wide} />}
 
       <div className="overlay">
         <AnimatePresence mode="wait">
@@ -246,10 +248,17 @@ export function App() {
                 <HUD timeLeftMs={timeLeftMs} />
               </div>
               <div style={{ flex: 1 }} />
-              <div className="bottom-sheet" style={{ pointerEvents: 'all', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {playingNow && <Timer elapsedMs={elapsedMs} />}
-                <NameChoice />
-              </div>
+              {wide ? (
+                <div className="side-panel">
+                  {playingNow && <Timer elapsedMs={elapsedMs} />}
+                  <NameChoice layout="column" />
+                </div>
+              ) : (
+                <div className="bottom-sheet" style={{ pointerEvents: 'all', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {playingNow && <Timer elapsedMs={elapsedMs} />}
+                  <NameChoice />
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

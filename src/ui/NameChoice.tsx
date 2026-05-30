@@ -35,7 +35,7 @@ function styleFor(state: OptionState): React.CSSProperties {
   }
 }
 
-export function NameChoice() {
+export function NameChoice({ layout = 'grid' }: { layout?: 'grid' | 'column' }) {
   const round = useGameStore((s) => s.round);
   const guessName = useGameStore((s) => s.guessName);
 
@@ -47,7 +47,11 @@ export function NameChoice() {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: layout === 'column' ? '1fr' : '1fr 1fr',
+        gap: 10,
+      }}
     >
       {round.options.map((name) => {
         let state: OptionState = 'idle';
