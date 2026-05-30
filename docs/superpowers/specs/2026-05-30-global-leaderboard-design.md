@@ -7,8 +7,8 @@
 
 Let players optionally publish their score to a global, online leaderboard
 (arcade-style: opt-in, enter a name), backed by Supabase. The existing local
-highscore stays in `localStorage` for internal use (e.g. "Share best score"),
-but is no longer rendered as its own list.
+highscore (`localStorage`) is retained and surfaced as the device-based "Me" tab
+of the leaderboard; it is no longer shown on the game-over screen.
 
 ## 2. Scope
 
@@ -19,7 +19,8 @@ In scope:
 - Game-over: show the just-played result and its projected global placement; let
   the player post it under a name.
 - Start screen: a single leaderboard area with three tabs (Global All Cards,
-  Global Popular, Me), default top 5, expandable to top 100.
+  Global Popular, Me), default top 5, expandable to top 100. "Me" is the local
+  device store (no login — always device-based, never account-based).
 - Country flag derived server-side from IP (country code only, IP never stored).
 
 Out of scope:
@@ -104,9 +105,11 @@ automatically in the function environment.
     invokes the Edge Function.
 - `useLeaderboard.ts` — hook managing entries / loading / error per pool and the
   expand (top 5 ↔ top 100) state.
-- `mine.ts` — tracks this device's posted entries in `localStorage`
-  (`{ id, name, score, correct, pool, country, created_at }[]`). Appended on each
-  successful submit. Powers the "Me" tab and own-row pinning.
+- The "Me" tab reuses the existing local highscore store (`src/state/highscores.ts`,
+  `localStorage`). No persistent tracking of posted online entries is added —
+  there is no login, so identity is purely device-based. The only "my" global row
+  the app knows is the entry just posted in the current game-over session (its `id`
+  + `rank` come from the submit response), used for game-over pinning.
 - Config: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (anon key is publishable;
   shipping it in the static bundle is standard). When unset, all global features
   hide and the game still works offline.
@@ -133,12 +136,14 @@ A row shows: rank `#`, flag (emoji from `country`, omitted if null), name, corre
 count, score, and **relative age** of the entry (e.g. "vor 3 Std."). Supports a
 `highlightId` for the player's freshly posted row.
 
-Display rules (used everywhere the global board appears):
-- Default shows **top 5** (start screen, collapsed) or the relevant slice.
+Display rules (global tabs):
+- Default shows **top 5** (collapsed) or the relevant slice.
 - Expandable to **top 100** ("Mehr anzeigen").
-- If the viewer's own best entry for the current pool (from `mine.ts`) ranks
-  **outside** the visible range, pin that row at the bottom separated by a small
-  gap/ellipsis (e.g. `… · #347 · YOU`).
+- **Own-row pinning is a game-over feature only.** Right after posting, if the
+  just-posted entry ranks outside the visible range, pin that row at the bottom
+  separated by a small gap/ellipsis (e.g. `… · #347 · YOU`), using the `id`/`rank`
+  from the submit response. On the start-screen global tabs there is no persistent
+  device identity, so no personal row is pinned there.
 
 Flag rendering: convert the 2-letter code to regional-indicator emoji client-side.
 
@@ -164,13 +169,14 @@ Local top-5 list is **removed** here. New layout:
 A single **leaderboard area** with three tabs:
 1. **Global All Cards** — global board for the `all` pool.
 2. **Global Popular** — global board for the `popular` pool.
-3. **Me** — this device's posted scores (from `mine.ts`), each with flag + current
-   global rank for its pool. Empty state when nothing posted yet.
+3. **Me** — the local device store: all games played on this device (existing
+   `localStorage` highscores), shown as rank, correct count, score, pool badge, and
+   relative age. No flag (local data has no country). Device-based, not
+   account-based. Empty state when no games have been played yet.
 
-Collapsed by default to top 5; tapping/expanding reveals up to top 100. The
-leaderboards are **not** shown side by side — one area, switched by tab. Opened as
-an overlay toggled by `useState` in `App.tsx` (no new game phase). The local
-highscore is not shown as its own list anywhere.
+Global tabs are collapsed by default to top 5; tapping/expanding reveals up to
+top 100. The boards are **not** shown side by side — one area, switched by tab.
+Opened as an overlay toggled by `useState` in `App.tsx` (no new game phase).
 
 ## 8. Error handling & graceful degradation
 
@@ -197,11 +203,11 @@ highscore is not shown as its own list anywhere.
 - Unit: `sanitizeName` / `validateSubmission` (bounds, min-3, max-16, control chars,
   whitespace, profanity).
 - Client: mocked supabase — `fetchTopScores` mapping, `fetchProjectedRank`,
-  `submitScore` success/error paths, `mine.ts` persistence.
+  `submitScore` success/error paths.
 - UI: mocked client — game-over post flow (projected rank → submit → highlighted
-  row, name persisted), start-screen tab switching and top-5↔top-100 expansion,
-  own-row pinning when outside the visible range, graceful disable when
-  unconfigured.
+  row, name persisted, own-row pinning when the posted rank is outside the visible
+  range), start-screen tab switching (incl. "Me" = local store) and top-5↔top-100
+  expansion, graceful disable when unconfigured.
 - Existing local-highscore unit tests remain valid (logic unchanged).
 - Real-render verification: a preview screenshot of the new UI before declaring it
   done (not just mocked tests).
