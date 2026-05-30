@@ -121,6 +121,16 @@ export function scanProgressAt(
   return Math.min(1, elapsedMs / config.scanRevealMs);
 }
 
+/** Mosaic-mode: number of tiles uncovered so far — one per mosaicTileMs, capped at cols*rows. */
+export function tilesRevealedAt(
+  elapsedMs: number,
+  config: TimeAttackConfig = DEFAULT_TIME_ATTACK_CONFIG,
+): number {
+  const tileCount = config.mosaicCols * config.mosaicRows;
+  if (elapsedMs <= 0) return 0;
+  return Math.min(tileCount, Math.floor(elapsedMs / config.mosaicTileMs));
+}
+
 /** Which reveal animation a round uses: strict A/B/A/B; parity flips round 1. */
 export function revealModeFor(roundIndex: number, parity: 0 | 1): RevealMode {
   return (roundIndex + parity) % 2 === 0 ? 'blur' : 'scanner';

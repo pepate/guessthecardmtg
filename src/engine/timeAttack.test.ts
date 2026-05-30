@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, revealModeFor, scanAngleFor } from './timeAttack';
+import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, tilesRevealedAt, revealModeFor, scanAngleFor } from './timeAttack';
 import { DEFAULT_TIME_ATTACK_CONFIG as CFG } from './types';
 import type { Round } from './types';
 import type { ScryfallCard } from '../scryfall/types';
@@ -204,6 +204,24 @@ describe('scanProgressAt', () => {
 
   it('is linear in between (half way at half the time)', () => {
     expect(scanProgressAt(CFG.scanRevealMs / 2)).toBeCloseTo(0.5, 5);
+  });
+});
+
+describe('tilesRevealedAt', () => {
+  it('reveals nothing at or before t=0', () => {
+    expect(tilesRevealedAt(0)).toBe(0);
+    expect(tilesRevealedAt(-500)).toBe(0);
+  });
+
+  it('reveals one more tile every mosaicTileMs', () => {
+    expect(tilesRevealedAt(CFG.mosaicTileMs)).toBe(1);
+    expect(tilesRevealedAt(CFG.mosaicTileMs * 5)).toBe(5);
+  });
+
+  it('caps at the full tile count', () => {
+    const total = CFG.mosaicCols * CFG.mosaicRows;
+    expect(tilesRevealedAt(CFG.mosaicTileMs * total)).toBe(total);
+    expect(tilesRevealedAt(CFG.mosaicTileMs * total + 9999)).toBe(total);
   });
 });
 
