@@ -91,6 +91,13 @@ describe('year filter', () => {
   it('single set is still exclusive when year is set', () => {
     expect(validateFilter({ sets: ['dom'], year: { min: 2018 } })).toEqual({ ok: false, reason: 'single-set-exclusive' });
   });
+  it('pins canonical key order (year after edhrec) for stable hashing', () => {
+    expect(Object.keys(canonicalizeFilter({ year: { min: 1993, max: 1999 }, edhrec: { min: 1 } }))).toEqual(['edhrec', 'year']);
+  });
+  it('labels single-bound year ranges', () => {
+    expect(modeName({ year: { min: 2003 } })).toContain('≥2003');
+    expect(modeName({ year: { max: 2015 } })).toContain('≤2015');
+  });
 });
 
 describe('UB default = exclude', () => {
