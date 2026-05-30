@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useGameStore } from '../state/gameStore';
-import { shareUrl } from '../share/score';
 
 const ICON_BTN: React.CSSProperties = {
   width: 40,
@@ -16,27 +14,12 @@ const ICON_BTN: React.CSSProperties = {
   backdropFilter: 'blur(8px)',
 };
 
-const MENU_ITEM: React.CSSProperties = {
-  display: 'block',
-  width: '100%',
-  textAlign: 'left',
-  padding: '10px 12px',
-  background: 'transparent',
-  border: 'none',
-  color: 'var(--ink-0)',
-  fontFamily: "'JetBrains Mono', monospace",
-  fontSize: 12,
-  cursor: 'pointer',
-};
-
 export function StartShare() {
-  const highscores = useGameStore((s) => s.highscores);
-  const best = highscores[0] ?? null;
-  const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  async function share(text: string) {
-    setOpen(false);
+  async function shareApp() {
+    const url = `${location.origin}${import.meta.env.BASE_URL}`;
+    const text = `Play Arcane Drift — guess the Magic: The Gathering card before the clock runs out: ${url}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: 'Arcane Drift', text });
@@ -48,17 +31,6 @@ export function StartShare() {
     } catch {
       // User dismissed the share sheet, or clipboard was blocked — no-op.
     }
-  }
-
-  function shareWithScore() {
-    if (!best) return;
-    const url = shareUrl({ score: best.score, correct: best.correct, pool: best.pool });
-    void share(`My best in Arcane Drift: ${best.score} points (${best.correct} cards) — beat me: ${url}`);
-  }
-
-  function shareAppOnly() {
-    const url = `${location.origin}${import.meta.env.BASE_URL}`;
-    void share(`Play Arcane Drift — guess the Magic: The Gathering card before the clock runs out: ${url}`);
   }
 
   return (
@@ -76,7 +48,7 @@ export function StartShare() {
         aria-label="Share"
         data-testid="start-share"
         style={ICON_BTN}
-        onClick={() => (best ? setOpen((v) => !v) : shareAppOnly())}
+        onClick={() => void shareApp()}
       >
         {copied ? (
           <span style={{ fontSize: 9, letterSpacing: 0.5, fontFamily: "'JetBrains Mono', monospace" }}>
@@ -92,47 +64,6 @@ export function StartShare() {
           </svg>
         )}
       </button>
-
-      {open && (
-        <>
-          <div
-            onClick={() => setOpen(false)}
-            style={{ position: 'fixed', inset: 0, zIndex: -1 }}
-            aria-hidden
-          />
-          <div
-            data-testid="start-share-menu"
-            style={{
-              position: 'absolute',
-              top: 46,
-              right: 0,
-              minWidth: 196,
-              borderRadius: 10,
-              border: '1px solid var(--line-strong)',
-              background: 'rgba(16,13,22,0.96)',
-              backdropFilter: 'blur(8px)',
-              overflow: 'hidden',
-              boxShadow: '0 12px 28px rgba(0,0,0,0.5)',
-            }}
-          >
-            {best && (
-              <button type="button" style={MENU_ITEM} onClick={shareWithScore}>
-                Share with best score
-                <span style={{ display: 'block', color: 'var(--ink-2)', fontSize: 10, marginTop: 2 }}>
-                  {best.score} pts · {best.correct} cards
-                </span>
-              </button>
-            )}
-            <button
-              type="button"
-              style={{ ...MENU_ITEM, borderTop: '1px solid var(--line)' }}
-              onClick={shareAppOnly}
-            >
-              Share app link only
-            </button>
-          </div>
-        </>
-      )}
     </div>
   );
 }

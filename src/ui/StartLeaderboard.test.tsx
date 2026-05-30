@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { StartLeaderboard } from './StartLeaderboard';
 import * as client from '../leaderboard/client';
 
@@ -10,18 +10,9 @@ beforeEach(() => {
 });
 
 describe('StartLeaderboard', () => {
-  it('opens the overlay when the button is clicked', async () => {
+  it('renders the leaderboard inline with its tabs', async () => {
     render(<StartLeaderboard />);
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('open-leaderboard'));
+    expect(screen.getByTestId('start-leaderboard')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('tablist')).toBeInTheDocument());
-  });
-
-  it('closes the overlay with the close button', async () => {
-    render(<StartLeaderboard />);
-    fireEvent.click(screen.getByTestId('open-leaderboard'));
-    await waitFor(() => expect(screen.getByRole('tablist')).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('close-leaderboard'));
-    await waitFor(() => expect(screen.queryByRole('tablist')).not.toBeInTheDocument());
   });
 });

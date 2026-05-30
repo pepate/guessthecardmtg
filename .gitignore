@@ -27,6 +27,11 @@ ruvector.db
 *.log
 npm-debug.log*
 
+# Local env (Supabase keys, etc.) — keep .env.example tracked
+.env
+.env.*
+!.env.example
+
 # Editor / OS
 .DS_Store
 *.local

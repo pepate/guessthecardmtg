@@ -223,9 +223,10 @@ export function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="bottom-sheet"
+              style={{ display: 'flex', flexDirection: 'column', gap: 18, maxHeight: '92%', overflowY: 'auto' }}
             >
-              <PoolSelect />
               <StartLeaderboard />
+              <PoolSelect />
             </motion.div>
           )}
 

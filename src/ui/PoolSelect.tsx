@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
-import { HighscoreList } from './HighscoreList';
 
 const btn: React.CSSProperties = {
   display: 'flex',
@@ -33,7 +32,6 @@ const sub: React.CSSProperties = {
 
 export function PoolSelect() {
   const selectPool = useGameStore((s) => s.selectPool);
-  const highscores = useGameStore((s) => s.highscores);
   const challenge = useGameStore((s) => s.challenge);
   const [excludeUniverseBeyond, setExcludeUniverseBeyond] = useState(true);
 
@@ -128,23 +126,6 @@ export function PoolSelect() {
         />
         No Universe Beyond cards
       </label>
-
-      <div style={{ marginTop: 6 }}>
-        <div
-          style={{
-            textAlign: 'center',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            color: 'var(--ink-2)',
-            marginBottom: 8,
-          }}
-        >
-          Leaderboard
-        </div>
-        <HighscoreList entries={highscores} />
-      </div>
     </motion.div>
   );
 }

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
 import { useCountUp } from './useCountUp';
 import { GameOverLeaderboard } from './GameOverLeaderboard';
-import { shareUrl } from '../share/score';
+import { shareLink } from '../share/score';
 
 export function GameOver() {
   const correctCount = useGameStore((s) => s.correctCount);
@@ -20,7 +20,7 @@ export function GameOver() {
   const isBest = totalScore > 0 && totalScore >= best;
 
   async function onShare() {
-    const url = shareUrl({ score: totalScore, correct: correctCount, pool: poolKind });
+    const url = shareLink({ score: totalScore, correct: correctCount, pool: poolKind });
     const text = `I scored ${totalScore} points in Arcane Drift — beat me: ${url}`;
     try {
       if (navigator.share) {

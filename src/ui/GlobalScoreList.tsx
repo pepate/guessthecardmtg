@@ -57,7 +57,7 @@ export function GlobalScoreList({
   if (entries.length === 0 && !pinned) {
     return (
       <p data-testid="global-empty" style={{ color: 'var(--ink-2)', fontSize: 13, textAlign: 'center', margin: 0 }}>
-        Noch keine Einträge — sei der Erste!
+        No entries yet — be the first!
       </p>
     );
   }

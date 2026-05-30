@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import type { PoolKind } from '../state/highscores';
+import { useEffect, useState } from 'react';
 import { loadHighscores } from '../state/highscores';
 import { useLeaderboard } from '../leaderboard/useLeaderboard';
 import { GlobalScoreList } from './GlobalScoreList';
@@ -7,31 +6,36 @@ import { HighscoreList } from './HighscoreList';
 
 type Tab = 'all' | 'popular' | 'me';
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'all', label: 'All Cards' },
-  { key: 'popular', label: 'Popular' },
-  { key: 'me', label: 'Me' },
-];
+// Collapsed view shows up to VISIBLE rows; we fetch one extra so we can tell
+// whether a "Show more" button is warranted (i.e. there are more than VISIBLE).
+const VISIBLE = 10;
+const PROBE = VISIBLE + 1;
 
-function GlobalTab({ pool }: { pool: PoolKind }) {
-  const [expanded, setExpanded] = useState(false);
-  const { entries, loading, error } = useLeaderboard(pool, expanded ? 100 : 5);
-
-  if (error) {
-    return <p style={{ color: 'var(--ember-hot)', fontSize: 13, textAlign: 'center' }}>Leaderboard nicht erreichbar.</p>;
+function GlobalView({
+  state,
+  expanded,
+  onExpand,
+}: {
+  state: ReturnType<typeof useLeaderboard>;
+  expanded: boolean;
+  onExpand: () => void;
+}) {
+  if (state.error) {
+    return <p style={{ color: 'var(--ember-hot)', fontSize: 13, textAlign: 'center' }}>Leaderboard unavailable.</p>;
   }
+  const visible = expanded ? state.entries : state.entries.slice(0, VISIBLE);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <GlobalScoreList entries={entries} />
-      {!expanded && entries.length >= 1 && (
+      <GlobalScoreList entries={visible} />
+      {!expanded && state.entries.length > VISIBLE && (
         <button
           className="ghost-btn"
           data-testid="leaderboard-expand"
           style={{ width: '100%' }}
-          onClick={() => setExpanded(true)}
-          disabled={loading}
+          onClick={onExpand}
+          disabled={state.loading}
         >
-          Mehr anzeigen
+          Show more
         </button>
       )}
     </div>
@@ -40,27 +44,72 @@ function GlobalTab({ pool }: { pool: PoolKind }) {
 
 export function Leaderboard() {
   const [tab, setTab] = useState<Tab>('all');
+  const [allExpanded, setAllExpanded] = useState(false);
+  const [popExpanded, setPopExpanded] = useState(false);
+
+  const all = useLeaderboard('all', allExpanded ? 100 : PROBE);
+  const popular = useLeaderboard('popular', popExpanded ? 100 : PROBE);
+  const mine = loadHighscores();
+
+  const showPopular = popular.entries.length >= 1;
+  const showMe = mine.length >= 1;
+
+  // If the active tab loses its data (or never had any), fall back to All Cards.
+  useEffect(() => {
+    if (tab === 'popular' && !showPopular) setTab('all');
+    if (tab === 'me' && !showMe) setTab('all');
+  }, [tab, showPopular, showMe]);
+
+  const tabs: { key: Tab; label: string }[] = [{ key: 'all', label: 'All Cards' }];
+  if (showPopular) tabs.push({ key: 'popular', label: 'Popular' });
+  if (showMe) tabs.push({ key: 'me', label: 'Me' });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', maxWidth: 420 }}>
-      <div role="tablist" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            aria-selected={tab === t.key}
-            className={tab === t.key ? 'ember-btn' : 'ghost-btn'}
-            style={{ padding: '8px 4px', fontSize: 12 }}
-            onClick={() => setTab(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div
+        role="tablist"
+        style={{
+          display: 'flex',
+          gap: 4,
+          padding: 4,
+          borderRadius: 10,
+          border: '1px solid var(--line)',
+          background: 'rgba(20,17,28,0.5)',
+        }}
+      >
+        {tabs.map((t) => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(t.key)}
+              style={{
+                flex: 1,
+                padding: '6px 8px',
+                borderRadius: 7,
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11,
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                background: active ? 'var(--ember)' : 'transparent',
+                color: active ? '#fff' : 'var(--ink-2)',
+                fontWeight: active ? 700 : 500,
+                transition: 'background 0.15s, color 0.15s',
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
-      {tab === 'all' && <GlobalTab pool="all" />}
-      {tab === 'popular' && <GlobalTab pool="popular" />}
-      {tab === 'me' && <HighscoreList entries={loadHighscores()} />}
+      {tab === 'all' && <GlobalView state={all} expanded={allExpanded} onExpand={() => setAllExpanded(true)} />}
+      {tab === 'popular' && <GlobalView state={popular} expanded={popExpanded} onExpand={() => setPopExpanded(true)} />}
+      {tab === 'me' && <HighscoreList entries={mine} />}
     </div>
   );
 }

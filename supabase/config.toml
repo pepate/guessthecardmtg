@@ -1,0 +1,4 @@
+project_id = "jgapiqpaeaslfpbgiptf"
+
+[functions.share]
+verify_jwt = false

@@ -59,3 +59,11 @@ export function decodeResult(token: string | null | undefined): SharedResult | n
 export function shareUrl(result: SharedResult): string {
   return `${location.origin}${import.meta.env.BASE_URL}?r=${encodeResult(result)}`;
 }
+
+// Prefer the Supabase edge function (dynamic OG preview) when configured;
+// otherwise fall back to the plain game URL.
+export function shareLink(result: SharedResult): string {
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  if (!base) return shareUrl(result);
+  return `${base.replace(/\/$/, '')}/functions/v1/share?r=${encodeResult(result)}`;
+}

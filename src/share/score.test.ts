@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { encodeResult, decodeResult } from './score';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { encodeResult, decodeResult, shareLink, shareUrl } from './score';
 
 describe('share token', () => {
   it('round-trips a result', () => {
@@ -30,5 +30,25 @@ describe('share token', () => {
     expect(decodeResult(null)).toBeNull();
     expect(decodeResult('')).toBeNull();
     expect(decodeResult('garbage')).toBeNull();
+  });
+});
+
+describe('shareLink', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('targets the edge function when VITE_SUPABASE_URL is set', () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
+    const result = { score: 4820, correct: 7, pool: 'all' as const };
+    const link = shareLink(result);
+    expect(link.startsWith('https://example.supabase.co/functions/v1/share?r=')).toBe(true);
+    expect(link).toContain(encodeResult(result));
+  });
+
+  it('falls back to shareUrl when VITE_SUPABASE_URL is empty', () => {
+    vi.stubEnv('VITE_SUPABASE_URL', '');
+    const result = { score: 100, correct: 1, pool: 'popular' as const };
+    expect(shareLink(result)).toBe(shareUrl(result));
   });
 });

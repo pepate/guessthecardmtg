@@ -69,7 +69,7 @@ export function GameOverLeaderboard({
           data-testid="projected-rank"
           style={{ textAlign: 'center', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--ink-2)', letterSpacing: 1 }}
         >
-          Du wärst auf Platz <span style={{ color: 'var(--ember-hot)' }}>#{projected.rank}</span> von {projected.total + 1}
+          You'd be ranked <span style={{ color: 'var(--ember-hot)' }}>#{projected.rank}</span> of {projected.total + 1}
         </div>
       )}
 
@@ -79,7 +79,7 @@ export function GameOverLeaderboard({
             data-testid="name-input"
             value={name}
             maxLength={NAME_MAX}
-            placeholder="Dein Name"
+            placeholder="Your name"
             onChange={(ev) => setName(ev.target.value)}
             style={{
               width: '100%',
@@ -99,18 +99,18 @@ export function GameOverLeaderboard({
             disabled={!valid || status === 'sending'}
             onClick={post}
           >
-            {status === 'sending' ? 'Wird gepostet…' : 'Aufs Online-Board posten'}
+            {status === 'sending' ? 'Posting…' : 'Post to online board'}
           </button>
           {status === 'error' && (
             <p data-testid="post-error" style={{ color: 'var(--ember-hot)', fontSize: 12, textAlign: 'center', margin: 0 }}>
-              Posten fehlgeschlagen — bitte erneut versuchen.
+              Posting failed — please try again.
             </p>
           )}
         </>
       ) : (
         <div data-testid="post-confirm" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ color: 'var(--ink-0)', fontSize: 13, textAlign: 'center', margin: 0 }}>
-            Gepostet! Du bist auf Platz <span style={{ color: 'var(--ember-hot)' }}>#{posted?.rank}</span>.
+            Posted! You're ranked <span style={{ color: 'var(--ember-hot)' }}>#{posted?.rank}</span>.
           </p>
           <GlobalBoardPreview
             top={top}

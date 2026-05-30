@@ -6,6 +6,17 @@ import type { GlobalEntry } from '../leaderboard/types';
 
 const entry: GlobalEntry = { id: '1', name: 'Al', score: 900, correct: 9, pool: 'all', country: 'DE', createdAt: 0 };
 
+const manyEntries = (n: number): GlobalEntry[] =>
+  Array.from({ length: n }, (_, i) => ({
+    id: `e${i}`,
+    name: `P${i}`,
+    score: 1000 - i,
+    correct: 9,
+    pool: 'all',
+    country: 'DE',
+    createdAt: 0,
+  }));
+
 beforeEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
@@ -16,7 +27,20 @@ describe('Leaderboard', () => {
     const spy = vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByText('Al')).toBeInTheDocument());
-    expect(spy).toHaveBeenCalledWith('all', 5);
+    expect(spy).toHaveBeenCalledWith('all', 11);
+  });
+
+  it('hides the Show more button when there are 10 or fewer entries', async () => {
+    vi.spyOn(client, 'fetchTopScores').mockResolvedValue(manyEntries(10));
+    render(<Leaderboard />);
+    await waitFor(() => expect(screen.getByText('P0')).toBeInTheDocument());
+    expect(screen.queryByTestId('leaderboard-expand')).not.toBeInTheDocument();
+  });
+
+  it('shows the Show more button only when there are more than 10 entries', async () => {
+    vi.spyOn(client, 'fetchTopScores').mockResolvedValue(manyEntries(11));
+    render(<Leaderboard />);
+    await waitFor(() => expect(screen.getByTestId('leaderboard-expand')).toBeInTheDocument());
   });
 
   it('switches to the Me tab and shows the local store', async () => {
@@ -30,10 +54,25 @@ describe('Leaderboard', () => {
     await waitFor(() => expect(screen.getByTestId('highscore-list')).toBeInTheDocument());
   });
 
-  it('expands a global tab to the top 100', async () => {
-    const spy = vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
+  it('hides Popular and Me tabs when they have no data', async () => {
+    vi.spyOn(client, 'fetchTopScores').mockImplementation(async (pool) => (pool === 'all' ? [entry] : []));
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByText('Al')).toBeInTheDocument());
+    expect(screen.getByRole('tab', { name: /all cards/i })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /popular/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /^me$/i })).not.toBeInTheDocument();
+  });
+
+  it('shows the Popular tab once it has data', async () => {
+    vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
+    render(<Leaderboard />);
+    await waitFor(() => expect(screen.getByRole('tab', { name: /popular/i })).toBeInTheDocument());
+  });
+
+  it('expands a global tab to the top 100', async () => {
+    const spy = vi.spyOn(client, 'fetchTopScores').mockResolvedValue(manyEntries(11));
+    render(<Leaderboard />);
+    await waitFor(() => expect(screen.getByTestId('leaderboard-expand')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('leaderboard-expand'));
     await waitFor(() => expect(spy).toHaveBeenCalledWith('all', 100));
   });

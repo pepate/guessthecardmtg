@@ -33,6 +33,8 @@ beforeEach(() => {
 
 describe('isLeaderboardEnabled', () => {
   it('is false when env vars are missing', async () => {
+    vi.stubEnv('VITE_SUPABASE_URL', '');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', '');
     vi.resetModules();
     const { isLeaderboardEnabled } = await import('./client');
     expect(isLeaderboardEnabled()).toBe(false);
