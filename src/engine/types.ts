@@ -32,7 +32,7 @@ export interface TimeAttackConfig {
 
 export const DEFAULT_TIME_ATTACK_CONFIG: TimeAttackConfig = {
   durationMs: 15000,
-  gameDurationMs: 90000,
+  gameDurationMs: 30000,
   maxScore: 1000,
   minScore: 100,
   stageMs: 3000,

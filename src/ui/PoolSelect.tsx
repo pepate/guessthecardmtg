@@ -87,7 +87,7 @@ export function PoolSelect({ onOpenCustom }: { onOpenCustom: () => void }) {
             color: 'var(--ink-2)',
           }}
         >
-          90 seconds · guess as many as you can
+          30 seconds · guess as many as you can
         </p>
       </div>
 
