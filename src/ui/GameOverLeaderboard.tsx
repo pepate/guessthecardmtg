@@ -35,6 +35,9 @@ export function GameOverLeaderboard({
     fetchProjectedRank(pool, score)
       .then((r) => !cancelled && setProjected(r))
       .catch(() => {});
+    fetchTopScores(pool, VISIBLE)
+      .then((list) => !cancelled && setTop(list))
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -60,7 +63,24 @@ export function GameOverLeaderboard({
     setStatus('done');
   }
 
-  const ownInTop = posted && top.some((e) => e.id === posted.id);
+  // The online board for this pool, with the player's own row pinned below when
+  // they'd land outside the visible top five (projected before posting; actual
+  // rank after). Highlight the player's real row once posted and present.
+  const youEntry: GlobalEntry = {
+    id: posted?.id ?? 'projected',
+    name: posted?.name ?? (sanitizeName(name) ?? 'You'),
+    score,
+    correct,
+    pool,
+    country: null,
+    createdAt: Date.now(),
+  };
+  const ownInTop = !!posted && top.some((e) => e.id === posted.id);
+  const pinnedRank = posted?.rank ?? projected?.rank;
+  const pinned =
+    pinnedRank && pinnedRank > top.length && !ownInTop
+      ? { rank: pinnedRank, entry: youEntry }
+      : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
@@ -71,6 +91,10 @@ export function GameOverLeaderboard({
         >
           You'd be ranked <span style={{ color: 'var(--ember-hot)' }}>#{projected.rank}</span> of {projected.total + 1}
         </div>
+      )}
+
+      {top.length > 0 && (
+        <GlobalScoreList entries={top} highlightId={posted?.id} pinned={pinned} />
       )}
 
       {status !== 'done' ? (
@@ -112,49 +136,8 @@ export function GameOverLeaderboard({
           <p style={{ color: 'var(--ink-0)', fontSize: 13, textAlign: 'center', margin: 0 }}>
             Posted! You're ranked <span style={{ color: 'var(--ember-hot)' }}>#{posted?.rank}</span>.
           </p>
-          <GlobalBoardPreview
-            top={top}
-            posted={posted}
-            ownInTop={!!ownInTop}
-            score={score}
-            correct={correct}
-            pool={pool}
-          />
         </div>
       )}
     </div>
   );
-}
-
-function GlobalBoardPreview({
-  top,
-  posted,
-  ownInTop,
-  score,
-  correct,
-  pool,
-}: {
-  top: GlobalEntry[];
-  posted: { rank: number; id: string; name: string } | null;
-  ownInTop: boolean;
-  score: number;
-  correct: number;
-  pool: PoolKind;
-}) {
-  const pinned =
-    posted && !ownInTop
-      ? {
-          rank: posted.rank,
-          entry: {
-            id: posted.id,
-            name: posted.name,
-            score,
-            correct,
-            pool,
-            country: null,
-            createdAt: Date.now(),
-          } satisfies GlobalEntry,
-        }
-      : null;
-  return <GlobalScoreList entries={top} highlightId={posted?.id} pinned={pinned} />;
 }
