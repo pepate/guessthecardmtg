@@ -6,6 +6,7 @@ import { GlobalScoreList } from './GlobalScoreList';
 import { HighscoreList } from './HighscoreList';
 import { getBuiltinModes } from '../modes/client';
 import type { CustomMode } from '../modes/types';
+import type { RevealMode } from '../engine/timeAttack';
 
 type Tab = 'all' | 'popular' | 'me';
 
@@ -21,10 +22,14 @@ function GlobalView({
   state,
   expanded,
   onExpand,
+  onPlayMode,
+  poolKind,
 }: {
   state: ReturnType<typeof useLeaderboard>;
   expanded: boolean;
   onExpand: () => void;
+  onPlayMode?: (mode: RevealMode, kind: 'all' | 'popular') => void;
+  poolKind: 'all' | 'popular';
 }) {
   if (state.error) {
     return <p style={{ color: 'var(--ember-hot)', fontSize: 13, textAlign: 'center' }}>Leaderboard unavailable.</p>;
@@ -39,7 +44,7 @@ function GlobalView({
   const visible = expanded ? state.entries : state.entries.slice(0, VISIBLE);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <GlobalScoreList entries={visible} />
+      <GlobalScoreList entries={visible} onPlayMode={onPlayMode ? (mode) => onPlayMode(mode, poolKind) : undefined} />
       {!expanded && state.entries.length > VISIBLE && (
         <button
           className="ghost-btn"
@@ -55,7 +60,7 @@ function GlobalView({
   );
 }
 
-export function Leaderboard({ refreshKey = 0 }: { refreshKey?: number }) {
+export function Leaderboard({ refreshKey = 0, onPlayMode }: { refreshKey?: number; onPlayMode?: (mode: RevealMode, kind: 'all' | 'popular') => void }) {
   const [tab, setTab] = useState<Tab>('all');
   const [win, setWin] = useState<TimeWindow>('today');
   const [allExpanded, setAllExpanded] = useState(false);
@@ -186,8 +191,8 @@ export function Leaderboard({ refreshKey = 0 }: { refreshKey?: number }) {
         </div>
       )}
 
-      {tab === 'all' && <GlobalView state={all} expanded={allExpanded} onExpand={() => setAllExpanded(true)} />}
-      {tab === 'popular' && <GlobalView state={popular} expanded={popExpanded} onExpand={() => setPopExpanded(true)} />}
+      {tab === 'all' && <GlobalView state={all} expanded={allExpanded} onExpand={() => setAllExpanded(true)} onPlayMode={onPlayMode} poolKind="all" />}
+      {tab === 'popular' && <GlobalView state={popular} expanded={popExpanded} onExpand={() => setPopExpanded(true)} onPlayMode={onPlayMode} poolKind="popular" />}
       {tab === 'me' && <HighscoreList entries={mine} />}
     </div>
   );

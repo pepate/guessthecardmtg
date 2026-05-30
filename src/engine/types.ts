@@ -13,7 +13,8 @@ export interface TimeAttackConfig {
   minScore: number;
   /** Length of one reveal stage, in ms. */
   stageMs: number;
-  /** How long the scanner-mode sweep takes to fully reveal the card, in ms. */
+  /** How long the continuous reveal (scanner sweep, silhouette, spotlight, zoom) takes
+   *  to fully reveal the card, in ms. */
   scanRevealMs: number;
   /** In scanner mode, how long the mana cost stays hidden before auto-revealing, in ms. */
   scanManaRevealMs: number;
@@ -31,11 +32,11 @@ export interface TimeAttackConfig {
 
 export const DEFAULT_TIME_ATTACK_CONFIG: TimeAttackConfig = {
   durationMs: 15000,
-  gameDurationMs: 90000,
+  gameDurationMs: 30000,
   maxScore: 1000,
   minScore: 100,
   stageMs: 3000,
-  scanRevealMs: 12000,
+  scanRevealMs: 5000,
   scanManaRevealMs: 5000,
   mosaicCols: 4,
   mosaicRows: 6,

@@ -1,7 +1,15 @@
 import { motion } from 'framer-motion';
 import { Leaderboard } from './Leaderboard';
+import { useGameStore } from '../state/gameStore';
+import type { RevealMode } from '../engine/timeAttack';
 
 export function StartLeaderboard({ refreshKey = 0 }: { refreshKey?: number }) {
+  function handlePlayMode(mode: RevealMode, kind: 'all' | 'popular') {
+    const store = useGameStore.getState();
+    store.setRevealChoice(mode);
+    void store.selectPool({ kind, excludeUniverseBeyond: true });
+  }
+
   return (
     <motion.div
       data-testid="start-leaderboard"
@@ -20,7 +28,7 @@ export function StartLeaderboard({ refreshKey = 0 }: { refreshKey?: number }) {
       >
         Leaderboard
       </span>
-      <Leaderboard refreshKey={refreshKey} />
+      <Leaderboard refreshKey={refreshKey} onPlayMode={handlePlayMode} />
     </motion.div>
   );
 }

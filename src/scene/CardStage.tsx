@@ -19,6 +19,17 @@ export const MOSAIC_ROWS = 6;
 const MOSAIC_TILES = MOSAIC_COLS * MOSAIC_ROWS;
 const MOSAIC_IDENTITY = Array.from({ length: MOSAIC_TILES }, (_, i) => i);
 
+// Zoom mode (layout; tunable). Zooms out from the centre of the artwork: the art-crop
+// zoom-in phase runs until ZOOM_CROSSFADE of the reveal, then the full card crossfades in
+// from the same origin, scaling from ZOOM_CARD_START (art roughly fills the frame) down to
+// 1 so it continues seamlessly. ZOOM_ORIGIN sits over the art centre (top third of the card),
+// not the card centre, so the art stays put while the frame grows in around it. No redaction
+// overlays in zoom — the full card is the payoff once it lands (~scanRevealMs, 5s).
+const ZOOM_START_SCALE = 2.5;
+const ZOOM_CARD_START = 2.2;
+const ZOOM_CROSSFADE = 0.6;
+const ZOOM_ORIGIN = '50% 33%';
+
 const wrapperStyle: CSSProperties = {
   width: '100%',
   height: '100%',
@@ -96,16 +107,18 @@ export function CardStage({
   textHidden = false,
   tileOrder = MOSAIC_IDENTITY,
   tilesRevealed = 0,
+  spotlightOrigin = { xPct: 50, yPct: 45 },
 }: {
   stage: RevealStage;
   wide?: boolean;
-  mode?: 'blur' | 'scanner' | 'mosaic';
+  mode?: 'blur' | 'scanner' | 'mosaic' | 'zoom' | 'silhouette' | 'spotlight';
   progress?: number;
   angle?: number;
   manaHidden?: boolean;
   textHidden?: boolean;
   tileOrder?: number[];
   tilesRevealed?: number;
+  spotlightOrigin?: { xPct: number; yPct: number };
 }) {
   const round = useGameStore((s) => s.round);
   if (!round) return null;
@@ -129,6 +142,15 @@ export function CardStage({
 
   const over = round.status !== 'playing';
   const hasPower = !!round.target.power;
+
+  const artUrl =
+    round.target.image_uris?.art_crop ??
+    round.target.card_faces?.[0]?.image_uris?.art_crop ??
+    cardUrl;
+  const zoomPa = Math.min(1, progress / ZOOM_CROSSFADE);
+  const zoomPb = Math.max(0, (progress - ZOOM_CROSSFADE) / (1 - ZOOM_CROSSFADE));
+  const zoomArtScale = (1 + (1 - zoomPa) * (ZOOM_START_SCALE - 1)) * (1 - zoomPb * (1 - 1 / ZOOM_CARD_START));
+  const zoomCardScale = ZOOM_CARD_START - zoomPb * (ZOOM_CARD_START - 1);
 
   const artOnly = !over && stage === 0;
   const blurName = !over;
@@ -154,7 +176,7 @@ export function CardStage({
           data-testid="card-image"
           data-stage={stage}
           data-status={round.status}
-          style={fillImg}
+          style={{ ...fillImg, opacity: mode === 'zoom' && !over ? 0 : 1 }}
         />
 
         <AnimatePresence>
@@ -246,6 +268,85 @@ export function CardStage({
                   testid="blur-text"
                   style={{ top: '62.5%', left: '5%', width: '90%', height: '26%', zIndex: 2 }}
                 />
+              )}
+            </>
+          ) : mode === 'zoom' ? (
+            <>
+              {!over && (
+                <motion.img
+                  key="zoom-card"
+                  data-testid="zoom-card"
+                  src={cardUrl}
+                  alt=""
+                  style={{ ...fillImg, transform: `scale(${zoomCardScale})`, transformOrigin: ZOOM_ORIGIN, opacity: zoomPb }}
+                  initial={{ opacity: 0 }}
+                  exit={{ opacity: 0 }}
+                />
+              )}
+              {!over && (
+                <motion.img
+                  key="zoom-art"
+                  data-testid="zoom-art"
+                  src={artUrl}
+                  alt=""
+                  style={{ ...fillImg, transform: `scale(${zoomArtScale})`, transformOrigin: ZOOM_ORIGIN, opacity: 1 - zoomPb }}
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                />
+              )}
+            </>
+          ) : mode === 'silhouette' ? (
+            <>
+              {!over && progress < 1 && (
+                <motion.div
+                  key="silhouette-cover"
+                  data-testid="silhouette-cover"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backdropFilter: `grayscale(${1 - progress}) brightness(${0.08 + progress * 0.92}) contrast(${1 + (1 - progress) * 0.4})`,
+                    WebkitBackdropFilter: `grayscale(${1 - progress}) brightness(${0.08 + progress * 0.92}) contrast(${1 + (1 - progress) * 0.4})`,
+                    background: `rgba(8,6,12,${Math.max(0, 0.55 * (1 - progress))})`,
+                  }}
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                />
+              )}
+              {blurName && (
+                <Blur key="name" testid="blur-name" style={{ top: '3.2%', left: '5%', width: '60%', height: '6.5%', zIndex: 2 }} />
+              )}
+              {!over && manaHidden && (
+                <Blur key="mana" testid="blur-mana" style={{ top: '3.2%', left: '58%', width: '37%', height: '6.5%', zIndex: 2 }} />
+              )}
+              {!over && textHidden && (
+                <Blur key="text" testid="blur-text" style={{ top: '62.5%', left: '5%', width: '90%', height: '26%', zIndex: 2 }} />
+              )}
+            </>
+          ) : mode === 'spotlight' ? (
+            <>
+              {!over && progress < 1 && (
+                <motion.div
+                  key="spotlight-cover"
+                  data-testid="spotlight-cover"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: `radial-gradient(circle at ${spotlightOrigin.xPct}% ${spotlightOrigin.yPct}%, transparent ${progress * 110}%, rgba(255,150,60,0.25) ${progress * 110 + 4}%, #07050a ${progress * 110 + 10}%)`,
+                  }}
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                />
+              )}
+              {blurName && (
+                <Blur key="name" testid="blur-name" style={{ top: '3.2%', left: '5%', width: '60%', height: '6.5%', zIndex: 2 }} />
+              )}
+              {!over && manaHidden && (
+                <Blur key="mana" testid="blur-mana" style={{ top: '3.2%', left: '58%', width: '37%', height: '6.5%', zIndex: 2 }} />
+              )}
+              {!over && textHidden && (
+                <Blur key="text" testid="blur-text" style={{ top: '62.5%', left: '5%', width: '90%', height: '26%', zIndex: 2 }} />
               )}
             </>
           ) : (

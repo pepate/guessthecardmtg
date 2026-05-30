@@ -139,6 +139,61 @@ describe('CardStage mosaic mode', () => {
   });
 });
 
+describe('CardStage silhouette mode', () => {
+  beforeEach(() => seedRound('playing'));
+
+  it('renders a silhouette cover and name redaction, no stage blurs', () => {
+    render(<CardStage mode="silhouette" stage={0} progress={0.3} />);
+    expect(screen.getByTestId('card-image')).toBeTruthy();
+    expect(screen.getByTestId('silhouette-cover')).toBeTruthy();
+    expect(screen.getByTestId('blur-name')).toBeTruthy();
+    expect(screen.queryByTestId('blur-type')).toBeNull();
+  });
+
+  it('drops the cover and name when over', () => {
+    seedRound('won');
+    render(<CardStage mode="silhouette" stage={5} progress={1} />);
+    expect(screen.queryByTestId('silhouette-cover')).toBeNull();
+    expect(screen.queryByTestId('blur-name')).toBeNull();
+  });
+});
+
+describe('CardStage spotlight mode', () => {
+  beforeEach(() => seedRound('playing'));
+
+  it('renders a spotlight cover and name redaction', () => {
+    render(<CardStage mode="spotlight" stage={0} progress={0.3} spotlightOrigin={{ xPct: 40, yPct: 30 }} />);
+    expect(screen.getByTestId('spotlight-cover')).toBeTruthy();
+    expect(screen.getByTestId('blur-name')).toBeTruthy();
+  });
+
+  it('drops the cover when over', () => {
+    seedRound('won');
+    render(<CardStage mode="spotlight" stage={5} progress={1} />);
+    expect(screen.queryByTestId('spotlight-cover')).toBeNull();
+  });
+});
+
+describe('CardStage zoom mode', () => {
+  beforeEach(() => seedRound('playing'));
+
+  it('renders both image layers and NO redaction overlays while playing', () => {
+    render(<CardStage mode="zoom" stage={0} progress={0.2} />);
+    expect(screen.getByTestId('zoom-art')).toBeTruthy();
+    expect(screen.getByTestId('zoom-card')).toBeTruthy();
+    expect(screen.queryByTestId('blur-name')).toBeNull();
+    expect(screen.queryByTestId('blur-text')).toBeNull();
+    expect(screen.queryByTestId('blur-mana')).toBeNull();
+  });
+
+  it('drops the zoom layers and shows the full card when over', () => {
+    seedRound('won');
+    render(<CardStage mode="zoom" stage={5} progress={1} />);
+    expect(screen.queryByTestId('zoom-art')).toBeNull();
+    expect(screen.getByTestId('card-image')).toBeTruthy();
+  });
+});
+
 describe('CardStage blur mode (unchanged)', () => {
   beforeEach(() => seedRound('playing'));
 

@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import type { Round, TimeAttackConfig } from '../engine/types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from '../engine/types';
-import { planGame, resolveGuess, expire as expireRound, type PlannedRound } from '../engine/timeAttack';
+import { planGame, resolveGuess, expire as expireRound, resolveGameMode, type PlannedRound, type RevealMode } from '../engine/timeAttack';
+import { fetchEnabledRevealModes } from '../reveal/client';
 import { fetchCandidates } from '../cards/client';
 import type { PoolSelection, ScryfallCard } from '../scryfall/types';
 import { loadHighscores, saveHighscore, type HighscoreEntry, type PoolKind } from './highscores';
@@ -33,11 +34,13 @@ interface GameState {
   round: Round | null;
   /** 0-based index of the current card within the game. */
   roundIndex: number;
-  /** Reveal-mode rotation offset for this game (0/1/2 = which mode is round 1). */
-  revealOffset: 0 | 1 | 2;
+  /** The reveal mode in use for this game (resolved from pendingRevealChoice at start). */
+  gameMode: RevealMode;
+  pendingRevealChoice: RevealMode | 'random';
+  enabledModes: RevealMode[];
   /** Per-game seed for deterministic scanner sweep angles. */
   revealSeed: number;
-  /** Date.now() when the 90-second game started. */
+  /** Date.now() when the game started. */
   gameStartedAt: number;
 
   correctCount: number;
@@ -54,13 +57,15 @@ interface GameState {
   /** Cached builtin mode rows loaded from DB once. */
   builtinModes: { all: CustomMode; popular: CustomMode } | null;
 
+  setRevealChoice: (choice: RevealMode | 'random') => void;
+  loadRevealModes: () => Promise<void>;
   selectPool: (selection: PoolSelection) => Promise<void>;
   guessName: (name: string) => void;
   /** Called by the game clock when the per-card timer reaches durationMs. */
   expire: () => void;
   /** Move to the next card, or end the game when the plan runs out. */
   advance: () => void;
-  /** End the game when the 90-second clock runs out, recording a highscore. */
+  /** End the game when the clock runs out, recording a highscore. */
   endGame: () => void;
   /** Start a fresh game on the same pool. */
   restart: () => void;
@@ -120,7 +125,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   plan: [],
   round: null,
   roundIndex: 0,
-  revealOffset: 0,
+  gameMode: 'blur',
+  pendingRevealChoice: 'random',
+  enabledModes: ['blur', 'scanner', 'mosaic'],
   revealSeed: 0,
   gameStartedAt: 0,
 
@@ -133,12 +140,21 @@ export const useGameStore = create<GameState>((set, get) => ({
   challenge: decodeResult(new URLSearchParams(window.location.search).get('r')),
   builtinModes: null,
 
+  setRevealChoice(choice) {
+    set({ pendingRevealChoice: choice });
+  },
+
+  async loadRevealModes() {
+    set({ enabledModes: await fetchEnabledRevealModes() });
+  },
+
   async selectPool(selection) {
     const summonStart = Date.now();
     set({ phase: 'loading', error: null });
     try {
       const { config } = get();
 
+      // Resolve pool/mode identity from selection
       let filter: CustomFilter;
       let modeId: string | null;
       let modeName: string;
@@ -174,7 +190,18 @@ export const useGameStore = create<GameState>((set, get) => ({
           : { ...bm.filter, ub: 'yes' as const };
       }
 
-      const pool = await fetchCandidates(filter);
+      // Fetch cards and enabled reveal modes in parallel, then resolve gameMode
+      const [rawPool, enabledModes] = await Promise.all([
+        fetchCandidates(filter),
+        fetchEnabledRevealModes(),
+      ]);
+      const gameMode = resolveGameMode(get().pendingRevealChoice, enabledModes);
+      const pool = gameMode === 'zoom'
+        ? rawPool.filter(
+            (c) => !!(c.image_uris?.art_crop ?? c.card_faces?.[0]?.image_uris?.art_crop),
+          )
+        : rawPool;
+
       if (uniqueNameCount(pool) < config.optionCount) {
         throw new Error('Not enough cards in the selected pool.');
       }
@@ -191,7 +218,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         plan,
         round: startPlanned(plan[0], Date.now()),
         roundIndex: 0,
-        revealOffset: Math.floor(Math.random() * 3) as 0 | 1 | 2,
+        enabledModes,
+        gameMode,
         revealSeed: Math.floor(Math.random() * 1_000_000),
         gameStartedAt: Date.now(),
         correctCount: 0,
@@ -263,7 +291,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       plan: [],
       round: null,
       roundIndex: 0,
-      revealOffset: 0,
+      gameMode: 'blur',
+      pendingRevealChoice: 'random',
+      enabledModes: ['blur', 'scanner', 'mosaic'],
       revealSeed: 0,
       gameStartedAt: 0,
       correctCount: 0,

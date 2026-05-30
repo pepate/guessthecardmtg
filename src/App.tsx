@@ -4,7 +4,7 @@ import { CardStage } from './scene/CardStage';
 import { fetchRandomCard } from './cards/client';
 import { useGameStore } from './state/gameStore';
 import { useGameClock, useGameTimeLeft } from './state/useGameClock';
-import { stageAt, scanProgressAt, revealModeFor, scanAngleFor, tilesRevealedAt, tileOrderFor } from './engine/timeAttack';
+import { stageAt, scanProgressAt, scanAngleFor, tilesRevealedAt, tileOrderFor, spotlightOriginFor } from './engine/timeAttack';
 import { PoolSelect } from './ui/PoolSelect';
 import { CustomModeBrowser } from './ui/CustomModeBrowser';
 import { SetsBrowser } from './ui/SetsBrowser';
@@ -197,7 +197,8 @@ export function App() {
   const phase = useGameStore((s) => s.phase);
   const round = useGameStore((s) => s.round);
   const roundIndex = useGameStore((s) => s.roundIndex);
-  const revealOffset = useGameStore((s) => s.revealOffset);
+  const gameMode = useGameStore((s) => s.gameMode);
+  const loadRevealModes = useGameStore((s) => s.loadRevealModes);
   const revealSeed = useGameStore((s) => s.revealSeed);
   const config = useGameStore((s) => s.config);
   const advance = useGameStore((s) => s.advance);
@@ -207,7 +208,7 @@ export function App() {
   const timeLeftMs = useGameTimeLeft();
   const stage = stageAt(elapsedMs, config);
   const playingNow = phase === 'playing' && round?.status === 'playing';
-  const mode = revealModeFor(roundIndex, revealOffset);
+  const mode = gameMode;
   const scanProgress = playingNow ? scanProgressAt(elapsedMs, config) : 1;
   const scanAngle = scanAngleFor(revealSeed, roundIndex);
   const scanManaHidden = playingNow && elapsedMs < config.scanManaRevealMs;
@@ -217,6 +218,7 @@ export function App() {
   const tileCount = config.mosaicCols * config.mosaicRows;
   const tilesRevealed = playingNow ? tilesRevealedAt(elapsedMs, config) : tileCount;
   const tileOrder = tileOrderFor(revealSeed, roundIndex, tileCount);
+  const spotlightOrigin = spotlightOriginFor(revealSeed, roundIndex);
   const wide = useWideLayout();
 
   const [screen, setScreen] = useState<'home' | 'custom' | 'sets'>('home');
@@ -228,6 +230,10 @@ export function App() {
   useEffect(() => {
     if (phase !== 'idle') setScreen('home');
   }, [phase]);
+
+  useEffect(() => {
+    void loadRevealModes();
+  }, [loadRevealModes]);
 
   const status = round?.status;
   const startedAt = round?.startedAt;
@@ -265,7 +271,7 @@ export function App() {
       {phase === 'idle' && <StartArtwork />}
       {phase === 'gameover' && <StartArtwork variant="full" />}
       {round && !(wide && phase === 'playing') && (
-        <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} tileOrder={tileOrder} tilesRevealed={tilesRevealed} />
+        <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} />
       )}
 
       <div className="overlay">
@@ -337,7 +343,7 @@ export function App() {
               {wide ? (
                 <div className="play-wide">
                   {round && (
-                    <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} tileOrder={tileOrder} tilesRevealed={tilesRevealed} wide />
+                    <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} wide />
                   )}
                   <div className="options-col">
                     {playingNow && <Timer elapsedMs={elapsedMs} />}

@@ -1,5 +1,6 @@
 import { getSupabase } from '../supabase/client';
 import type { GlobalEntry, SubmitPayload } from './types';
+import type { RevealMode } from '../engine/timeAttack';
 
 export function isLeaderboardEnabled(): boolean {
   return getSupabase() !== null;
@@ -11,6 +12,7 @@ interface Row {
   score: number;
   correct: number;
   mode_id: string;
+  game_mode: string | null;
   country: string | null;
   created_at: string;
 }
@@ -21,6 +23,7 @@ function toEntry(r: Row): GlobalEntry {
     name: r.name,
     score: r.score,
     correct: r.correct,
+    gameMode: (r.game_mode as RevealMode | null) ?? null,
     country: r.country,
     createdAt: new Date(r.created_at).getTime(),
   };
@@ -35,7 +38,7 @@ export async function fetchModeTopScores(
   if (!c) return [];
   let q = c
     .from('leaderboard_top')
-    .select('id,name,score,correct,mode_id,country,created_at')
+    .select('id,name,score,correct,mode_id,game_mode,country,created_at')
     .eq('mode_id', modeId);
   if (since != null) q = q.gte('created_at', new Date(since).toISOString());
   const { data, error } = await q
@@ -73,7 +76,13 @@ export type SubmitResult =
 export async function submitScore(payload: SubmitPayload): Promise<SubmitResult> {
   const c = getSupabase();
   if (!c) return { ok: false, reason: 'disabled' };
-  const body = { name: payload.name, score: payload.score, correct: payload.correct, mode_id: payload.modeId };
+  const body = {
+    name: payload.name,
+    score: payload.score,
+    correct: payload.correct,
+    mode_id: payload.modeId,
+    game_mode: payload.gameMode,
+  };
   const { data, error } = await c.functions.invoke('submit-score', { body });
   if (error) return { ok: false, reason: error.message };
   if (!data || data.ok !== true) return { ok: false, reason: data?.reason ?? 'rejected' };

@@ -5,7 +5,7 @@ import * as client from './client';
 import type { GlobalEntry } from './types';
 
 const entry: GlobalEntry = {
-  id: '1', name: 'Al', score: 900, correct: 9, country: 'DE', createdAt: 0,
+  id: '1', name: 'Al', score: 900, correct: 9, gameMode: 'blur', country: 'DE', createdAt: 0,
 };
 
 beforeEach(() => vi.restoreAllMocks());

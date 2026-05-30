@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react';
 import type { GlobalEntry } from '../leaderboard/types';
+import type { RevealMode } from '../engine/timeAttack';
 import { countryToFlag } from '../leaderboard/flag';
 import { formatAge } from '../leaderboard/age';
+import { REVEAL_MODE_LABELS } from '../reveal/labels';
 
-const GRID = '32px 20px 1fr auto auto';
+const GRID = '32px 20px 1fr auto auto auto';
 
 function Row({
   rank,
@@ -12,6 +14,7 @@ function Row({
   highlight,
   testid,
   nameOverride,
+  onPlay,
 }: {
   rank: number;
   entry: GlobalEntry;
@@ -19,10 +22,13 @@ function Row({
   highlight: boolean;
   testid: string;
   nameOverride?: ReactNode;
+  onPlay?: () => void;
 }) {
   return (
     <div
       data-testid={testid}
+      role={onPlay ? 'button' : undefined}
+      onClick={onPlay}
       style={{
         display: 'grid',
         gridTemplateColumns: GRID,
@@ -33,6 +39,7 @@ function Row({
         background: highlight ? 'rgba(255,138,60,0.18)' : 'rgba(20,17,28,0.5)',
         border: `1px solid ${highlight ? 'var(--ember)' : 'var(--line)'}`,
         fontFamily: "'JetBrains Mono', monospace",
+        cursor: onPlay ? 'pointer' : undefined,
       }}
     >
       <span style={{ color: 'var(--ink-2)', fontSize: 13 }}>#{rank}</span>
@@ -43,6 +50,9 @@ function Row({
         </span>
       )}
       <span style={{ color: 'var(--ink-2)', fontSize: 11 }}>{entry.correct}✓ · {formatAge(entry.createdAt, now)}</span>
+      <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", padding: '2px 6px', borderRadius: 6, border: '1px solid var(--line)' }}>
+        {entry.gameMode ? REVEAL_MODE_LABELS[entry.gameMode] : '—'}
+      </span>
       <span style={{ color: 'var(--ember-hot)', fontSize: 15, fontWeight: 700 }}>{entry.score}</span>
     </div>
   );
@@ -53,6 +63,7 @@ export function GlobalScoreList({
   highlightId,
   pinned,
   pinnedNameInput,
+  onPlayMode,
   now = Date.now(),
 }: {
   entries: GlobalEntry[];
@@ -60,6 +71,7 @@ export function GlobalScoreList({
   pinned?: { rank: number; entry: GlobalEntry } | null;
   /** When set, replaces the name cell of the pinned row (e.g. an inline name input). */
   pinnedNameInput?: ReactNode;
+  onPlayMode?: (mode: RevealMode) => void;
   now?: number;
 }) {
   if (entries.length === 0 && !pinned) {
@@ -80,6 +92,7 @@ export function GlobalScoreList({
           now={now}
           highlight={entry.id === highlightId}
           testid="global-entry"
+          onPlay={onPlayMode && entry.gameMode ? () => onPlayMode(entry.gameMode!) : undefined}
         />
       ))}
       {pinned && (

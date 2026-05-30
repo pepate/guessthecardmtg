@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, tilesRevealedAt, revealModeFor, scanAngleFor, tileOrderFor } from './timeAttack';
+import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, tilesRevealedAt, resolveGameMode, scanAngleFor, tileOrderFor, spotlightOriginFor, KNOWN_REVEAL_MODES } from './timeAttack';
 import { DEFAULT_TIME_ATTACK_CONFIG as CFG } from './types';
 import type { Round } from './types';
 import type { ScryfallCard } from '../scryfall/types';
+import type { RevealMode } from './timeAttack';
 
 function makeCard(name: string): ScryfallCard {
   return { id: name.toLowerCase().replace(/\s+/g, '-'), name, cmc: 1, type_line: 'Instant' };
@@ -225,21 +226,21 @@ describe('tilesRevealedAt', () => {
   });
 });
 
-describe('revealModeFor', () => {
-  it('rotates blur → scanner → mosaic with offset 0', () => {
-    expect(revealModeFor(0, 0)).toBe('blur');
-    expect(revealModeFor(1, 0)).toBe('scanner');
-    expect(revealModeFor(2, 0)).toBe('mosaic');
-    expect(revealModeFor(3, 0)).toBe('blur');
+describe('resolveGameMode', () => {
+  const enabled: RevealMode[] = ['blur', 'scanner', 'mosaic', 'zoom'];
+
+  it('returns a concrete choice unchanged', () => {
+    expect(resolveGameMode('zoom', enabled)).toBe('zoom');
   });
 
-  it('offset shifts which mode is round 1', () => {
-    expect(revealModeFor(0, 1)).toBe('scanner');
-    expect(revealModeFor(0, 2)).toBe('mosaic');
+  it('resolves "random" to a member of the enabled set', () => {
+    for (let i = 0; i < 20; i++) {
+      expect(enabled).toContain(resolveGameMode('random', enabled));
+    }
   });
 
-  it('wraps every 3 rounds', () => {
-    expect(revealModeFor(6, 2)).toBe(revealModeFor(0, 2));
+  it('falls back to blur when nothing is enabled', () => {
+    expect(resolveGameMode('random', [])).toBe('blur');
   });
 });
 
@@ -277,6 +278,27 @@ describe('tileOrderFor', () => {
 
   it('varies across rounds for one game seed', () => {
     expect(tileOrderFor(42, 0, 24)).not.toEqual(tileOrderFor(42, 1, 24));
+  });
+});
+
+describe('spotlightOriginFor', () => {
+  it('returns percentages in [0,100) and is deterministic', () => {
+    const o = spotlightOriginFor(42, 3);
+    expect(o).toEqual(spotlightOriginFor(42, 3));
+    expect(o.xPct).toBeGreaterThanOrEqual(0);
+    expect(o.xPct).toBeLessThan(100);
+    expect(o.yPct).toBeGreaterThanOrEqual(0);
+    expect(o.yPct).toBeLessThan(100);
+  });
+
+  it('varies across rounds', () => {
+    expect(spotlightOriginFor(42, 0)).not.toEqual(spotlightOriginFor(42, 1));
+  });
+});
+
+describe('KNOWN_REVEAL_MODES', () => {
+  it('lists the six known modes', () => {
+    expect(KNOWN_REVEAL_MODES).toEqual(['blur', 'scanner', 'mosaic', 'zoom', 'silhouette', 'spotlight']);
   });
 });
 

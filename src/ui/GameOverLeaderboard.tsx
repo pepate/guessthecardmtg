@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GlobalEntry } from '../leaderboard/types';
+import type { RevealMode } from '../engine/timeAttack';
 import { sanitizeName, NAME_MAX, NAME_MIN } from '../leaderboard/validation';
 import {
   isLeaderboardEnabled,
@@ -20,12 +21,14 @@ export function GameOverLeaderboard({
   modeId,
   modeName,
   modeFilter,
+  gameMode,
 }: {
   score: number;
   correct: number;
   modeId: string | null;
   modeName?: string;
   modeFilter?: CustomFilter;
+  gameMode: RevealMode;
 }) {
   const enabled = isLeaderboardEnabled();
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? '');
@@ -96,7 +99,7 @@ export function GameOverLeaderboard({
       }
     }
 
-    const res = await submitScore({ name: clean, score, correct, modeId: resolvedModeId });
+    const res = await submitScore({ name: clean, score, correct, modeId: resolvedModeId, gameMode });
     if (!res.ok) {
       setStatus('error');
       return;
@@ -116,6 +119,7 @@ export function GameOverLeaderboard({
     name: posted?.name ?? (sanitizeName(name) ?? 'You'),
     score,
     correct,
+    gameMode,
     country: null,
     createdAt: Date.now(),
   };

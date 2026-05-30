@@ -2,7 +2,10 @@ import type { Round, RevealStage, TimeAttackConfig } from './types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from './types';
 import type { ScryfallCard } from '../scryfall/types';
 
-export type RevealMode = 'blur' | 'scanner' | 'mosaic';
+export type RevealMode = 'blur' | 'scanner' | 'mosaic' | 'zoom' | 'silhouette' | 'spotlight';
+
+/** Canonical list of every implemented reveal mode (used to validate DB toggles). */
+export const KNOWN_REVEAL_MODES: RevealMode[] = ['blur', 'scanner', 'mosaic', 'zoom', 'silhouette', 'spotlight'];
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -131,11 +134,12 @@ export function tilesRevealedAt(
   return Math.min(tileCount, Math.floor(elapsedMs / config.mosaicTileMs));
 }
 
-const REVEAL_MODES: RevealMode[] = ['blur', 'scanner', 'mosaic'];
-
-/** Which reveal animation a round uses: strict rotation blur→scanner→mosaic; offset shifts round 1. */
-export function revealModeFor(roundIndex: number, offset: 0 | 1 | 2): RevealMode {
-  return REVEAL_MODES[(roundIndex + offset) % REVEAL_MODES.length];
+/** Resolve the pre-game choice to a single concrete mode for the whole game.
+ *  A concrete choice passes through; 'random' picks a uniformly random enabled mode. */
+export function resolveGameMode(choice: RevealMode | 'random', enabled: RevealMode[]): RevealMode {
+  if (choice !== 'random') return choice;
+  if (enabled.length === 0) return 'blur';
+  return enabled[Math.floor(Math.random() * enabled.length)];
 }
 
 /**
@@ -162,6 +166,16 @@ export function tileOrderFor(seed: number, roundIndex: number, tileCount: number
   });
   keyed.sort((a, b) => a.k - b.k);
   return keyed.map((e) => e.t);
+}
+
+function hash01(seed: number, roundIndex: number, salt: number): number {
+  const x = Math.sin(seed * 374761393 + roundIndex * 668265263 + salt) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/** Deterministic spotlight centre (percentages) for a round — stable across re-renders. */
+export function spotlightOriginFor(seed: number, roundIndex: number): { xPct: number; yPct: number } {
+  return { xPct: Math.floor(hash01(seed, roundIndex, 3) * 100), yPct: Math.floor(hash01(seed, roundIndex, 4) * 100) };
 }
 
 /**
