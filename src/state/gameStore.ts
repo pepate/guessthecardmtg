@@ -24,6 +24,10 @@ interface GameState {
   round: Round | null;
   /** 0-based index of the current card within the game. */
   roundIndex: number;
+  /** Which reveal mode is round 1 this game (0 = blur first, 1 = scanner first). */
+  revealParity: 0 | 1;
+  /** Per-game seed for deterministic scanner sweep angles. */
+  revealSeed: number;
   /** Date.now() when the 90-second game started. */
   gameStartedAt: number;
 
@@ -96,6 +100,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   plan: [],
   round: null,
   roundIndex: 0,
+  revealParity: 0,
+  revealSeed: 0,
   gameStartedAt: 0,
 
   correctCount: 0,
@@ -125,6 +131,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         plan,
         round: startPlanned(plan[0], Date.now()),
         roundIndex: 0,
+        revealParity: (Math.random() < 0.5 ? 0 : 1) as 0 | 1,
+        revealSeed: Math.floor(Math.random() * 1_000_000),
         gameStartedAt: Date.now(),
         correctCount: 0,
         totalScore: 0,
@@ -192,6 +200,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       plan: [],
       round: null,
       roundIndex: 0,
+      revealParity: 0,
+      revealSeed: 0,
       gameStartedAt: 0,
       correctCount: 0,
       totalScore: 0,
