@@ -222,6 +222,25 @@ describe('revealModeFor', () => {
   });
 });
 
+describe('scanAngleFor', () => {
+  it('is deterministic for the same seed + round', () => {
+    expect(scanAngleFor(12345, 3)).toBe(scanAngleFor(12345, 3));
+  });
+
+  it('returns an angle in [0, 360)', () => {
+    for (let i = 0; i < 10; i++) {
+      const a = scanAngleFor(987, i);
+      expect(a).toBeGreaterThanOrEqual(0);
+      expect(a).toBeLessThan(360);
+    }
+  });
+
+  it('varies across rounds for one game seed', () => {
+    const angles = new Set([0, 1, 2, 3, 4].map((i) => scanAngleFor(42, i)));
+    expect(angles.size).toBeGreaterThan(1);
+  });
+});
+
 describe('shuffle randomness seam', () => {
   beforeEach(() => vi.spyOn(Math, 'random').mockReturnValue(0));
   afterEach(() => vi.restoreAllMocks());

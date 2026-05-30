@@ -127,6 +127,17 @@ export function revealModeFor(roundIndex: number, parity: 0 | 1): RevealMode {
 }
 
 /**
+ * Deterministic pseudo-random sweep angle (degrees, [0,360)) for a round.
+ * Stable across re-renders for a given (seed, roundIndex) so the sweep
+ * direction never changes mid-round, but varies from card to card.
+ */
+export function scanAngleFor(seed: number, roundIndex: number): number {
+  const x = Math.sin(seed * 374761393 + roundIndex * 668265263 + 1) * 43758.5453;
+  const frac = x - Math.floor(x);
+  return Math.floor(frac * 360);
+}
+
+/**
  * Points available at a given elapsed time — linear decay from maxScore (t=0)
  * down to minScore (t=durationMs). Smooth per-second, so an earlier guess always
  * scores more.
