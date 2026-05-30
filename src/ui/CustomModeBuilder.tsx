@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CARD_TYPES, COLORS, RARITIES, validateFilter,
   type CardType, type ColorCode, type CustomFilter, type Range, type Rarity,
@@ -78,6 +78,7 @@ export function CustomModeBuilder({ onCreated, onCancel, onExisting }: {
   const [sets, setSets] = useState<SetItem[]>([]);
   const [setQuery, setSetQuery] = useState('');
   const [existing, setExisting] = useState<CustomMode | null>(null);
+  const existingGen = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,14 +121,15 @@ export function CustomModeBuilder({ onCreated, onCancel, onExisting }: {
       <div style={section}>
         <span style={legend}>Set filter (exclusive)</span>
         {filter.sets?.length === 1 ? (
+          (() => { const chosen = sets.find((s) => s.code === filter.sets![0]); const yr = chosen?.released_at?.slice(0, 4); return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span data-testid="set-chosen" style={{ flex: 1, color: 'var(--ink-0)', fontSize: 14 }}>
-              {sets.find((s) => s.code === filter.sets![0])?.name ?? filter.sets![0].toUpperCase()}
-              {(() => { const y = sets.find((s) => s.code === filter.sets![0])?.released_at?.slice(0, 4); return y ? ` · ${y}` : ''; })()}
+              {chosen?.name ?? filter.sets![0].toUpperCase()}{yr ? ` · ${yr}` : ''}
             </span>
-            <button type="button" className="ghost-btn" style={{ padding: '4px 10px' }}
-              onClick={() => { patch({ sets: undefined }); setExisting(null); setSetQuery(''); }}>×</button>
+            <button type="button" className="ghost-btn" aria-label="Clear set" style={{ padding: '4px 10px' }}
+              onClick={() => { existingGen.current++; patch({ sets: undefined }); setExisting(null); setSetQuery(''); }}>×</button>
           </div>
+          ); })()
         ) : (
           <>
             <input
@@ -136,18 +138,20 @@ export function CustomModeBuilder({ onCreated, onCancel, onExisting }: {
               onChange={(e) => setSetQuery(e.target.value)}
               style={{ ...numInput, width: '100%' }}
             />
-            {setQuery.trim().length >= 2 && (
+            {(() => { const q = setQuery.trim().toLowerCase(); return setQuery.trim().length >= 2 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 180, overflowY: 'auto' }}>
                 {sets
-                  .filter((s) => s.name.toLowerCase().includes(setQuery.trim().toLowerCase()) || s.code.includes(setQuery.trim().toLowerCase()))
+                  .filter((s) => s.name.toLowerCase().includes(q) || s.code.includes(q))
                   .slice(0, 30)
                   .map((s) => (
                     <button key={s.code} type="button" data-testid="set-option"
                       onClick={async () => {
+                        const gen = ++existingGen.current;
                         patch({ sets: [s.code] });
                         setSetQuery('');
+                        setExisting(null);
                         const m = await findExistingMode({ sets: [s.code] }).catch(() => null);
-                        setExisting(m);
+                        if (gen === existingGen.current) setExisting(m);
                       }}
                       style={{ textAlign: 'left', padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line-strong)',
                         background: 'rgba(20,17,28,0.5)', color: 'var(--ink-1)', cursor: 'pointer', fontSize: 13 }}>
@@ -155,7 +159,7 @@ export function CustomModeBuilder({ onCreated, onCancel, onExisting }: {
                     </button>
                   ))}
               </div>
-            )}
+            ); })()}
           </>
         )}
         {existing && (
