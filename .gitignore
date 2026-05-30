@@ -23,6 +23,12 @@ ruvector.db
 # TypeScript incremental build info
 *.tsbuildinfo
 
+# Scryfall bulk export — seed input only, never commit (2+ GB)
+all-cards.json
+
+# Supabase CLI local temp
+supabase/.temp/
+
 # Logs
 *.log
 npm-debug.log*

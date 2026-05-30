@@ -7,8 +7,7 @@
  */
 import 'dotenv/config';
 import { createReadStream } from 'node:fs';
-import { parser } from 'stream-json';
-import { streamArray } from 'stream-json/streamers/StreamArray';
+import { streamArray } from 'stream-json/streamers/stream-array.js';
 import { createClient } from '@supabase/supabase-js';
 import {
   isEligiblePrinting,
@@ -32,19 +31,42 @@ const db = createClient(url, key, { auth: { persistSession: false } });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Scryfall asks API clients to send a descriptive User-Agent and Accept header.
+const SCRYFALL_HEADERS = {
+  Accept: 'application/json',
+  'User-Agent': 'GuessTheCard-seed/1.0',
+};
+
+/** GET with retry + backoff on transient 429/503 (respects Retry-After). */
+async function scryfallGet(url: string): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { headers: SCRYFALL_HEADERS });
+    if (res.ok) return res;
+    const transient = res.status === 429 || res.status === 503;
+    if (!transient || attempt >= 5) {
+      throw new Error(`Scryfall is:ub lookup failed: ${res.status}`);
+    }
+    const retryAfter = Number(res.headers.get('retry-after'));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? retryAfter * 1000
+      : 1000 * 2 ** attempt; // 1s, 2s, 4s, 8s, 16s
+    console.log(`  Scryfall ${res.status}; retrying in ${waitMs}ms…`);
+    await sleep(waitMs);
+  }
+}
+
 /** Fetch every Universes Beyond oracle_id from Scryfall (one-time, dev only). */
 async function fetchUbOracleIds(): Promise<Set<string>> {
   const ids = new Set<string>();
   let next: string | null =
     `${SCRYFALL}/cards/search?q=is:ub&unique=cards&page=1`;
   while (next) {
-    const res = await fetch(next, { headers: { Accept: 'application/json' } });
-    if (!res.ok) throw new Error(`Scryfall is:ub lookup failed: ${res.status}`);
+    const res = await scryfallGet(next);
     const json: { data?: { oracle_id?: string }[]; has_more?: boolean; next_page?: string } =
       await res.json();
     for (const c of json.data ?? []) if (c.oracle_id) ids.add(c.oracle_id);
     next = json.has_more ? (json.next_page ?? null) : null;
-    await sleep(120); // respect Scryfall's rate limit
+    await sleep(150); // respect Scryfall's rate limit
   }
   return ids;
 }
@@ -67,7 +89,7 @@ async function main(): Promise<void> {
 
   console.log(`Streaming ${path}…`);
   await new Promise<void>((resolve, reject) => {
-    const stream = createReadStream(path).pipe(parser()).pipe(streamArray());
+    const stream = createReadStream(path).pipe(streamArray.withParserAsStream());
     stream.on('data', ({ value }: { value: RawCard }) => {
       if (!isEligiblePrinting(value)) return;
       const oid = value.oracle_id!;

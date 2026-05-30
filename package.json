@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "typecheck": "tsc -b --noEmit",
-    "seed:cards": "tsx scripts/seed-cards.ts"
+    "seed:cards": "node --max-old-space-size=8192 --import tsx scripts/seed-cards.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
