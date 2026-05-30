@@ -148,6 +148,21 @@ export function scanAngleFor(seed: number, roundIndex: number): number {
 }
 
 /**
+ * Deterministic pseudo-random uncover order for mosaic tiles: a permutation of
+ * [0..tileCount-1] derived from (seed, roundIndex). Stable across re-renders for a
+ * given input (no flicker mid-round), but different from card to card.
+ */
+export function tileOrderFor(seed: number, roundIndex: number, tileCount: number): number[] {
+  const keyed = Array.from({ length: tileCount }, (_, t) => {
+    const x =
+      Math.sin(seed * 374761393 + roundIndex * 668265263 + (t + 1) * 982451653) * 43758.5453;
+    return { t, k: x - Math.floor(x) };
+  });
+  keyed.sort((a, b) => a.k - b.k);
+  return keyed.map((e) => e.t);
+}
+
+/**
  * Points available at a given elapsed time — linear decay from maxScore (t=0)
  * down to minScore (t=durationMs). Smooth per-second, so an earlier guess always
  * scores more.

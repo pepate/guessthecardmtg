@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, tilesRevealedAt, revealModeFor, scanAngleFor } from './timeAttack';
+import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, tilesRevealedAt, revealModeFor, scanAngleFor, tileOrderFor } from './timeAttack';
 import { DEFAULT_TIME_ATTACK_CONFIG as CFG } from './types';
 import type { Round } from './types';
 import type { ScryfallCard } from '../scryfall/types';
@@ -256,6 +256,24 @@ describe('scanAngleFor', () => {
   it('varies across rounds for one game seed', () => {
     const angles = new Set([0, 1, 2, 3, 4].map((i) => scanAngleFor(42, i)));
     expect(angles.size).toBeGreaterThan(1);
+  });
+});
+
+describe('tileOrderFor', () => {
+  it('returns a valid permutation of [0..tileCount-1]', () => {
+    const order = tileOrderFor(42, 0, 24);
+    expect(order.length).toBe(24);
+    expect([...order].sort((a, b) => a - b)).toEqual(
+      Array.from({ length: 24 }, (_, i) => i),
+    );
+  });
+
+  it('is deterministic for the same seed + round', () => {
+    expect(tileOrderFor(12345, 3, 24)).toEqual(tileOrderFor(12345, 3, 24));
+  });
+
+  it('varies across rounds for one game seed', () => {
+    expect(tileOrderFor(42, 0, 24)).not.toEqual(tileOrderFor(42, 1, 24));
   });
 });
 
