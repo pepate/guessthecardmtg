@@ -85,12 +85,14 @@ export function CardStage({
   mode = 'blur',
   progress = 0,
   angle = 0,
+  manaHidden = false,
 }: {
   stage: RevealStage;
   wide?: boolean;
   mode?: 'blur' | 'scanner';
   progress?: number;
   angle?: number;
+  manaHidden?: boolean;
 }) {
   const round = useGameStore((s) => s.round);
   if (!round) return null;
@@ -164,6 +166,13 @@ export function CardStage({
                   key="name"
                   testid="blur-name"
                   style={{ top: '3.2%', left: '5%', width: '60%', height: '6.5%', zIndex: 2 }}
+                />
+              )}
+              {!over && manaHidden && (
+                <Blur
+                  key="mana"
+                  testid="blur-mana"
+                  style={{ top: '3.2%', left: '58%', width: '37%', height: '6.5%', zIndex: 2 }}
                 />
               )}
             </>

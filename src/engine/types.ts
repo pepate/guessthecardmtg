@@ -15,6 +15,8 @@ export interface TimeAttackConfig {
   stageMs: number;
   /** How long the scanner-mode sweep takes to fully reveal the card, in ms. */
   scanRevealMs: number;
+  /** In scanner mode, how long the mana cost stays hidden before auto-revealing, in ms. */
+  scanManaRevealMs: number;
   /** Number of name choices (incl. the correct one). */
   optionCount: number;
   /** How many cards to pre-plan — an upper bound on cards a fast player can reach
@@ -29,6 +31,7 @@ export const DEFAULT_TIME_ATTACK_CONFIG: TimeAttackConfig = {
   minScore: 100,
   stageMs: 3000,
   scanRevealMs: 12000,
+  scanManaRevealMs: 5000,
   optionCount: 4,
   totalRounds: 40,
 };

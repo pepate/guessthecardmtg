@@ -208,6 +208,7 @@ export function App() {
   const mode = revealModeFor(roundIndex, revealParity);
   const scanProgress = playingNow ? scanProgressAt(elapsedMs, config) : 1;
   const scanAngle = scanAngleFor(revealSeed, roundIndex);
+  const scanManaHidden = playingNow && elapsedMs < config.scanManaRevealMs;
   const wide = useWideLayout();
 
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
@@ -251,7 +252,7 @@ export function App() {
       {phase === 'idle' && <StartArtwork />}
       {phase === 'gameover' && <StartArtwork variant="full" />}
       {round && !(wide && phase === 'playing') && (
-        <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} />
+        <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} />
       )}
 
       <div className="overlay">
@@ -301,7 +302,7 @@ export function App() {
               {wide ? (
                 <div className="play-wide">
                   {round && (
-                    <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} wide />
+                    <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} wide />
                   )}
                   <div className="options-col">
                     {playingNow && <Timer elapsedMs={elapsedMs} />}

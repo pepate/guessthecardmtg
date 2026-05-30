@@ -46,6 +46,15 @@ describe('CardStage scanner mode', () => {
     expect(screen.getByTestId('blur-name')).toBeTruthy();
   });
 
+  it('redacts the mana cost while manaHidden, then reveals it', () => {
+    const { rerender } = render(
+      <CardStage mode="scanner" stage={0} progress={0.2} angle={30} manaHidden />,
+    );
+    expect(screen.getByTestId('blur-mana')).toBeTruthy();
+    rerender(<CardStage mode="scanner" stage={0} progress={0.5} angle={30} manaHidden={false} />);
+    expect(screen.queryByTestId('blur-mana')).toBeNull();
+  });
+
   it('reveals the name and drops the cover when the round is over', () => {
     seedRound('won');
     render(<CardStage mode="scanner" stage={5} progress={1} angle={30} />);
