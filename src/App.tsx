@@ -16,6 +16,7 @@ import { InstallButton } from './ui/InstallButton';
 import { StartLeaderboard } from './ui/StartLeaderboard';
 import { useWideLayout } from './ui/useWideLayout';
 import { usePullToRefresh } from './ui/usePullToRefresh';
+import { SUMMONING_TEXTS } from './ui/summoningTexts';
 
 // After a round resolves: a correct guess flashes green briefly, a miss / timeout
 // reveals the full card for a beat — then we auto-advance to the next card.
@@ -102,6 +103,17 @@ function StartArtwork({ variant = 'banner' }: { variant?: 'banner' | 'full' }) {
 }
 
 function LoadingScreen() {
+  // Rotate a random flavour/tip line every ~1.9s while summoning, to keep the
+  // player engaged during the (deliberately brief) load.
+  const [idx, setIdx] = useState(() => Math.floor(Math.random() * SUMMONING_TEXTS.length));
+  useEffect(() => {
+    const id = setInterval(
+      () => setIdx((i) => (i + 1) % SUMMONING_TEXTS.length),
+      1900,
+    );
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <motion.div
       key="loading"
@@ -116,12 +128,29 @@ function LoadingScreen() {
         alignItems: 'center',
         justifyContent: 'center',
         gap: 18,
+        padding: '0 32px',
       }}
     >
       <div className="spinner" style={{ width: 46, height: 46, borderWidth: 3 }} />
       <div style={{ color: 'var(--ink-2)', letterSpacing: 2, textTransform: 'uppercase', fontSize: 13 }}>
         Summoning cards…
       </div>
+      <motion.div
+        key={idx}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        style={{
+          color: 'var(--ink-1)',
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: 17,
+          fontStyle: 'italic',
+          textAlign: 'center',
+          maxWidth: 440,
+          minHeight: 48,
+        }}
+      >
+        {SUMMONING_TEXTS[idx]}
+      </motion.div>
     </motion.div>
   );
 }

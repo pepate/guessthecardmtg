@@ -51,6 +51,12 @@ interface GameState {
   reset: () => void;
 }
 
+// Floor for the "summoning" screen so the loading texts are actually seen and a
+// fresh card load feels deliberate (the RPC itself is usually much faster).
+const MIN_SUMMON_MS = 1500;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 function startPlanned(planned: PlannedRound, now: number): Round {
   return {
     target: planned.target,
@@ -101,6 +107,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   challenge: decodeResult(new URLSearchParams(window.location.search).get('r')),
 
   async selectPool(selection) {
+    const summonStart = Date.now();
     set({ phase: 'loading', error: null });
     try {
       const { config } = get();
@@ -109,6 +116,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         throw new Error('Not enough cards in the selected pool.');
       }
       const plan = planGame(pool, config);
+      const remaining = MIN_SUMMON_MS - (Date.now() - summonStart);
+      if (remaining > 0) await sleep(remaining);
       set({
         pool,
         poolKind: selection.kind,
