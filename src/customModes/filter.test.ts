@@ -115,3 +115,14 @@ describe('UB default = exclude', () => {
     expect(modeName({})).not.toContain('UB');
   });
 });
+
+describe('popular dimension', () => {
+  it('canonicalizes popular only when true, first key', () => {
+    expect(canonicalizeFilter({ popular: true }).popular).toBe(true);
+    expect(canonicalizeFilter({ popular: false }).popular).toBeUndefined();
+    expect(Object.keys(canonicalizeFilter({ popular: true, cmc: { min: 1 } }))).toEqual(['popular', 'cmc']);
+  });
+  it('labels popular in the mode name', () => {
+    expect(modeName({ popular: true })).toContain('Popular');
+  });
+});

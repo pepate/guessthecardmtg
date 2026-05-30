@@ -11,6 +11,7 @@ export interface Range {
 }
 
 export interface CustomFilter {
+  popular?: boolean;
   cmc?: Range;
   colors?: { values: ColorCode[]; match: 'any' | 'all' };
   types?: CardType[];
@@ -40,6 +41,7 @@ function sortUnique<T>(xs: T[], order: readonly T[]): T[] {
 // a creature-only type selection) are enforced by validateFilter, not here.
 export function canonicalizeFilter(f: CustomFilter): CustomFilter {
   const out: CustomFilter = {};
+  if (f.popular) out.popular = true;
   const cmc = cleanRange(f.cmc);
   if (cmc) out.cmc = cmc;
   if (f.colors && f.colors.values.length) {
@@ -103,6 +105,7 @@ function rangeLabel(prefix: string, r?: Range): string | null {
 export function modeName(filter: CustomFilter): string {
   const f = canonicalizeFilter(filter);
   const parts: string[] = [];
+  if (f.popular) parts.push('Popular');
 
   let head = '';
   if (f.colors) {
