@@ -22,6 +22,10 @@ import { SUMMONING_TEXTS } from './ui/summoningTexts';
 // reveals the full card for a beat — then we auto-advance to the next card.
 const ADVANCE_DELAY = { won: 1000, lost: 2000 } as const;
 
+// Shown behind the start/game-over screens until the random card art loads, so
+// the background isn't black during the first Supabase round-trip.
+const FALLBACK_ART = `${import.meta.env.BASE_URL}og-image.jpeg`;
+
 // A random card's artwork, shown faded behind the start screen for a splash of
 // colour. Best-effort: if the fetch fails we simply render nothing.
 function StartArtwork({ variant = 'banner' }: { variant?: 'banner' | 'full' }) {
@@ -40,7 +44,7 @@ function StartArtwork({ variant = 'banner' }: { variant?: 'banner' | 'full' }) {
     };
   }, []);
 
-  if (!art) return null;
+  const bg = art ?? FALLBACK_ART;
 
   if (variant === 'full') {
     return (
@@ -57,7 +61,7 @@ function StartArtwork({ variant = 'banner' }: { variant?: 'banner' | 'full' }) {
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: `url(${art})`,
+            backgroundImage: `url(${bg})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -90,7 +94,7 @@ function StartArtwork({ variant = 'banner' }: { variant?: 'banner' | 'full' }) {
         left: 0,
         right: 0,
         height: '58%',
-        backgroundImage: `url(${art})`,
+        backgroundImage: `url(${bg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)',
