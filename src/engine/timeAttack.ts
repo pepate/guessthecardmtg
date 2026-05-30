@@ -110,6 +110,15 @@ export function stageAt(
   return Math.min(5, s) as RevealStage;
 }
 
+/** Scanner-mode reveal fraction from elapsed ms: linear 0→1 over scanRevealMs. */
+export function scanProgressAt(
+  elapsedMs: number,
+  config: TimeAttackConfig = DEFAULT_TIME_ATTACK_CONFIG,
+): number {
+  if (elapsedMs <= 0) return 0;
+  return Math.min(1, elapsedMs / config.scanRevealMs);
+}
+
 /**
  * Points available at a given elapsed time — linear decay from maxScore (t=0)
  * down to minScore (t=durationMs). Smooth per-second, so an earlier guess always

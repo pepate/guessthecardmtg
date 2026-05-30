@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire } from './timeAttack';
+import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt } from './timeAttack';
 import { DEFAULT_TIME_ATTACK_CONFIG as CFG } from './types';
 import type { Round } from './types';
 import type { ScryfallCard } from '../scryfall/types';
@@ -188,6 +188,22 @@ describe('expire', () => {
   it('does not override an already-won round', () => {
     const won = resolveGuess(createRound(TARGET, POOL, 1000), 'Lightning Bolt', 1000);
     expect(expire(won)).toBe(won);
+  });
+});
+
+describe('scanProgressAt', () => {
+  it('is 0 at or before the start', () => {
+    expect(scanProgressAt(0)).toBe(0);
+    expect(scanProgressAt(-500)).toBe(0);
+  });
+
+  it('is 1 at or after scanRevealMs', () => {
+    expect(scanProgressAt(CFG.scanRevealMs)).toBe(1);
+    expect(scanProgressAt(CFG.scanRevealMs + 5000)).toBe(1);
+  });
+
+  it('is linear in between (half way at half the time)', () => {
+    expect(scanProgressAt(CFG.scanRevealMs / 2)).toBeCloseTo(0.5, 5);
   });
 });
 
