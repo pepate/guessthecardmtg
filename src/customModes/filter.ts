@@ -56,3 +56,12 @@ export function canonicalizeFilter(f: CustomFilter): CustomFilter {
   if (f.rarities && f.rarities.length) out.rarities = sortUnique(f.rarities, RARITIES);
   return out;
 }
+
+// SHA-256 of the canonical filter JSON. Stable across input ordering, so the
+// same filter always dedupes to the same mode. Web Crypto is available in the
+// browser, Deno, and the jsdom test env.
+export async function filterHash(f: CustomFilter): Promise<string> {
+  const json = JSON.stringify(canonicalizeFilter(f));
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(json));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
