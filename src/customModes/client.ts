@@ -4,6 +4,12 @@ import type { ScryfallCard } from '../scryfall/types';
 import { canonicalizeFilter, filterHash, modeName, type CustomFilter } from './filter';
 import type { CreateModeResult, CustomMode, CustomModeListItem } from './types';
 
+export interface SetItem {
+  code: string;
+  name: string;
+  released_at: string | null;
+}
+
 export async function countFilteredCards(filter: CustomFilter): Promise<number> {
   const c = getSupabase();
   if (!c) return 0;
@@ -53,4 +59,26 @@ export async function fetchModeCandidates(modeId: string, limit = 175): Promise<
   const { data, error } = await c.rpc('get_mode_game_cards', { p_mode_id: modeId, p_count: limit });
   if (error) throw new Error(error.message);
   return ((data ?? []) as GameCardRow[]).map(rowToCard);
+}
+
+export async function listSets(): Promise<SetItem[]> {
+  const c = getSupabase();
+  if (!c) return [];
+  const { data, error } = await c.from('card_set')
+    .select('code,name,released_at')
+    .order('released_at', { ascending: false, nullsFirst: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as SetItem[];
+}
+
+export async function findExistingMode(filter: CustomFilter): Promise<CustomMode | null> {
+  const c = getSupabase();
+  if (!c) return null;
+  const hash = await filterHash(canonicalizeFilter(filter));
+  const { data, error } = await c.from('custom_mode')
+    .select('id,name,filter,card_count')
+    .eq('filter_hash', hash)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as CustomMode) ?? null;
 }
