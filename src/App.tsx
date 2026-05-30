@@ -4,7 +4,7 @@ import { CardStage } from './scene/CardStage';
 import { fetchRandomCard } from './cards/client';
 import { useGameStore } from './state/gameStore';
 import { useGameClock, useGameTimeLeft } from './state/useGameClock';
-import { stageAt } from './engine/timeAttack';
+import { stageAt, scanProgressAt, revealModeFor, scanAngleFor } from './engine/timeAttack';
 import { PoolSelect } from './ui/PoolSelect';
 import { HUD } from './ui/HUD';
 import { Timer } from './ui/Timer';
@@ -194,6 +194,9 @@ function ErrorScreen() {
 export function App() {
   const phase = useGameStore((s) => s.phase);
   const round = useGameStore((s) => s.round);
+  const roundIndex = useGameStore((s) => s.roundIndex);
+  const revealParity = useGameStore((s) => s.revealParity);
+  const revealSeed = useGameStore((s) => s.revealSeed);
   const config = useGameStore((s) => s.config);
   const advance = useGameStore((s) => s.advance);
   const reset = useGameStore((s) => s.reset);
@@ -202,6 +205,9 @@ export function App() {
   const timeLeftMs = useGameTimeLeft();
   const stage = stageAt(elapsedMs, config);
   const playingNow = phase === 'playing' && round?.status === 'playing';
+  const mode = revealModeFor(roundIndex, revealParity);
+  const scanProgress = playingNow ? scanProgressAt(elapsedMs, config) : 1;
+  const scanAngle = scanAngleFor(revealSeed, roundIndex);
   const wide = useWideLayout();
 
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
@@ -244,7 +250,9 @@ export function App() {
       {phase === 'gameover' && <InstallButton />}
       {phase === 'idle' && <StartArtwork />}
       {phase === 'gameover' && <StartArtwork variant="full" />}
-      {round && !(wide && phase === 'playing') && <CardStage stage={playingNow ? stage : 5} />}
+      {round && !(wide && phase === 'playing') && (
+        <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} />
+      )}
 
       <div className="overlay">
         <AnimatePresence mode="wait">
@@ -292,7 +300,9 @@ export function App() {
               </div>
               {wide ? (
                 <div className="play-wide">
-                  {round && <CardStage stage={playingNow ? stage : 5} wide />}
+                  {round && (
+                    <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} wide />
+                  )}
                   <div className="options-col">
                     {playingNow && <Timer elapsedMs={elapsedMs} />}
                     <NameChoice layout="column" />
