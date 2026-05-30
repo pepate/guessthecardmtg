@@ -28,13 +28,19 @@ function toEntry(r: Row): GlobalEntry {
   };
 }
 
-export async function fetchTopScores(pool: PoolKind, limit = 5): Promise<GlobalEntry[]> {
+export async function fetchTopScores(
+  pool: PoolKind,
+  limit = 5,
+  since: number | null = null,
+): Promise<GlobalEntry[]> {
   const c = getSupabase();
   if (!c) return [];
-  const { data, error } = await c
+  let q = c
     .from('leaderboard_top')
     .select('id,name,score,correct,pool,country,created_at')
-    .eq('pool', pool)
+    .eq('pool', pool);
+  if (since != null) q = q.gte('created_at', new Date(since).toISOString());
+  const { data, error } = await q
     .order('score', { ascending: false })
     .order('created_at', { ascending: true })
     .limit(limit);

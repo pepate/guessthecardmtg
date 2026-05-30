@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { loadHighscores } from '../state/highscores';
 import { useLeaderboard } from '../leaderboard/useLeaderboard';
+import { WINDOW_TABS, type TimeWindow } from '../leaderboard/window';
 import { GlobalScoreList } from './GlobalScoreList';
 import { HighscoreList } from './HighscoreList';
 
@@ -44,11 +45,12 @@ function GlobalView({
 
 export function Leaderboard() {
   const [tab, setTab] = useState<Tab>('all');
+  const [win, setWin] = useState<TimeWindow>('today');
   const [allExpanded, setAllExpanded] = useState(false);
   const [popExpanded, setPopExpanded] = useState(false);
 
-  const all = useLeaderboard('all', allExpanded ? 100 : PROBE);
-  const popular = useLeaderboard('popular', popExpanded ? 100 : PROBE);
+  const all = useLeaderboard('all', allExpanded ? 100 : PROBE, win);
+  const popular = useLeaderboard('popular', popExpanded ? 100 : PROBE, win);
   const mine = loadHighscores();
 
   const showPopular = popular.entries.length >= 1;
@@ -106,6 +108,50 @@ export function Leaderboard() {
           );
         })}
       </div>
+
+      {tab !== 'me' && (
+        <div
+          role="tablist"
+          aria-label="Time window"
+          style={{
+            display: 'flex',
+            gap: 4,
+            padding: 4,
+            borderRadius: 10,
+            border: '1px solid var(--line)',
+            background: 'rgba(20,17,28,0.5)',
+          }}
+        >
+          {WINDOW_TABS.map((w) => {
+            const active = win === w.key;
+            return (
+              <button
+                key={w.key}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setWin(w.key)}
+                style={{
+                  flex: 1,
+                  padding: '5px 8px',
+                  borderRadius: 7,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 10,
+                  letterSpacing: 0.5,
+                  textTransform: 'uppercase',
+                  background: active ? 'rgba(255,122,44,0.22)' : 'transparent',
+                  color: active ? 'var(--ember-hot)' : 'var(--ink-2)',
+                  fontWeight: active ? 700 : 500,
+                  transition: 'background 0.15s, color 0.15s',
+                }}
+              >
+                {w.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {tab === 'all' && <GlobalView state={all} expanded={allExpanded} onExpand={() => setAllExpanded(true)} />}
       {tab === 'popular' && <GlobalView state={popular} expanded={popExpanded} onExpand={() => setPopExpanded(true)} />}

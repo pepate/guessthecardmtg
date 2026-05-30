@@ -10,7 +10,7 @@ vi.mock('@supabase/supabase-js', () => ({
 /** A chainable query stub that resolves (when awaited) to `result`. */
 function query(result: unknown) {
   const q: Record<string, unknown> = {};
-  for (const m of ['select', 'eq', 'gt', 'order', 'limit']) {
+  for (const m of ['select', 'eq', 'gt', 'gte', 'order', 'limit']) {
     q[m] = vi.fn(() => q);
   }
   (q as { then: unknown }).then = (onFulfilled: (v: unknown) => unknown) =>
@@ -66,6 +66,20 @@ describe('fetchTopScores', () => {
     from.mockReturnValueOnce(query({ data: null, error: { message: 'boom' } }));
     const { fetchTopScores } = await importClient();
     await expect(fetchTopScores('all', 5)).rejects.toThrow('boom');
+  });
+  it('adds a created_at filter when since is provided', async () => {
+    const q = query({ data: [], error: null });
+    from.mockReturnValueOnce(q);
+    const { fetchTopScores } = await importClient();
+    await fetchTopScores('all', 5, 1_700_000_000_000);
+    expect(q.gte).toHaveBeenCalledWith('created_at', new Date(1_700_000_000_000).toISOString());
+  });
+  it('omits the created_at filter when since is null', async () => {
+    const q = query({ data: [], error: null });
+    from.mockReturnValueOnce(q);
+    const { fetchTopScores } = await importClient();
+    await fetchTopScores('all', 5, null);
+    expect(q.gte).not.toHaveBeenCalled();
   });
 });
 

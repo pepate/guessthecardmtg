@@ -27,7 +27,7 @@ describe('Leaderboard', () => {
     const spy = vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByText('Al')).toBeInTheDocument());
-    expect(spy).toHaveBeenCalledWith('all', 11);
+    expect(spy).toHaveBeenCalledWith('all', 11, expect.any(Number));
   });
 
   it('hides the Show more button when there are 10 or fewer entries', async () => {
@@ -50,7 +50,7 @@ describe('Leaderboard', () => {
       JSON.stringify([{ score: 500, correct: 5, date: 1, pool: 'all' }]),
     );
     render(<Leaderboard />);
-    fireEvent.click(screen.getByRole('tab', { name: /me/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /^me$/i }));
     await waitFor(() => expect(screen.getByTestId('highscore-list')).toBeInTheDocument());
   });
 
@@ -74,6 +74,35 @@ describe('Leaderboard', () => {
     render(<Leaderboard />);
     await waitFor(() => expect(screen.getByTestId('leaderboard-expand')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('leaderboard-expand'));
-    await waitFor(() => expect(spy).toHaveBeenCalledWith('all', 100));
+    await waitFor(() => expect(spy).toHaveBeenCalledWith('all', 100, expect.any(Number)));
+  });
+
+  it('shows window sub-tabs with Today selected by default', async () => {
+    vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
+    render(<Leaderboard />);
+    await waitFor(() => expect(screen.getByText('Al')).toBeInTheDocument());
+    expect(screen.getByRole('tab', { name: /today/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /weekly/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /all-time/i })).toBeInTheDocument();
+  });
+
+  it('selecting All-time queries with a null since', async () => {
+    const spy = vi.spyOn(client, 'fetchTopScores').mockResolvedValue([entry]);
+    render(<Leaderboard />);
+    await waitFor(() => expect(screen.getByText('Al')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: /all-time/i }));
+    await waitFor(() => expect(spy).toHaveBeenCalledWith('all', 11, null));
+  });
+
+  it('hides the window sub-tabs on the Me tab', async () => {
+    vi.spyOn(client, 'fetchTopScores').mockResolvedValue([]);
+    localStorage.setItem(
+      'guessthecard.highscores.v3',
+      JSON.stringify([{ score: 500, correct: 5, date: 1, pool: 'all' }]),
+    );
+    render(<Leaderboard />);
+    fireEvent.click(screen.getByRole('tab', { name: /^me$/i }));
+    await waitFor(() => expect(screen.getByTestId('highscore-list')).toBeInTheDocument());
+    expect(screen.queryByRole('tab', { name: /today/i })).not.toBeInTheDocument();
   });
 });

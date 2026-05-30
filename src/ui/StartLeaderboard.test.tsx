@@ -13,6 +13,6 @@ describe('StartLeaderboard', () => {
   it('renders the leaderboard inline with its tabs', async () => {
     render(<StartLeaderboard />);
     expect(screen.getByTestId('start-leaderboard')).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole('tablist')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByRole('tablist').length).toBeGreaterThanOrEqual(1));
   });
 });
