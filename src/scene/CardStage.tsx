@@ -85,16 +85,13 @@ export function CardStage({ stage, wide = false }: { stage: RevealStage; wide?: 
 
   // Portrait: card centered, sized to leave room for the bottom-sheet.
   // Wide: card anchored left, width-capped so it never overlaps the side panel.
+  // Wide mode: render inline (sized to the card) so it can sit in a centered
+  // row directly beside the options column. Portrait: full-bleed centered.
   const wrapper: CSSProperties = wide
-    ? { ...wrapperStyle, justifyContent: 'flex-start', padding: '0 0 0 4vw' }
+    ? { display: 'flex', alignItems: 'center', height: '100%', flex: 'none' }
     : wrapperStyle;
   const card: CSSProperties = wide
-    ? {
-        ...cardStyle,
-        height: 'auto',
-        width: 'min(46vw, calc(86vh * 488 / 680))',
-        maxWidth: 'none',
-      }
+    ? { ...cardStyle, height: 'min(78vh, calc(88vw * 680 / 488))', maxWidth: 'none' }
     : cardStyle;
 
   const cardUrl =
