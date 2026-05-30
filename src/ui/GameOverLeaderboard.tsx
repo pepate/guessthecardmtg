@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PoolKind } from '../state/highscores';
 import type { GlobalEntry } from '../leaderboard/types';
-import { sanitizeName, NAME_MAX } from '../leaderboard/validation';
+import { sanitizeName, NAME_MAX, NAME_MIN } from '../leaderboard/validation';
 import {
   isLeaderboardEnabled,
   fetchProjectedRank,
@@ -28,6 +28,8 @@ export function GameOverLeaderboard({
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [posted, setPosted] = useState<{ rank: number; id: string; name: string } | null>(null);
   const [top, setTop] = useState<GlobalEntry[]>([]);
+  const [nameError, setNameError] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!enabled || score <= 0) return;
@@ -45,11 +47,29 @@ export function GameOverLeaderboard({
 
   if (!enabled || score <= 0) return null;
 
-  const valid = sanitizeName(name) !== null;
+  function nudgeName() {
+    setNameError(true);
+    const el = inputRef.current;
+    el?.focus();
+    el?.animate?.(
+      [
+        { transform: 'translateX(0)' },
+        { transform: 'translateX(-6px)' },
+        { transform: 'translateX(6px)' },
+        { transform: 'translateX(-4px)' },
+        { transform: 'translateX(4px)' },
+        { transform: 'translateX(0)' },
+      ],
+      { duration: 380, easing: 'ease-in-out' },
+    );
+  }
 
   async function post() {
     const clean = sanitizeName(name);
-    if (!clean) return;
+    if (!clean) {
+      nudgeName();
+      return;
+    }
     setStatus('sending');
     const res = await submitScore({ name: clean, score, correct, pool });
     if (!res.ok) {
@@ -87,15 +107,21 @@ export function GameOverLeaderboard({
   const showInlineInput = top.length > 0 && !!pinned && status !== 'done';
 
   function nameInput(inline: boolean) {
+    const errorBorder = '1px solid var(--ember-hot)';
     return (
       <input
+        ref={inputRef}
         data-testid="name-input"
+        aria-invalid={nameError}
         value={name}
         maxLength={NAME_MAX}
         placeholder="Your name"
-        onChange={(ev) => setName(ev.target.value)}
+        onChange={(ev) => {
+          setName(ev.target.value);
+          if (nameError) setNameError(false);
+        }}
         onKeyDown={(ev) => {
-          if (ev.key === 'Enter' && valid && status !== 'sending') void post();
+          if (ev.key === 'Enter' && status !== 'sending') void post();
         }}
         style={
           inline
@@ -105,7 +131,7 @@ export function GameOverLeaderboard({
                 boxSizing: 'border-box',
                 padding: '3px 7px',
                 borderRadius: 6,
-                border: '1px solid var(--ember)',
+                border: nameError ? errorBorder : '1px solid var(--ember)',
                 background: 'rgba(0,0,0,0.28)',
                 color: 'var(--ink-0)',
                 fontFamily: "'JetBrains Mono', monospace",
@@ -115,7 +141,7 @@ export function GameOverLeaderboard({
                 width: '100%',
                 padding: '10px 12px',
                 borderRadius: 10,
-                border: '1px solid var(--line-strong)',
+                border: nameError ? errorBorder : '1px solid var(--line-strong)',
                 background: 'rgba(20,17,28,0.6)',
                 color: 'var(--ink-0)',
                 fontFamily: "'JetBrains Mono', monospace",
@@ -153,11 +179,16 @@ export function GameOverLeaderboard({
             className="ember-btn"
             data-testid="post-btn"
             style={{ width: '100%' }}
-            disabled={!valid || status === 'sending'}
+            disabled={status === 'sending'}
             onClick={post}
           >
             {status === 'sending' ? 'Posting…' : 'Post to online board'}
           </button>
+          {nameError && (
+            <p data-testid="name-hint" style={{ color: 'var(--ember-hot)', fontSize: 12, textAlign: 'center', margin: 0 }}>
+              Please enter your name (at least {NAME_MIN} characters).
+            </p>
+          )}
           {status === 'error' && (
             <p data-testid="post-error" style={{ color: 'var(--ember-hot)', fontSize: 12, textAlign: 'center', margin: 0 }}>
               Posting failed — please try again.

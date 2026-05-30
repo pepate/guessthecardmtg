@@ -51,11 +51,24 @@ describe('GameOverLeaderboard', () => {
     expect(pinned).toContainElement(screen.getByTestId('name-input'));
   });
 
-  it('disables the post button when the name is too short', async () => {
+  it('flags the name field and does not submit when the name is too short', async () => {
+    const submit = vi.spyOn(client, 'submitScore');
     render(<GameOverLeaderboard score={5000} correct={10} pool="popular" />);
     await waitFor(() => screen.getByTestId('name-input'));
     fireEvent.change(screen.getByTestId('name-input'), { target: { value: 'ab' } });
-    expect(screen.getByTestId('post-btn')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('post-btn'));
+    expect(screen.getByTestId('name-hint')).toBeInTheDocument();
+    expect(screen.getByTestId('name-input')).toHaveAttribute('aria-invalid', 'true');
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('clears the name hint once the user types a valid name', async () => {
+    render(<GameOverLeaderboard score={5000} correct={10} pool="popular" />);
+    await waitFor(() => screen.getByTestId('name-input'));
+    fireEvent.click(screen.getByTestId('post-btn'));
+    expect(screen.getByTestId('name-hint')).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('name-input'), { target: { value: 'Alice' } });
+    expect(screen.queryByTestId('name-hint')).toBeNull();
   });
 
   it('submits and shows a confirmation, persisting the name', async () => {
