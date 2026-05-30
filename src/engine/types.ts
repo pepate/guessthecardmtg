@@ -13,6 +13,8 @@ export interface TimeAttackConfig {
   minScore: number;
   /** Length of one reveal stage, in ms. */
   stageMs: number;
+  /** How long the scanner-mode sweep takes to fully reveal the card, in ms. */
+  scanRevealMs: number;
   /** Number of name choices (incl. the correct one). */
   optionCount: number;
   /** How many cards to pre-plan — an upper bound on cards a fast player can reach
@@ -26,6 +28,7 @@ export const DEFAULT_TIME_ATTACK_CONFIG: TimeAttackConfig = {
   maxScore: 1000,
   minScore: 100,
   stageMs: 3000,
+  scanRevealMs: 12000,
   optionCount: 4,
   totalRounds: 40,
 };
