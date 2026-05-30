@@ -27,6 +27,10 @@ toggle table can't be read or has nothing enabled, the app falls back to the thr
   unchanged. New modes reach full reveal at 12s like scanner/mosaic.
 - **zoom uses BOTH images.** `image_art_crop` (higher-detail artwork) for the zoomed-in phase, then
   crossfades to `image_normal` (the full card) and zooms out to the whole card.
+- **When zoom is enabled, skip cards without `image_art_crop`.** Since any planned card may land on
+  a zoom round, the candidate pool is filtered to cards that have an art crop whenever `'zoom'` is
+  among the enabled modes. This is a no-op against today's data (every card has an art crop) but
+  guards future rows; the pool stays far larger than `optionCount`, so it never starves a game.
 - **Anti-leak unchanged for most modes; zoom gets a 7s text window.** Name always redacted during
   play; mana + rules text redacted for the first 5s (`scanManaRevealMs`). For **zoom**, the full
   card only materialises mid-reveal, so its rules text stays redacted for the first
@@ -93,6 +97,10 @@ on conflict (key) do nothing;
 - Add `enabledModes: RevealMode[]` (default `['blur','scanner','mosaic']`).
 - In `selectPool`, call `fetchEnabledRevealModes()` (in parallel with the existing card fetch); set
   `enabledModes`, and roll `revealOffset = Math.floor(Math.random() * enabledModes.length)`.
+- If `enabledModes` includes `'zoom'`, filter the fetched candidates to those with an art crop
+  (`image_uris.art_crop` or `card_faces[0].image_uris.art_crop`) before `planGame`. Keep the
+  existing `uniqueNameCount(pool) < optionCount` guard so a (hypothetically) starved pool still
+  errors cleanly rather than producing a broken game.
 - `reset` restores `enabledModes` to the built-in fallback and `revealOffset` to 0. `revealSeed`
   unchanged.
 
@@ -148,8 +156,10 @@ elapsedMs < zoomTextRevealMs → zoomTextHidden ; elapsedMs < scanManaRevealMs �
 - **Unknown DB key** (e.g. a typo or a future key) → filtered out, never selected.
 - **Only one mode enabled** → every round uses it (`% 1` = always index 0); rotation degenerates
   gracefully.
-- **Missing `art_crop`** (zoom) → fall back to `image_normal` for the art layer (slightly blurry
-  zoom-in, still works). Existing `if (!cardUrl)` guard preserved.
+- **Missing `art_crop`** (zoom) → primarily handled upstream: when zoom is enabled, such cards are
+  filtered out of the pool in `selectPool`, so they never reach a zoom round. As a last-resort
+  render guard the zoom branch still falls back to `image_normal` for the art layer. Existing
+  `if (!cardUrl)` guard preserved.
 - **Fast guess / time-out / `over`** → all overlays, covers, and zoom layers drop to the full card
   incl. name, like the other modes.
 - **Determinism** — `zoomFocusFor` / `spotlightOriginFor` are pure functions of `(seed, roundIndex)`,
