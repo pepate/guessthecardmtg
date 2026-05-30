@@ -63,7 +63,7 @@ export function PoolSelect() {
     <motion.div
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', maxWidth: 420, margin: '0 auto' }}
     >
       <div style={{ textAlign: 'center', marginBottom: 4 }}>
         <h1
