@@ -82,6 +82,50 @@ export function GameOverLeaderboard({
       ? { rank: pinnedRank, entry: youEntry }
       : null;
 
+  // When the player's row is pinned below the board, let them type their name
+  // directly in that row instead of a separate field below the button.
+  const showInlineInput = top.length > 0 && !!pinned && status !== 'done';
+
+  function nameInput(inline: boolean) {
+    return (
+      <input
+        data-testid="name-input"
+        value={name}
+        maxLength={NAME_MAX}
+        placeholder="Your name"
+        onChange={(ev) => setName(ev.target.value)}
+        onKeyDown={(ev) => {
+          if (ev.key === 'Enter' && valid && status !== 'sending') void post();
+        }}
+        style={
+          inline
+            ? {
+                width: '100%',
+                minWidth: 0,
+                boxSizing: 'border-box',
+                padding: '3px 7px',
+                borderRadius: 6,
+                border: '1px solid var(--ember)',
+                background: 'rgba(0,0,0,0.28)',
+                color: 'var(--ink-0)',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 14,
+              }
+            : {
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 10,
+                border: '1px solid var(--line-strong)',
+                background: 'rgba(20,17,28,0.6)',
+                color: 'var(--ink-0)',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 14,
+              }
+        }
+      />
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
       {projected && (
@@ -94,28 +138,17 @@ export function GameOverLeaderboard({
       )}
 
       {top.length > 0 && (
-        <GlobalScoreList entries={top} highlightId={posted?.id} pinned={pinned} />
+        <GlobalScoreList
+          entries={top}
+          highlightId={posted?.id}
+          pinned={pinned}
+          pinnedNameInput={showInlineInput ? nameInput(true) : undefined}
+        />
       )}
 
       {status !== 'done' ? (
         <>
-          <input
-            data-testid="name-input"
-            value={name}
-            maxLength={NAME_MAX}
-            placeholder="Your name"
-            onChange={(ev) => setName(ev.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              borderRadius: 10,
-              border: '1px solid var(--line-strong)',
-              background: 'rgba(20,17,28,0.6)',
-              color: 'var(--ink-0)',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 14,
-            }}
-          />
+          {!showInlineInput && nameInput(false)}
           <button
             className="ember-btn"
             data-testid="post-btn"

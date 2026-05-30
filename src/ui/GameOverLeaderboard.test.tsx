@@ -41,6 +41,16 @@ describe('GameOverLeaderboard', () => {
     await waitFor(() => expect(screen.getByTestId('global-pinned')).toBeInTheDocument());
   });
 
+  it('renders the name input inside the pinned row when outside the top five', async () => {
+    vi.spyOn(client, 'fetchProjectedRank').mockResolvedValue({ rank: 8, total: 20 });
+    vi.spyOn(client, 'fetchTopScores').mockResolvedValue([
+      { id: '1', name: 'Top', score: 999, correct: 9, pool: 'popular', country: 'DE', createdAt: 0 },
+    ]);
+    render(<GameOverLeaderboard score={500} correct={5} pool="popular" />);
+    const pinned = await screen.findByTestId('global-pinned');
+    expect(pinned).toContainElement(screen.getByTestId('name-input'));
+  });
+
   it('disables the post button when the name is too short', async () => {
     render(<GameOverLeaderboard score={5000} correct={10} pool="popular" />);
     await waitFor(() => screen.getByTestId('name-input'));
