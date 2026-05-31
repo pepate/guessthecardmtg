@@ -88,25 +88,18 @@ export function CustomModeBuilder({ onCreated, onCancel }: {
     return () => { cancelled = true; };
   }, []);
 
-  // A single set is exclusive (no other filters), so picking one locks the rest.
   const selectedSetCode = filter.sets?.length === 1 ? filter.sets[0] : null;
-  const setLocked = selectedSetCode !== null;
-  const selectedSet = selectedSetCode ? sets.find((s) => s.code === selectedSetCode) ?? null : null;
 
-  // The suggested name tracks the filter until the player edits the field; a
-  // chosen set suggests its full name (nicer than the bare set code).
-  const suggested = useMemo(
-    () => (selectedSet ? selectedSet.name : modeName(filter)),
-    [filter, selectedSet],
-  );
+  // The suggested name tracks the filter until the player edits the field.
+  const suggested = useMemo(() => modeName(filter), [filter]);
   const displayName = nameTouched ? name : suggested;
 
   const validation = useMemo(() => validateFilter(filter), [filter]);
   const creatureOnly = filter.types?.length === 1 && filter.types[0] === 'Creature';
 
   function selectSet(set: SetListItem | null) {
-    // Replace the whole filter: a single set must stand alone.
-    setFilter(set ? { sets: [set.code] } : {});
+    // A set is a normal filter that combines freely with the others.
+    patch({ sets: set ? [set.code] : undefined });
   }
 
   useEffect(() => {
@@ -140,14 +133,9 @@ export function CustomModeBuilder({ onCreated, onCancel }: {
       <div style={section}>
         <span style={legend}>Set</span>
         <SetSelect sets={sets} value={selectedSetCode} onChange={selectSet} />
-        {setLocked && (
-          <span style={{ fontSize: 11, color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace" }}>
-            A single set is played on its own — other filters are disabled.
-          </span>
-        )}
       </div>
 
-      <fieldset disabled={setLocked} style={{ ...section, border: 'none', padding: 0, margin: 0, opacity: setLocked ? 0.4 : 1 }}>
+      <fieldset style={{ ...section, border: 'none', padding: 0, margin: 0 }}>
         <span style={legend}>Colors</span>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {COLORS.map((c) => (

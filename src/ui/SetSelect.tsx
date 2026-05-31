@@ -8,6 +8,12 @@ interface SetSelectProps {
   onChange: (set: SetListItem | null) => void;
 }
 
+/** Two-digit release year (e.g. "'24"), or "··" when unknown. */
+function year2(releasedAt: string | null): string {
+  const m = releasedAt?.match(/^(\d{4})/);
+  return m ? `'${m[1].slice(2)}` : '··';
+}
+
 const field: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -116,7 +122,7 @@ export function SetSelect({ sets, value, onChange }: SetSelectProps) {
                   }}
                 >
                   <span style={{ flex: 1, color: 'var(--ink-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
-                  <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', fontSize: 11 }}>{s.code.toUpperCase()} · {s.eligibleCount}</span>
+                  <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', fontSize: 11 }}>{year2(s.releasedAt)} · {s.code.toUpperCase()} · {s.eligibleCount}</span>
                 </button>
               ))
             )}

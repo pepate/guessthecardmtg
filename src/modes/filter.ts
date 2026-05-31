@@ -68,9 +68,9 @@ function rangeOrdered(r?: Range): boolean {
   return !r || r.min == null || r.max == null || r.min <= r.max;
 }
 
-// Cross-field rules the canonical shape can't express: ordered ranges,
-// power/toughness only with a creature-only type selection, and the single-set
-// exclusivity rule (one set ⇒ no other filters).
+// Cross-field rules the canonical shape can't express: ordered ranges, and
+// power/toughness only with a creature-only type selection. A set is a normal
+// filter and combines freely with the others.
 export function validateFilter(filter: CustomFilter): ValidateResult {
   const f = canonicalizeFilter(filter);
   for (const r of [f.cmc, f.power, f.toughness, f.edhrec, f.year]) {
@@ -80,10 +80,6 @@ export function validateFilter(filter: CustomFilter): ValidateResult {
   const creatureOnly = f.types?.length === 1 && f.types[0] === 'Creature';
   if (hasPT && !creatureOnly) return { ok: false, reason: 'pt-requires-creature' };
 
-  if (f.sets?.length === 1) {
-    const otherKeys = Object.keys(f).filter((k) => k !== 'sets');
-    if (otherKeys.length > 0) return { ok: false, reason: 'single-set-exclusive' };
-  }
   return { ok: true };
 }
 

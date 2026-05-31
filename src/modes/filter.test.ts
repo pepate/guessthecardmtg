@@ -10,8 +10,8 @@ describe('validateFilter', () => {
       .toEqual({ ok: false, reason: 'pt-requires-creature' });
     expect(validateFilter({ power: { min: 2 } })).toEqual({ ok: false, reason: 'pt-requires-creature' });
   });
-  it('rejects extra filters when exactly one set is selected', () => {
-    expect(validateFilter({ sets: ['dom'], cmc: { min: 1 } })).toEqual({ ok: false, reason: 'single-set-exclusive' });
+  it('treats a set as a normal filter that combines with others', () => {
+    expect(validateFilter({ sets: ['dom'], cmc: { min: 1 } })).toEqual({ ok: true });
     expect(validateFilter({ sets: ['dom'] })).toEqual({ ok: true });
   });
   it('rejects inverted ranges', () => {
@@ -88,8 +88,8 @@ describe('year filter', () => {
   it('labels a year range in the mode name', () => {
     expect(modeName({ year: { min: 1993, max: 1999 } })).toContain('1993–1999');
   });
-  it('single set is still exclusive when year is set', () => {
-    expect(validateFilter({ sets: ['dom'], year: { min: 2018 } })).toEqual({ ok: false, reason: 'single-set-exclusive' });
+  it('combines a set with a year filter', () => {
+    expect(validateFilter({ sets: ['dom'], year: { min: 2018 } })).toEqual({ ok: true });
   });
   it('pins canonical key order (year after edhrec) for stable hashing', () => {
     expect(Object.keys(canonicalizeFilter({ year: { min: 1993, max: 1999 }, edhrec: { min: 1 } }))).toEqual(['edhrec', 'year']);
