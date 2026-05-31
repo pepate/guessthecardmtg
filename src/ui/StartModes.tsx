@@ -9,7 +9,7 @@ import { windowCutoff, WINDOW_TABS, type TimeWindow } from '../leaderboard/windo
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
 
-/** The mode's overall best run (any reveal), shown as a peek. */
+/** The mode's overall best run (any reveal), shown as the leader of the row. */
 interface ModeTop {
   name: string;
   score: number;
@@ -23,12 +23,15 @@ interface ModeView {
   top: ModeTop | null;
 }
 
-interface ModeCardProps {
+interface ModeRowProps {
   name: string;
   standing: number | null;
   top: ModeTop | null;
   onSelect: () => void;
 }
+
+const MAX_W = 700;
+const centered: React.CSSProperties = { width: '100%', maxWidth: MAX_W, margin: '0 auto' };
 
 function overallTop(runs: Run[]): ModeTop | null {
   let best: Run | null = null;
@@ -47,15 +50,13 @@ function sortModes(views: ModeView[]): ModeView[] {
   });
 }
 
-function StandingBadge({ standing }: { standing: number | null }) {
+function RankBadge({ standing }: { standing: number | null }) {
   const first = standing === 1;
   const ranked = standing !== null;
   return (
     <span
       style={{
-        position: 'absolute',
-        top: 8,
-        right: 8,
+        flex: '0 0 auto',
         fontFamily: "'JetBrains Mono', monospace",
         fontSize: 11,
         fontWeight: 700,
@@ -63,6 +64,8 @@ function StandingBadge({ standing }: { standing: number | null }) {
         padding: '4px 7px',
         borderRadius: 8,
         whiteSpace: 'nowrap',
+        textAlign: 'center',
+        minWidth: 34,
         border: `1px solid ${first ? 'var(--ember)' : ranked ? 'var(--line-strong)' : 'var(--line)'}`,
         background: first ? 'rgba(255,138,60,0.22)' : ranked ? 'rgba(255,186,120,0.10)' : 'rgba(255,255,255,0.04)',
         color: first ? 'var(--ember-hot)' : ranked ? 'var(--ink-0)' : 'var(--ink-2)',
@@ -73,66 +76,67 @@ function StandingBadge({ standing }: { standing: number | null }) {
   );
 }
 
-function ModeCard({ name, standing, top, onSelect }: ModeCardProps) {
+function ModeRow({ name, standing, top, onSelect }: ModeRowProps) {
   return (
     <button
       type="button"
       data-testid="mode-row"
       onClick={onSelect}
       style={{
-        position: 'relative',
         display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
+        alignItems: 'center',
         gap: 10,
         textAlign: 'left',
-        padding: '12px 12px 11px',
-        minHeight: 104,
-        borderRadius: 14,
+        padding: '12px 14px',
+        borderRadius: 12,
         border: '1px solid var(--line-strong)',
         background: 'rgba(20,17,28,0.68)',
         cursor: 'pointer',
       }}
     >
-      <StandingBadge standing={standing} />
       <span
         style={{
-          paddingRight: 46,
+          flex: '1 1 auto',
+          minWidth: 0,
           color: 'var(--ink-0)',
           fontFamily: "'Cormorant Garamond', serif",
           fontSize: 19,
           fontWeight: 700,
-          lineHeight: 1.12,
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }}
       >
         {name}
       </span>
-      <span
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 12,
-          minWidth: 0,
-        }}
-      >
-        {top ? (
-          <>
-            <span aria-hidden style={{ fontSize: 13 }}>{countryToFlag(top.country)}</span>
-            <span style={{ flex: 1, color: 'var(--ink-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {top.name}
-            </span>
-            <ScoreValue score={top.score} fontSize={13} />
-          </>
-        ) : (
-          <span style={{ flex: 1, color: 'var(--ink-1)' }}>Be the first!</span>
-        )}
-      </span>
+      {top ? (
+        <>
+          <span aria-hidden style={{ flex: '0 0 auto', fontSize: 14 }}>{countryToFlag(top.country)}</span>
+          <span
+            style={{
+              flex: '0 1 auto',
+              minWidth: 0,
+              maxWidth: 130,
+              color: 'var(--ink-1)',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 12,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {top.name}
+          </span>
+          <span style={{ flex: '0 0 auto' }}>
+            <ScoreValue score={top.score} fontSize={14} />
+          </span>
+        </>
+      ) : (
+        <span style={{ flex: '0 0 auto', color: 'var(--ink-1)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
+          Be the first!
+        </span>
+      )}
+      <RankBadge standing={standing} />
     </button>
   );
 }
@@ -181,6 +185,7 @@ export function StartModes({
       {/* Compact, horizontally-swipeable time-window pills. */}
       <div
         style={{
+          ...centered,
           display: 'flex',
           gap: 6,
           flexShrink: 0,
@@ -219,26 +224,26 @@ export function StartModes({
       <div
         data-testid="mode-list"
         style={{
+          ...centered,
           flex: '1 1 auto',
           minHeight: 0,
           overflowY: 'auto',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+          display: 'flex',
+          flexDirection: 'column',
           gap: 10,
-          alignContent: 'start',
         }}
       >
         {views === null ? (
-          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', padding: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
             <span className="spinner" />
           </div>
         ) : views.length === 0 ? (
-          <p data-testid="modes-empty" style={{ gridColumn: '1 / -1', color: 'var(--ink-1)', fontSize: 14, textAlign: 'center', margin: 0 }}>
+          <p data-testid="modes-empty" style={{ color: 'var(--ink-1)', fontSize: 14, textAlign: 'center', margin: 0 }}>
             No modes yet — create one below.
           </p>
         ) : (
           views.map(({ mode, standing, top }) => (
-            <ModeCard key={mode.id} name={mode.name} standing={standing} top={top} onSelect={() => onPick(mode)} />
+            <ModeRow key={mode.id} name={mode.name} standing={standing} top={top} onSelect={() => onPick(mode)} />
           ))
         )}
       </div>
@@ -247,7 +252,7 @@ export function StartModes({
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.12, duration: 0.32, ease: 'easeOut' }}
-        style={{ flexShrink: 0, paddingBottom: 'env(safe-area-inset-bottom)' }}
+        style={{ ...centered, flexShrink: 0, paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <button type="button" data-testid="create-mode-btn" className="ember-btn" onClick={onCreate} style={{ width: '100%' }}>
           Create Mode
