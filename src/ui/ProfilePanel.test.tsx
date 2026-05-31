@@ -152,9 +152,23 @@ describe('ProfilePanel — anonymous', () => {
     });
   });
 
-  it('renders secure-submit', () => {
+  it('reveals secure-submit only once both email and password are filled', () => {
     render(<ProfilePanel />);
+    expect(screen.queryByTestId('secure-submit')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('secure-email'), { target: { value: 'me@example.com' } });
+    expect(screen.queryByTestId('secure-submit')).not.toBeInTheDocument(); // email only → still hidden
+    fireEvent.change(screen.getByTestId('secure-password'), { target: { value: 'pw123456' } });
     expect(screen.getByTestId('secure-submit')).toBeInTheDocument();
+  });
+
+  it('reveals profile-name-save only when the name differs from the saved one', async () => {
+    render(<ProfilePanel />);
+    await waitFor(() => expect(screen.getByTestId<HTMLInputElement>('profile-name-input').value).toBe('TestUser'));
+    expect(screen.queryByTestId('profile-name-save')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('profile-name-input'), { target: { value: 'Newname' } });
+    expect(screen.getByTestId('profile-name-save')).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('profile-name-input'), { target: { value: 'TestUser' } });
+    expect(screen.queryByTestId('profile-name-save')).not.toBeInTheDocument();
   });
 
   it('renders profile-stats after profile loads', async () => {

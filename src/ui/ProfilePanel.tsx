@@ -116,6 +116,9 @@ export function ProfilePanel() {
   const [showSignIn, setShowSignIn] = useState(false);
   const [shared, setShared] = useState(false);
 
+  // The secure-account button only appears once both fields have content.
+  const secureReady = secureEmail.trim().length > 0 && securePassword.length > 0;
+
   useEffect(() => {
     getUserId().then(id => {
       setUid(id);
@@ -211,6 +214,8 @@ export function ProfilePanel() {
   }
 
   function nameEditor() {
+    // Only show "Save name" once the text differs from the saved name.
+    const nameDirty = nameInput.trim().length > 0 && nameInput.trim() !== (profile?.displayName ?? '').trim();
     return (
       <div style={sectionStyle}>
         <p style={labelStyle}>Display name</p>
@@ -223,7 +228,9 @@ export function ProfilePanel() {
           onChange={e => setNameInput(e.target.value)}
           style={inputStyle}
         />
-        <button className="ember-btn" data-testid="profile-name-save" onClick={handleNameSave}>Save name</button>
+        {nameDirty && (
+          <button className="ember-btn" data-testid="profile-name-save" onClick={handleNameSave}>Save name</button>
+        )}
       </div>
     );
   }
@@ -298,7 +305,9 @@ export function ProfilePanel() {
           <p style={labelStyle}>Secure your account</p>
           <input data-testid="secure-email" type="email" placeholder="Email" value={secureEmail} onChange={e => setSecureEmail(e.target.value)} style={inputStyle} />
           <input data-testid="secure-password" type="password" placeholder="Password" value={securePassword} onChange={e => setSecurePassword(e.target.value)} style={inputStyle} />
-          <button className="ember-btn" data-testid="secure-submit" onClick={handleSecure}>Save email &amp; password</button>
+          {secureReady && (
+            <button className="ember-btn" data-testid="secure-submit" onClick={handleSecure}>Save email &amp; password</button>
+          )}
           <button className="ghost-btn" data-testid="link-google" onClick={handleLinkGoogle}>Link Google account</button>
         </div>
         <ProfileStats profile={profile} bests={bests} />
@@ -349,7 +358,9 @@ export function ProfilePanel() {
             <p style={{ fontSize: 12, color: 'var(--ink-2)', margin: 0 }}>Add an email and password to secure your account.</p>
             <input data-testid="secure-email" type="email" placeholder="Email" value={secureEmail} onChange={e => setSecureEmail(e.target.value)} style={inputStyle} />
             <input data-testid="secure-password" type="password" placeholder="Password" value={securePassword} onChange={e => setSecurePassword(e.target.value)} style={inputStyle} />
-            <button className="ember-btn" data-testid="secure-submit" onClick={handleSecurePerm}>Save email &amp; password</button>
+            {secureReady && (
+              <button className="ember-btn" data-testid="secure-submit" onClick={handleSecurePerm}>Save email &amp; password</button>
+            )}
           </>
         )}
         {googleLinked ? (

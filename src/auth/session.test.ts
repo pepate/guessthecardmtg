@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const getSession = vi.fn();
+const getUser = vi.fn();
 let authCb: (event: string, session: unknown) => void = () => {};
 const onAuthStateChange = vi.fn((cb: typeof authCb) => {
   authCb = cb;
@@ -8,7 +9,7 @@ const onAuthStateChange = vi.fn((cb: typeof authCb) => {
 });
 const setCachedUserId = vi.fn();
 
-vi.mock('../supabase/client', () => ({ getSupabase: () => ({ auth: { getSession, onAuthStateChange } }) }));
+vi.mock('../supabase/client', () => ({ getSupabase: () => ({ auth: { getSession, getUser, onAuthStateChange } }) }));
 vi.mock('../leaderboard/identity', () => ({ setCachedUserId }));
 
 async function importSession() {
@@ -18,9 +19,12 @@ async function importSession() {
 
 beforeEach(() => {
   getSession.mockReset();
+  getUser.mockReset();
   onAuthStateChange.mockClear();
   setCachedUserId.mockReset();
   getSession.mockResolvedValue({ data: { session: null } });
+  // No-op refresh by default so tests observe the JWT-derived user.
+  getUser.mockResolvedValue({ data: { user: null } });
 });
 
 describe('session store', () => {

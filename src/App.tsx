@@ -205,14 +205,6 @@ export function App() {
     if (recovery && phase === 'idle') setView({ s: 'profile' });
   }, [recovery, phase]);
 
-  // Strip auth params (OAuth/recovery tokens) from the URL once supabase has
-  // consumed them, so a refresh doesn't replay the callback.
-  useEffect(() => {
-    if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
-      window.history.replaceState({}, '', window.location.origin + window.location.pathname);
-    }
-  }, []);
-
   useEffect(() => {
     void loadRevealModes();
   }, [loadRevealModes]);

@@ -18,6 +18,20 @@ function sync(user: User | null) {
   emit();
 }
 
+// Apply a session: set the user from the JWT immediately, then refresh from the
+// server so is_anonymous / linked identities are authoritative (the JWT can lag
+// just after linking an account).
+async function applySession(c: NonNullable<ReturnType<typeof getSupabase>>, user: User | null) {
+  sync(user);
+  if (!user) return;
+  try {
+    const { data } = await c.auth.getUser();
+    if (data?.user) sync(data.user);
+  } catch {
+    // keep the JWT-derived user
+  }
+}
+
 function start() {
   if (started) return;
   started = true;
@@ -25,11 +39,11 @@ function start() {
   if (!c) return;
   c.auth
     .getSession()
-    .then(({ data }) => sync(data.session?.user ?? null))
+    .then(({ data }) => applySession(c, data.session?.user ?? null))
     .catch(() => {});
   c.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') recovering = true;
-    sync(session?.user ?? null);
+    void applySession(c, session?.user ?? null);
   });
 }
 
