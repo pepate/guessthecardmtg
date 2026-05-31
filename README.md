@@ -1,36 +1,45 @@
 # GuessTheCard
 
 A fast, mobile-first browser game: a _Magic: The Gathering_ card is revealed
-piece by piece — first just the artwork, then colour, type line, mana cost and
-finally the rules text. Name the card before the clock runs out. You have **90
-seconds** to guess as many as you can.
+under an obscuring effect — blurred, behind a mosaic, as a silhouette, and so on
+— and you pick its name from four choices before the clock runs out. You have
+**30 seconds** to name as many cards as you can.
 
 🔮 **Play it:** https://pepate.github.io/guessthecardmtg/
 
-All cards and artwork come live from the [Scryfall API](https://scryfall.com/docs/api).
+Cards are served from a Supabase backend; all card data, names and artwork
+originate from [Scryfall](https://scryfall.com/docs/api).
 
 ## How to play
 
-1. Pick a card pool:
-   - **Popular cards** — well-known Commander staples (sorted by EDHREC rank).
-   - **All cards** — everything printed from 2015 on, a fresh random slice each game.
-2. Optionally keep **No Universe Beyond cards** checked to stay MTG-native
-   (excludes crossovers like LOTR or Final Fantasy).
-3. The card reveals in stages — guess as early as you dare. The sooner you’re
+1. **Pick a mode.** Each mode is a card pool defined by a filter — set, colour,
+   type, mana value, rarity, year, EDHREC rank, and so on. Play any mode others
+   have made, or unlock mode creation after a few games to build your own.
+2. **Pick a reveal mode.** The same pool can be played under six different
+   reveal effects, each with its own online leaderboard:
+   - **Blur** — the art comes into focus over time.
+   - **Scanner** — a sweep uncovers the card top to bottom.
+   - **Mosaic** — tiles drop away one by one.
+   - **Zoom** — a tight crop pulls back to the full card.
+   - **Silhouette** — the shape fills in with detail.
+   - **Spotlight** — a moving light widens to reveal everything.
+3. **Guess fast.** Pick the right name from four options. The sooner you’re
    right, the more points you score.
-4. After 90 seconds you get your total score and how many cards you nailed.
-   Beat your high score.
+4. After 30 seconds you get your total score and how many cards you nailed —
+   then chase the holder of that mode’s leaderboard, or jump straight into
+   another reveal mode.
 
 ### Scoring
 
 Each card is worth up to **1000 points** for an instant correct guess, decaying
-linearly down to **100** by the moment time runs out on that card. Faster = more
-points, so speed is the whole game.
+linearly down to **100** over its **15-second** window. Faster = more points, so
+speed is the whole game.
 
 ## Tech
 
 - **React 18** + **TypeScript** (strict) on **Vite 5**
 - **Zustand** for state, **Framer Motion** for the reveal animations
+- **Supabase** backend: filtered card pools and per-mode leaderboards via RPC
 - Installable **PWA** (offline shell via `vite-plugin-pwa`)
 - A pure, framework-free game engine (`src/engine`) so the rules are unit-testable
 - **Vitest** unit tests + **Playwright** end-to-end tests
@@ -41,10 +50,15 @@ points, so speed is the whole game.
 ```
 src/
   engine/     pure time-attack rules: rounds, scoring, reveal stages, game planning
-  scryfall/   typed Scryfall client (search, rate limiting, retries, art filtering)
+  cards/      Supabase card client (filtered game-card RPC, seed filters)
+  modes/      custom mode filters, validation and client
+  sets/       set metadata client
+  reveal/     reveal-mode labels and enabled-mode config
+  leaderboard/ online scores, ranking, boards and identity
   scene/      the animated card stage
   state/      Zustand store, game/round clocks, high-score persistence
-  ui/         pool select, HUD, timer, name choices, snackbar, game over
+  ui/         mode picker, reveal picker, mode builder, HUD, timer, game over
+  scryfall/   typed Scryfall card shape used internally
 e2e/          Playwright golden-path specs
 ```
 
@@ -64,7 +78,7 @@ npm run test:e2e     # Playwright e2e (installs browsers on first run)
 npm run build        # type-check + production build
 ```
 
-The end-to-end tests run fully offline: Scryfall requests are mocked and the
+The end-to-end tests run fully offline: backend requests are mocked and the
 clock is driven by Playwright’s `page.clock`, so they’re deterministic.
 
 ## Credits
