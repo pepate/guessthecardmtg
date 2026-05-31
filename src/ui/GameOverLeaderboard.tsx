@@ -214,6 +214,7 @@ export function GameOverLeaderboard({
           error={status === 'error'}
           onSave={() => void post()}
           onSaveAndSync={() => void postThenProfile()}
+          onClose={() => setNeedsName(false)}
         />
       )}
     </div>

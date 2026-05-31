@@ -101,6 +101,16 @@ describe('GameOverLeaderboard', () => {
     await waitFor(() => expect(screen.getByTestId('onboard-taken')).toBeInTheDocument());
     expect(screen.queryByTestId('post-confirm')).toBeNull();
   });
+
+  it('lets the player dismiss the overlay back to the board without posting', async () => {
+    const submit = vi.spyOn(client, 'submitScore');
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
+    await waitFor(() => screen.getByTestId('onboard-overlay'));
+    fireEvent.click(screen.getByTestId('onboard-close'));
+    expect(screen.queryByTestId('onboard-overlay')).toBeNull();
+    expect(screen.getByTestId('projected-rank')).toBeInTheDocument();
+    expect(submit).not.toHaveBeenCalled();
+  });
 });
 
 describe('GameOverLeaderboard lazy set-mode creation', () => {

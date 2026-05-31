@@ -18,6 +18,7 @@ export function GameOverOnboard({
   error,
   onSave,
   onSaveAndSync,
+  onClose,
 }: {
   name: string;
   onNameChange: (v: string) => void;
@@ -27,6 +28,7 @@ export function GameOverOnboard({
   error?: boolean;
   onSave: () => void;
   onSaveAndSync: () => void;
+  onClose: () => void;
 }) {
   const clean = sanitizeName(name);
   const [available, setAvailable] = useState<boolean | null>(null);
@@ -59,7 +61,7 @@ export function GameOverOnboard({
     background: 'rgba(20,17,28,0.6)',
     color: 'var(--ink-0)',
     fontFamily: "'JetBrains Mono', monospace",
-    fontSize: 15,
+    fontSize: 16,
     boxSizing: 'border-box',
   };
 
@@ -101,13 +103,13 @@ export function GameOverOnboard({
         </h2>
 
         {projected && (
-          <p data-testid="onboard-projected" style={{ margin: 0, textAlign: 'center', fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: 'var(--ink-2)' }}>
+          <p data-testid="onboard-projected" style={{ margin: 0, textAlign: 'center', fontFamily: "'JetBrains Mono', monospace", fontSize: 15, color: 'var(--ink-2)' }}>
             With this run you'd be ranked{' '}
             <span style={{ color: 'var(--ember-hot)' }}>#{projected.rank}</span> of {projected.total + 1}.
           </p>
         )}
 
-        <p style={{ margin: 0, textAlign: 'center', color: 'var(--ink-1)', fontSize: 13, lineHeight: 1.5 }}>
+        <p style={{ margin: 0, textAlign: 'center', color: 'var(--ink-1)', fontSize: 15, lineHeight: 1.55 }}>
           Pick a name to claim your spot on the leaderboard. It's your identity across
           every mode.
         </p>
@@ -125,15 +127,15 @@ export function GameOverOnboard({
             style={field}
           />
           {taken ? (
-            <span data-testid="onboard-taken" style={{ fontSize: 12, color: 'var(--ember-hot)' }}>
+            <span data-testid="onboard-taken" style={{ fontSize: 14, color: 'var(--ember-hot)' }}>
               That name is taken — please choose another.
             </span>
           ) : available === true ? (
-            <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>✓ available</span>
+            <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>✓ available</span>
           ) : clean ? (
-            <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>checking…</span>
+            <span style={{ fontSize: 14, color: 'var(--ink-3)' }}>checking…</span>
           ) : (
-            <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>At least {NAME_MIN} characters.</span>
+            <span style={{ fontSize: 14, color: 'var(--ink-3)' }}>At least {NAME_MIN} characters.</span>
           )}
         </div>
 
@@ -141,20 +143,20 @@ export function GameOverOnboard({
           className="ember-btn"
           data-testid="onboard-save"
           disabled={!canSave}
-          style={{ width: '100%', padding: '13px 0', fontSize: 16, opacity: canSave ? 1 : 0.5 }}
+          style={{ width: '100%', padding: '14px 0', fontSize: 17, opacity: canSave ? 1 : 0.5 }}
           onClick={onSave}
         >
           {sending ? 'Saving…' : 'Save & post'}
         </button>
 
         {error && !taken && (
-          <p data-testid="onboard-error" style={{ margin: 0, textAlign: 'center', color: 'var(--ember-hot)', fontSize: 12 }}>
+          <p data-testid="onboard-error" style={{ margin: 0, textAlign: 'center', color: 'var(--ember-hot)', fontSize: 14 }}>
             Couldn't save — please try again.
           </p>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 4, borderTop: '1px solid var(--line)' }}>
-          <p style={{ margin: '8px 0 0', textAlign: 'center', color: 'var(--ink-2)', fontSize: 12, lineHeight: 1.5 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 6, borderTop: '1px solid var(--line)' }}>
+          <p style={{ margin: '8px 0 0', textAlign: 'center', color: 'var(--ink-2)', fontSize: 14, lineHeight: 1.55 }}>
             No email needed to play. Add one only if you want to sync this account to
             another device.
           </p>
@@ -162,12 +164,21 @@ export function GameOverOnboard({
             className="ghost-btn"
             data-testid="onboard-sync"
             disabled={!canSave}
-            style={{ fontSize: 12, opacity: canSave ? 1 : 0.5 }}
+            style={{ fontSize: 14, opacity: canSave ? 1 : 0.5 }}
             onClick={onSaveAndSync}
           >
             Save &amp; add email to sync
           </button>
         </div>
+
+        <button
+          className="ghost-btn"
+          data-testid="onboard-close"
+          style={{ fontSize: 14, color: 'var(--ink-2)' }}
+          onClick={onClose}
+        >
+          Not now — back to leaderboard
+        </button>
       </div>
     </motion.div>
   );
