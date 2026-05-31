@@ -29,7 +29,7 @@ describe('GameOverLeaderboard', () => {
 
   it('shows the online top-5 board on mount', async () => {
     vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([
-      { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0 },
+      { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0, deviceId: 'dev-top' },
     ]);
     render(<GameOverLeaderboard score={500} correct={5} modeId={MODE_ID} gameMode="blur" />);
     await waitFor(() => expect(screen.getByTestId('global-list')).toBeInTheDocument());
@@ -39,7 +39,7 @@ describe('GameOverLeaderboard', () => {
   it('pins the projected position when outside the top five', async () => {
     vi.spyOn(client, 'fetchModeProjectedRank').mockResolvedValue({ rank: 8, total: 20 });
     vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([
-      { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0 },
+      { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0, deviceId: 'dev-top' },
     ]);
     render(<GameOverLeaderboard score={500} correct={5} modeId={MODE_ID} gameMode="blur" />);
     await waitFor(() => expect(screen.getByTestId('global-pinned')).toBeInTheDocument());
@@ -48,7 +48,7 @@ describe('GameOverLeaderboard', () => {
   it('renders the name input inside the pinned row when outside the top five', async () => {
     vi.spyOn(client, 'fetchModeProjectedRank').mockResolvedValue({ rank: 8, total: 20 });
     vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([
-      { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0 },
+      { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0, deviceId: 'dev-top' },
     ]);
     render(<GameOverLeaderboard score={500} correct={5} modeId={MODE_ID} gameMode="blur" />);
     const pinned = await screen.findByTestId('global-pinned');

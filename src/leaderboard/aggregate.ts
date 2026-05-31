@@ -10,6 +10,7 @@ export interface LeaderboardRun {
   gameMode: RevealMode | null;
   country: string | null;
   createdAt: number;
+  deviceId: string;
 }
 
 /** Best of two runs: higher score wins; ties break to the newer run, then by id. */
@@ -54,6 +55,7 @@ export function aggregateByPerson(runs: LeaderboardRun[]): GlobalEntry[] {
       gameModes,
       country: best.country,
       createdAt: best.createdAt,
+      deviceId: best.deviceId,
     };
   });
 

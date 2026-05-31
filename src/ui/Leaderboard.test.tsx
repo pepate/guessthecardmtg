@@ -13,7 +13,7 @@ const builtins = {
   popular: { id: POP_MODE_ID, name: 'Popular', filter: { popular: true }, card_count: 500 },
 };
 
-const entry: GlobalEntry = { id: '1', name: 'Al', score: 900, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0 };
+const entry: GlobalEntry = { id: '1', name: 'Al', score: 900, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0, deviceId: 'dev-al' };
 
 const manyEntries = (n: number): GlobalEntry[] =>
   Array.from({ length: n }, (_, i) => ({
@@ -24,6 +24,7 @@ const manyEntries = (n: number): GlobalEntry[] =>
     gameModes: [] as [],
     country: 'DE',
     createdAt: 0,
+    deviceId: `dev-${i}`,
   }));
 
 beforeEach(() => {

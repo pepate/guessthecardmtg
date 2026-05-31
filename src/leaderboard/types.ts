@@ -11,6 +11,8 @@ export interface GlobalEntry {
   country: string | null;
   /** Epoch milliseconds. */
   createdAt: number;
+  /** Anonymous device identifier (UUID). */
+  deviceId: string;
 }
 
 export interface SubmitPayload {

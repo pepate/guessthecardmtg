@@ -6,6 +6,7 @@ function run(p: Partial<LeaderboardRun> & { name: string; score: number }): Lead
     id: `${p.name}-${p.score}`,
     correct: 9,
     gameMode: null,
+    deviceId: 'device-default',
     country: 'DE',
     createdAt: 0,
     ...p,

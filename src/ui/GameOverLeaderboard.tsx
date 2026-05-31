@@ -123,6 +123,7 @@ export function GameOverLeaderboard({
     gameModes: [gameMode],
     country: null,
     createdAt: Date.now(),
+    deviceId: getDeviceId(),
   };
   const ownInTop = !!posted && top.some((e) => e.id === posted.id);
   const pinnedRank = posted?.rank ?? projected?.rank;

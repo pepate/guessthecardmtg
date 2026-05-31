@@ -6,15 +6,15 @@ import type { GlobalEntry } from '../leaderboard/types';
 
 const NOW = 1_000_000_000_000;
 function e(id: string, score: number): GlobalEntry {
-  return { id, name: `P${id}`, score, correct: 9, gameModes: [], country: 'DE', createdAt: NOW };
+  return { id, name: `P${id}`, score, correct: 9, gameModes: [], country: 'DE', createdAt: NOW, deviceId: `dev-${id}` };
 }
 
 const zoomEntry: GlobalEntry = {
-  id: '1', name: 'Al', score: 900, correct: 9, gameModes: ['zoom'], country: 'DE', createdAt: 0,
+  id: '1', name: 'Al', score: 900, correct: 9, gameModes: ['zoom'], country: 'DE', createdAt: 0, deviceId: 'dev-al',
 };
 
 const multiModeEntry: GlobalEntry = {
-  id: '2', name: 'Bo', score: 1200, correct: 11, gameModes: ['spotlight', 'blur'], country: 'DE', createdAt: 0,
+  id: '2', name: 'Bo', score: 1200, correct: 11, gameModes: ['spotlight', 'blur'], country: 'DE', createdAt: 0, deviceId: 'dev-bo',
 };
 
 beforeEach(() => {
