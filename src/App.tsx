@@ -9,6 +9,7 @@ import { StartModes } from './ui/StartModes';
 import { RevealPicker } from './ui/RevealPicker';
 import { CustomModeBuilder } from './ui/CustomModeBuilder';
 import { ProfilePanel } from './ui/ProfilePanel';
+import { WelcomeWizard } from './ui/WelcomeWizard';
 import { useAuth } from './auth/useAuth';
 import type { CustomMode } from './modes/types';
 import { HUD } from './ui/HUD';
@@ -195,6 +196,15 @@ export function App() {
   const [view, setView] = useState<StartView>({ s: 'list' });
   const { recovery } = useAuth();
 
+  // First-ever open (and not arriving via a shared deeplink) → show the wizard once.
+  const [showWizard, setShowWizard] = useState(
+    () => !localStorage.getItem('guessthecard.welcomed') && !parseDeeplink(window.location.search),
+  );
+  function dismissWizard() {
+    localStorage.setItem('guessthecard.welcomed', '1');
+    setShowWizard(false);
+  }
+
   useEffect(() => {
     if (phase !== 'idle') setView({ s: 'list' });
   }, [phase]);
@@ -237,6 +247,7 @@ export function App() {
 
   return (
     <div className="stage-root" data-wide={wide}>
+      {showWizard && <WelcomeWizard onClose={dismissWizard} />}
       {phase === 'playing' || phase === 'loading' ? (
         <button
           type="button"
