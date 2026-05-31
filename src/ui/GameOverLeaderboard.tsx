@@ -8,7 +8,7 @@ import {
   fetchModeTopScores,
   submitScore,
 } from '../leaderboard/client';
-import { getDeviceId } from '../leaderboard/identity';
+import { getUserId } from '../leaderboard/identity';
 import { findExistingMode, createMode } from '../modes/client';
 import type { CustomFilter } from '../modes/filter';
 import { GlobalScoreList } from './GlobalScoreList';
@@ -19,6 +19,7 @@ const VISIBLE = 5;
 export function GameOverLeaderboard({
   score,
   correct,
+  cards,
   modeId,
   modeName,
   modeFilter,
@@ -26,6 +27,7 @@ export function GameOverLeaderboard({
 }: {
   score: number;
   correct: number;
+  cards: number;
   modeId: string | null;
   modeName?: string;
   modeFilter?: CustomFilter;
@@ -38,7 +40,10 @@ export function GameOverLeaderboard({
   const [posted, setPosted] = useState<{ rank: number; id: string; name: string } | null>(null);
   const [top, setTop] = useState<GlobalEntry[]>([]);
   const [nameError, setNameError] = useState(false);
+  const [myId, setMyId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { getUserId().then(setMyId).catch(() => {}); }, []);
 
   useEffect(() => {
     // When modeId is absent (unplayed set), skip fetching — no board exists yet.
@@ -51,6 +56,22 @@ export function GameOverLeaderboard({
     return () => {
       cancelled = true;
     };
+  }, [enabled, modeId, score]);
+
+  // Logged-in players with a saved name post automatically — the name prompt is
+  // only for first-time players creating their anonymous account.
+  useEffect(() => {
+    if (!enabled || score <= 0 || !modeId) return;
+    let cancelled = false;
+    (async () => {
+      const uid = await getUserId();
+      const savedName = sanitizeName(localStorage.getItem(NAME_KEY) ?? '');
+      if (cancelled || !uid || !savedName) return; // first-timer → manual prompt
+      setName(savedName);
+      await post();
+    })().catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, modeId, score]);
 
   if (!enabled || score <= 0) return null;
@@ -100,7 +121,7 @@ export function GameOverLeaderboard({
       }
     }
 
-    const res = await submitScore({ name: clean, score, correct, modeId: resolvedModeId, gameMode, deviceId: getDeviceId() });
+    const res = await submitScore({ name: clean, score, correct, cards, modeId: resolvedModeId, gameMode });
     if (!res.ok) {
       setStatus('error');
       return;
@@ -123,7 +144,7 @@ export function GameOverLeaderboard({
     gameModes: [gameMode],
     country: null,
     createdAt: Date.now(),
-    deviceId: getDeviceId(),
+    deviceId: myId ?? 'projected',
   };
   const ownInTop = !!posted && top.some((e) => e.id === posted.id);
   const pinnedRank = posted?.rank ?? projected?.rank;

@@ -20,6 +20,7 @@ export function GameOver() {
   const currentModeName = useGameStore((s) => s.currentModeName);
   const currentModeFilter = useGameStore((s) => s.currentModeFilter);
   const gameMode = useGameStore((s) => s.gameMode);
+  const roundIndex = useGameStore((s) => s.roundIndex);
   const highscores = useGameStore((s) => s.highscores);
   const restart = useGameStore((s) => s.restart);
   const reset = useGameStore((s) => s.reset);
@@ -117,6 +118,7 @@ export function GameOver() {
       <GameOverLeaderboard
         score={totalScore}
         correct={correctCount}
+        cards={roundIndex + 1}
         modeId={currentModeId}
         modeName={currentModeName ?? undefined}
         modeFilter={currentModeFilter ?? undefined}

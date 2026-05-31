@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { GameOverLeaderboard } from './GameOverLeaderboard';
 import * as client from '../leaderboard/client';
 import * as modes from '../modes/client';
+import * as identity from '../leaderboard/identity';
 import type { CustomFilter } from '../modes/filter';
 
 const MODE_ID = 'mode-uuid';
@@ -13,17 +14,18 @@ beforeEach(() => {
   vi.spyOn(client, 'isLeaderboardEnabled').mockReturnValue(true);
   vi.spyOn(client, 'fetchModeProjectedRank').mockResolvedValue({ rank: 4, total: 20 });
   vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([]);
+  vi.spyOn(identity, 'getUserId').mockResolvedValue(null);
 });
 
 describe('GameOverLeaderboard', () => {
   it('renders nothing when the leaderboard is disabled', () => {
     vi.spyOn(client, 'isLeaderboardEnabled').mockReturnValue(false);
-    const { container } = render(<GameOverLeaderboard score={5000} correct={10} modeId={MODE_ID} gameMode="blur" />);
+    const { container } = render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it('shows the projected rank', async () => {
-    render(<GameOverLeaderboard score={5000} correct={10} modeId={MODE_ID} gameMode="blur" />);
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
     await waitFor(() => expect(screen.getByTestId('projected-rank')).toHaveTextContent('#4'));
   });
 
@@ -31,7 +33,7 @@ describe('GameOverLeaderboard', () => {
     vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([
       { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0, deviceId: 'dev-top' },
     ]);
-    render(<GameOverLeaderboard score={500} correct={5} modeId={MODE_ID} gameMode="blur" />);
+    render(<GameOverLeaderboard score={500} correct={5} cards={5} modeId={MODE_ID} gameMode="blur" />);
     await waitFor(() => expect(screen.getByTestId('global-list')).toBeInTheDocument());
     expect(screen.getByText('Top')).toBeInTheDocument();
   });
@@ -41,7 +43,7 @@ describe('GameOverLeaderboard', () => {
     vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([
       { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0, deviceId: 'dev-top' },
     ]);
-    render(<GameOverLeaderboard score={500} correct={5} modeId={MODE_ID} gameMode="blur" />);
+    render(<GameOverLeaderboard score={500} correct={5} cards={5} modeId={MODE_ID} gameMode="blur" />);
     await waitFor(() => expect(screen.getByTestId('global-pinned')).toBeInTheDocument());
   });
 
@@ -50,14 +52,14 @@ describe('GameOverLeaderboard', () => {
     vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([
       { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0, deviceId: 'dev-top' },
     ]);
-    render(<GameOverLeaderboard score={500} correct={5} modeId={MODE_ID} gameMode="blur" />);
+    render(<GameOverLeaderboard score={500} correct={5} cards={5} modeId={MODE_ID} gameMode="blur" />);
     const pinned = await screen.findByTestId('global-pinned');
     expect(pinned).toContainElement(screen.getByTestId('name-input'));
   });
 
   it('flags the name field and does not submit when the name is too short', async () => {
     const submit = vi.spyOn(client, 'submitScore');
-    render(<GameOverLeaderboard score={5000} correct={10} modeId={MODE_ID} gameMode="blur" />);
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
     await waitFor(() => screen.getByTestId('name-input'));
     fireEvent.change(screen.getByTestId('name-input'), { target: { value: 'ab' } });
     fireEvent.click(screen.getByTestId('post-btn'));
@@ -67,7 +69,7 @@ describe('GameOverLeaderboard', () => {
   });
 
   it('clears the name hint once the user types a valid name', async () => {
-    render(<GameOverLeaderboard score={5000} correct={10} modeId={MODE_ID} gameMode="blur" />);
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
     await waitFor(() => screen.getByTestId('name-input'));
     fireEvent.click(screen.getByTestId('post-btn'));
     expect(screen.getByTestId('name-hint')).toBeInTheDocument();
@@ -77,18 +79,18 @@ describe('GameOverLeaderboard', () => {
 
   it('submits with modeId+gameMode and shows a confirmation, persisting the name', async () => {
     vi.spyOn(client, 'submitScore').mockResolvedValue({ ok: true, id: 'x', rank: 4 });
-    render(<GameOverLeaderboard score={5000} correct={10} modeId={MODE_ID} gameMode="blur" />);
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
     await waitFor(() => screen.getByTestId('name-input'));
     fireEvent.change(screen.getByTestId('name-input'), { target: { value: 'Alice' } });
     fireEvent.click(screen.getByTestId('post-btn'));
     await waitFor(() => expect(screen.getByTestId('post-confirm')).toBeInTheDocument());
     expect(localStorage.getItem('guessthecard.playername')).toBe('Alice');
-    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, modeId: MODE_ID, gameMode: 'blur', deviceId: expect.any(String) });
+    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, cards: 10, modeId: MODE_ID, gameMode: 'blur' });
   });
 
   it('shows an error message when submission fails', async () => {
     vi.spyOn(client, 'submitScore').mockResolvedValue({ ok: false, reason: 'rate-limited' });
-    render(<GameOverLeaderboard score={5000} correct={10} modeId={MODE_ID} gameMode="blur" />);
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
     await waitFor(() => screen.getByTestId('name-input'));
     fireEvent.change(screen.getByTestId('name-input'), { target: { value: 'Alice' } });
     fireEvent.click(screen.getByTestId('post-btn'));
@@ -112,13 +114,13 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
     const create = vi.spyOn(modes, 'createMode');
     vi.spyOn(client, 'submitScore').mockResolvedValue({ ok: true, id: 'x', rank: 3 });
 
-    render(<GameOverLeaderboard score={5000} correct={10} modeId={null} modeFilter={SET_FILTER} gameMode="scanner" />);
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={null} modeFilter={SET_FILTER} gameMode="scanner" />);
     await typeAndPost();
 
     await waitFor(() => expect(screen.getByTestId('post-confirm')).toBeInTheDocument());
     expect(findExisting).toHaveBeenCalledWith(SET_FILTER);
     expect(create).not.toHaveBeenCalled();
-    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, modeId: 'existing-mode-id', gameMode: 'scanner', deviceId: expect.any(String) });
+    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, cards: 10, modeId: 'existing-mode-id', gameMode: 'scanner' });
   });
 
   it('creates a mode when none exists and submits with the new id', async () => {
@@ -126,12 +128,12 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
     const create = vi.spyOn(modes, 'createMode').mockResolvedValue({ ok: true, existed: false, mode: NEW_MODE });
     vi.spyOn(client, 'submitScore').mockResolvedValue({ ok: true, id: 'x', rank: 1 });
 
-    render(<GameOverLeaderboard score={5000} correct={10} modeId={null} modeFilter={SET_FILTER} gameMode="mosaic" />);
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={null} modeFilter={SET_FILTER} gameMode="mosaic" />);
     await typeAndPost();
 
     await waitFor(() => expect(screen.getByTestId('post-confirm')).toBeInTheDocument());
     expect(create).toHaveBeenCalledWith(SET_FILTER);
-    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, modeId: 'new-mode-id', gameMode: 'mosaic', deviceId: expect.any(String) });
+    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, cards: 10, modeId: 'new-mode-id', gameMode: 'mosaic' });
   });
 
   it('shows an error and does not submit when createMode fails', async () => {
@@ -139,7 +141,7 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
     vi.spyOn(modes, 'createMode').mockResolvedValue({ ok: false, reason: 'too-few-cards' });
     const submit = vi.spyOn(client, 'submitScore');
 
-    render(<GameOverLeaderboard score={5000} correct={10} modeId={null} modeFilter={SET_FILTER} gameMode="blur" />);
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={null} modeFilter={SET_FILTER} gameMode="blur" />);
     await typeAndPost();
 
     await waitFor(() => expect(screen.getByTestId('post-error')).toBeInTheDocument());
@@ -151,7 +153,7 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
     const create = vi.spyOn(modes, 'createMode');
     const submit = vi.spyOn(client, 'submitScore');
 
-    render(<GameOverLeaderboard score={5000} correct={10} modeId={null} gameMode="blur" />);
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={null} gameMode="blur" />);
     await typeAndPost();
 
     await waitFor(() => expect(screen.getByTestId('post-error')).toBeInTheDocument());
@@ -164,7 +166,7 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
     const rank = vi.spyOn(client, 'fetchModeProjectedRank');
     const topScores = vi.spyOn(client, 'fetchModeTopScores');
 
-    render(<GameOverLeaderboard score={5000} correct={10} modeId={null} modeFilter={SET_FILTER} gameMode="blur" />);
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={null} modeFilter={SET_FILTER} gameMode="blur" />);
     await waitFor(() => screen.getByTestId('name-input'));
 
     expect(rank).not.toHaveBeenCalled();
