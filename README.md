@@ -3,9 +3,9 @@
 A fast, mobile-first browser game: a _Magic: The Gathering_ card is revealed
 under an obscuring effect — blurred, behind a mosaic, as a silhouette, and so on
 — and you pick its name from four choices before the clock runs out. You have
-**30 seconds** to name as many cards as you can.
+**45 seconds** to name as many cards as you can.
 
-🔮 **Play it:** https://pepate.github.io/guessthecardmtg/
+🔮 **Play it:** https://guessthecard.de
 
 Cards are served from a Supabase backend; all card data, names and artwork
 originate from [Scryfall](https://scryfall.com/docs/api).
@@ -25,7 +25,7 @@ originate from [Scryfall](https://scryfall.com/docs/api).
    - **Spotlight** — a moving light widens to reveal everything.
 3. **Guess fast.** Pick the right name from four options. The sooner you’re
    right, the more points you score.
-4. After 30 seconds you get your total score and how many cards you nailed —
+4. After 45 seconds you get your total score and how many cards you nailed —
    then chase the holder of that mode’s leaderboard, or jump straight into
    another reveal mode.
 
@@ -68,7 +68,7 @@ Each leaderboard is per **(mode, reveal mode)** and keeps your single best run.
 - Installable **PWA** (offline shell via `vite-plugin-pwa`)
 - A pure, framework-free game engine (`src/engine`) so the rules are unit-testable
 - **Vitest** unit tests + **Playwright** end-to-end tests
-- Deployed to **GitHub Pages**
+- Deployed to **GitHub Pages** on the custom domain **guessthecard.de** (HTTPS enforced)
 
 ## Project layout
 
