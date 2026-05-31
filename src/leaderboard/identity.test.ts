@@ -1,23 +1,65 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { getDeviceId, DEVICE_ID_KEY } from './identity';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-beforeEach(() => localStorage.clear());
+const getSession = vi.fn();
+const signInAnonymously = vi.fn();
 
-describe('getDeviceId', () => {
-  it('generates a uuid and persists it', () => {
-    const id = getDeviceId();
-    expect(id).toMatch(/^[0-9a-f-]{36}$/);
-    expect(localStorage.getItem(DEVICE_ID_KEY)).toBe(id);
+vi.mock('../supabase/client', () => ({
+  getSupabase: () => ({ auth: { getSession, signInAnonymously } }),
+}));
+
+async function importIdentity() {
+  vi.resetModules();
+  return import('./identity');
+}
+
+beforeEach(() => {
+  getSession.mockReset();
+  signInAnonymously.mockReset();
+});
+
+describe('getUserId', () => {
+  it('returns the id from an existing session', async () => {
+    getSession.mockResolvedValue({ data: { session: { user: { id: 'uid-1' } } } });
+    const { getUserId } = await importIdentity();
+    expect(await getUserId()).toBe('uid-1');
   });
 
-  it('returns the same id on repeat calls', () => {
-    const first = getDeviceId();
-    const second = getDeviceId();
-    expect(second).toBe(first);
+  it('returns null when there is no session and does NOT create one', async () => {
+    getSession.mockResolvedValue({ data: { session: null } });
+    const { getUserId } = await importIdentity();
+    expect(await getUserId()).toBeNull();
+    expect(signInAnonymously).not.toHaveBeenCalled();
   });
 
-  it('reuses an already-stored id', () => {
-    localStorage.setItem(DEVICE_ID_KEY, '11111111-1111-4111-8111-111111111111');
-    expect(getDeviceId()).toBe('11111111-1111-4111-8111-111111111111');
+  it('caches the id so a second call skips getSession', async () => {
+    getSession.mockResolvedValue({ data: { session: { user: { id: 'uid-1' } } } });
+    const { getUserId } = await importIdentity();
+    await getUserId();
+    await getUserId();
+    expect(getSession).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ensureUserId', () => {
+  it('reuses an existing session', async () => {
+    getSession.mockResolvedValue({ data: { session: { user: { id: 'uid-1' } } } });
+    const { ensureUserId } = await importIdentity();
+    expect(await ensureUserId()).toBe('uid-1');
+    expect(signInAnonymously).not.toHaveBeenCalled();
+  });
+
+  it('signs in anonymously when there is no session', async () => {
+    getSession.mockResolvedValue({ data: { session: null } });
+    signInAnonymously.mockResolvedValue({ data: { user: { id: 'uid-new' } }, error: null });
+    const { ensureUserId } = await importIdentity();
+    expect(await ensureUserId()).toBe('uid-new');
+    expect(signInAnonymously).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns null when anonymous sign-in fails', async () => {
+    getSession.mockResolvedValue({ data: { session: null } });
+    signInAnonymously.mockResolvedValue({ data: { user: null }, error: { message: 'nope' } });
+    const { ensureUserId } = await importIdentity();
+    expect(await ensureUserId()).toBeNull();
   });
 });
