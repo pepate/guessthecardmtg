@@ -4,18 +4,19 @@ import { REVEAL_MODE_LABELS } from '../reveal/labels';
 import { ScoreValue } from './ScoreValue';
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: 12,
   color: 'var(--ink-2)',
-  letterSpacing: 1,
+  letterSpacing: 1.2,
   textTransform: 'uppercase',
   margin: 0,
 };
 
 function StatLine({ label, value }: { label: string; value: string | number }) {
   return (
-    <span style={{ fontSize: 13, color: 'var(--ink-1)' }}>
-      {label}: <strong style={{ color: 'var(--ink-0)' }}>{value}</strong>
-    </span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 15, color: 'var(--ink-1)' }}>
+      <span>{label}</span>
+      <strong style={{ color: 'var(--ink-0)', fontSize: 16 }}>{value}</strong>
+    </div>
   );
 }
 
@@ -30,15 +31,15 @@ export function ProfileStats({ profile, bests }: { profile: Profile | null; best
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 14,
         background: 'rgba(20,17,28,0.6)',
-        borderRadius: 10,
-        padding: '12px 14px',
+        borderRadius: 12,
+        padding: '14px 16px',
         border: '1px solid var(--line-strong)',
       }}
     >
       <p style={labelStyle}>Statistics</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <StatLine label="Games played" value={profile.gamesPlayed} />
         <StatLine label="Correct guesses" value={profile.totalCorrect} />
         <StatLine label="Hit rate" value={hitRate} />
@@ -46,24 +47,24 @@ export function ProfileStats({ profile, bests }: { profile: Profile | null; best
       </div>
 
       {bests.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <p style={labelStyle}>Personal bests</p>
           {bests.map((b) => (
             <div
               key={b.modeId}
               data-testid="profile-best"
-              style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'JetBrains Mono', monospace", fontSize: 14 }}
             >
               <span style={{ flex: 1, minWidth: 0, color: 'var(--ink-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {b.modeName}
               </span>
-              {b.reveal && <span style={{ color: 'var(--ink-2)' }}>{REVEAL_MODE_LABELS[b.reveal]}</span>}
-              <ScoreValue score={b.bestScore} fontSize={12} />
+              {b.reveal && <span style={{ color: 'var(--ink-2)', fontSize: 13 }}>{REVEAL_MODE_LABELS[b.reveal]}</span>}
+              <ScoreValue score={b.bestScore} fontSize={14} />
               <span
                 style={{
                   flex: '0 0 auto',
-                  minWidth: 30,
-                  textAlign: 'center',
+                  minWidth: 34,
+                  textAlign: 'right',
                   color: b.rank === 1 ? 'var(--ember-hot)' : 'var(--ink-1)',
                   fontWeight: 700,
                 }}

@@ -15,9 +15,11 @@ describe('ProfileStats', () => {
   it('shows lifetime stats with computed hit rate and average', () => {
     render(<ProfileStats profile={profile} bests={[]} />);
     const block = screen.getByTestId('profile-stats');
-    expect(block).toHaveTextContent('Games played: 4');
-    expect(block).toHaveTextContent('Hit rate: 50%'); // 12/24
-    expect(block).toHaveTextContent('Avg correct / game: 3.0'); // 12/4
+    expect(block).toHaveTextContent('Games played');
+    expect(block).toHaveTextContent('Hit rate');
+    expect(block).toHaveTextContent('50%'); // 12/24
+    expect(block).toHaveTextContent('Avg correct / game');
+    expect(block).toHaveTextContent('3.0'); // 12/4
     expect(screen.queryByTestId('profile-best')).toBeNull();
   });
 
