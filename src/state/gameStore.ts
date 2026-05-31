@@ -5,7 +5,7 @@ import { planGame, resolveGuess, expire as expireRound, resolveGameMode, type Pl
 import { fetchEnabledRevealModes } from '../reveal/client';
 import { fetchCandidates } from '../cards/client';
 import type { PoolSelection, ScryfallCard } from '../scryfall/types';
-import { loadHighscores, saveHighscore, type HighscoreEntry, type PoolKind } from './highscores';
+import { loadHighscores, saveHighscore, bumpGamesPlayed, type HighscoreEntry, type PoolKind } from './highscores';
 import { decodeResult, type SharedResult } from '../share/score';
 import { getBuiltinModes } from '../modes/client';
 import type { CustomMode } from '../modes/types';
@@ -97,6 +97,7 @@ function finishGame(
   state: { totalScore: number; correctCount: number; poolKind: PoolKind },
   set: (partial: Partial<GameState>) => void,
 ): void {
+  bumpGamesPlayed();
   // Custom modes keep their history on the per-mode global board only, so we skip
   // the local top-5 (which has no notion of which mode a score belonged to).
   const highscores =

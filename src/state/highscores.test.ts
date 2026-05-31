@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadHighscores, saveHighscore, type HighscoreEntry } from './highscores';
+import { loadHighscores, saveHighscore, getGamesPlayed, bumpGamesPlayed, type HighscoreEntry } from './highscores';
 
 function entry(score: number, correct = 10, date = 1000): HighscoreEntry {
   return { score, correct, date, pool: 'popular' };
@@ -52,5 +52,24 @@ describe('highscores', () => {
       JSON.stringify([{ score: 100, correct: 5, date: 1, pool: 'all' }, { nope: true }]),
     );
     expect(loadHighscores()).toHaveLength(1);
+  });
+});
+
+describe('games played counter', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('starts at zero', () => {
+    expect(getGamesPlayed()).toBe(0);
+  });
+
+  it('increments and persists', () => {
+    expect(bumpGamesPlayed()).toBe(1);
+    expect(bumpGamesPlayed()).toBe(2);
+    expect(getGamesPlayed()).toBe(2);
+  });
+
+  it('treats corrupt values as zero', () => {
+    localStorage.setItem('guessthecard.gamesplayed', 'oops');
+    expect(getGamesPlayed()).toBe(0);
   });
 });

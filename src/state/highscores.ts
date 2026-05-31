@@ -13,6 +13,24 @@ export interface HighscoreEntry {
 
 const KEY = 'guessthecard.highscores.v3';
 const MAX_ENTRIES = 5;
+const GAMES_KEY = 'guessthecard.gamesplayed';
+
+/** How many games this player has finished (used to gate mode creation). */
+export function getGamesPlayed(): number {
+  const n = Number(localStorage.getItem(GAMES_KEY));
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+/** Record one more finished game; returns the new total. */
+export function bumpGamesPlayed(): number {
+  const next = getGamesPlayed() + 1;
+  try {
+    localStorage.setItem(GAMES_KEY, String(next));
+  } catch {
+    // Ignore unavailable storage.
+  }
+  return next;
+}
 
 function isEntry(x: unknown): x is HighscoreEntry {
   if (typeof x !== 'object' || x === null) return false;
