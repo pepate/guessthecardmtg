@@ -29,17 +29,42 @@ originate from [Scryfall](https://scryfall.com/docs/api).
    then chase the holder of that mode’s leaderboard, or jump straight into
    another reveal mode.
 
+**New here?** A short welcome walks you through an example card, and a
+**Quick Game** button drops you straight into the most-played mode — so your
+first game already has a populated leaderboard to climb, not an empty board.
+
 ### Scoring
 
 Each card is worth up to **1000 points** for an instant correct guess, decaying
 linearly down to **100** over its **15-second** window. Faster = more points, so
 speed is the whole game.
 
+## Accounts & leaderboard
+
+No sign-up needed to play. The first time you post a score, the game quietly
+creates an **anonymous account** (Supabase auth) so the leaderboard row is tied
+to a real, un-spoofable identity rather than just a typed-in name. From then on,
+finished games are **saved automatically**.
+
+Open the **profile** (the account icon, top-right of the start screen) to:
+
+- **Change your display name** — it updates everywhere on the boards at once.
+- **Secure your account** by linking an email + password and/or **Google**, so
+  your name and scores follow you across devices. This is optional — purely to
+  keep your progress if you switch browsers or phones.
+- **Sign in** on a new device to recover an account you secured earlier.
+- See your **stats**: games played, hit rate, average correct per game, and your
+  personal best (score + rank) in each mode.
+
+Each leaderboard is per **(mode, reveal mode)** and keeps your single best run.
+
 ## Tech
 
 - **React 18** + **TypeScript** (strict) on **Vite 5**
 - **Zustand** for state, **Framer Motion** for the reveal animations
-- **Supabase** backend: filtered card pools and per-mode leaderboards via RPC
+- **Supabase** backend: filtered card pools and per-mode leaderboards via RPC,
+  plus **Supabase Auth** (anonymous sign-in, optional email/password + Google)
+  for cross-device profiles, with writes guarded by a JWT-verifying Edge Function
 - Installable **PWA** (offline shell via `vite-plugin-pwa`)
 - A pure, framework-free game engine (`src/engine`) so the rules are unit-testable
 - **Vitest** unit tests + **Playwright** end-to-end tests
@@ -54,10 +79,13 @@ src/
   modes/      custom mode filters, validation and client
   sets/       set metadata client
   reveal/     reveal-mode labels and enabled-mode config
-  leaderboard/ online scores, ranking, boards and identity
+  leaderboard/ online scores, ranking, boards and the auth-backed identity
+  auth/       Supabase auth: session store, useAuth hook, sign-in/link actions
+  profile/    profile data client (display name, stats) and personal bests
   scene/      the animated card stage
   state/      Zustand store, game/round clocks, high-score persistence
-  ui/         mode picker, reveal picker, mode builder, HUD, timer, game over
+  ui/         mode picker, reveal picker, mode builder, HUD, timer, game over,
+              profile panel, first-run welcome wizard
   scryfall/   typed Scryfall card shape used internally
 e2e/          Playwright golden-path specs
 ```

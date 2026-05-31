@@ -17,6 +17,10 @@ playwright-report/
 .claude-flow/metrics/
 .claude-flow/security/
 .claude-flow/swarm/
+.claude-flow/tasks/
+.claude-flow/routing-outcomes.json
+.claude-flow/CAPABILITIES.md
+.claude-flow/.gitignore
 .swarm/
 ruvector.db
 
@@ -50,3 +54,4 @@ npm-debug.log*
 
 # Git worktrees
 .worktrees/
+.claude/worktrees/
