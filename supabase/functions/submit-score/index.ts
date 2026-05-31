@@ -129,18 +129,6 @@ Deno.serve(async (req) => {
   existingQ = gameMode === null ? existingQ.is('game_mode', null) : existingQ.eq('game_mode', gameMode);
   const existing = await existingQ.order('score', { ascending: false }).limit(1).maybeSingle();
 
-  // Rank-1 lockout: a device that already holds the top score in this exact
-  // (mode, reveal_mode) board may not play it again — give others a chance.
-  let lockQ = supabase
-    .from('leaderboard')
-    .select('device_id,score')
-    .eq('mode_id', modeId);
-  lockQ = gameMode === null ? lockQ.is('game_mode', null) : lockQ.eq('game_mode', gameMode);
-  const board = await lockQ.order('score', { ascending: false }).limit(1).maybeSingle();
-  if (board.data && board.data.device_id === deviceId) {
-    return json({ ok: false, reason: 'rank-1-locked' }, 409);
-  }
-
   let rowId: string;
   if (!existing.data) {
     const inserted = await supabase

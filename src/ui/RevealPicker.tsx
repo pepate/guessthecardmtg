@@ -4,10 +4,10 @@ import type { CustomMode } from '../modes/types';
 import type { GlobalEntry } from '../leaderboard/types';
 import type { RevealMode } from '../engine/timeAttack';
 import { fetchRevealLeaders, fetchModeRuns } from '../leaderboard/client';
-import { isRank1, type Run } from '../leaderboard/boards';
+import { comboBoard, type Run } from '../leaderboard/boards';
 import { fetchEnabledRevealModes } from '../reveal/client';
 import { REVEAL_MODE_LABELS } from '../reveal/labels';
-import { getDeviceId } from '../leaderboard/identity';
+import { formatAge } from '../leaderboard/age';
 import { useGameStore } from '../state/gameStore';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
@@ -19,7 +19,6 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
   const [runs, setRuns] = useState<Run[]>([]);
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
   const [copied, setCopied] = useState<RevealMode | null>(null);
-  const device = getDeviceId();
 
   async function share(reveal: RevealMode) {
     const url = buildDeeplink(mode.id, reveal);
@@ -64,10 +63,15 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
   }
 
   // The most recent recorded runs in this mode (newest first), for quick replay.
+  const now = Date.now();
   const recent = runs
     .filter((r) => r.gameMode)
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, 3);
+
+  // Rank a score holds on its reveal board (distinct devices scoring higher).
+  const rankOf = (reveal: RevealMode, score: number): number =>
+    comboBoard(runs, reveal).filter((e) => e.score > score).length + 1;
 
   return (
     <motion.div
@@ -110,7 +114,9 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
               >
                 <span aria-hidden>{countryToFlag(r.country)}</span>
                 <span style={{ flex: 1, minWidth: 0, color: 'var(--ink-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                <span style={{ flex: '0 0 auto', color: 'var(--ink-2)' }}>{r.gameMode ? REVEAL_MODE_LABELS[r.gameMode] : ''}</span>
+                <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', fontSize: 11 }}>
+                  {r.gameMode ? REVEAL_MODE_LABELS[r.gameMode] : ''} · #{rankOf(r.gameMode!, r.score)} · {formatAge(r.createdAt, now)}
+                </span>
                 <ScoreValue score={r.score} fontSize={12} />
               </button>
             ))}
@@ -129,15 +135,13 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
         ) : (
           enabled.map((reveal) => {
             const leader = leaders?.[reveal] ?? null;
-            const locked = isRank1(runs, reveal, device);
             return (
               <div
                 key={reveal}
                 data-testid="reveal-row"
                 data-reveal={reveal}
-                data-locked={locked ? 'true' : 'false'}
-                role={locked ? undefined : 'button'}
-                onClick={() => !locked && play(reveal)}
+                role="button"
+                onClick={() => play(reveal)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -145,10 +149,9 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
                   textAlign: 'left',
                   padding: '12px 14px',
                   borderRadius: 12,
-                  border: `1px solid ${locked ? 'var(--line)' : 'var(--line-strong)'}`,
-                  background: locked ? 'rgba(20,17,28,0.35)' : 'rgba(20,17,28,0.6)',
-                  cursor: locked ? 'not-allowed' : 'pointer',
-                  opacity: locked ? 0.55 : 1,
+                  border: '1px solid var(--line-strong)',
+                  background: 'rgba(20,17,28,0.6)',
+                  cursor: 'pointer',
                 }}
               >
                 <span style={{ width: 92, color: 'var(--ink-0)', fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 700 }}>
@@ -165,11 +168,6 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
                     <span style={{ flex: 1 }}>open · no scores</span>
                   )}
                 </span>
-                {locked && (
-                  <span data-testid="reveal-locked" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--ember-hot)', whiteSpace: 'nowrap' }}>
-                    you’re #1
-                  </span>
-                )}
                 <button
                   type="button"
                   data-testid="reveal-share"
@@ -195,11 +193,6 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
               </div>
             );
           })
-        )}
-        {enabled !== null && enabled.every((r) => isRank1(runs, r, device)) && enabled.length > 0 && (
-          <p data-testid="all-locked" style={{ color: 'var(--ink-2)', fontSize: 12, textAlign: 'center', margin: '4px 0 0', fontStyle: 'italic' }}>
-            You top every reveal here — give the others a chance and try a different mode.
-          </p>
         )}
         </div>
       </div>
