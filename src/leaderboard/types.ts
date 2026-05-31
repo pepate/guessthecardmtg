@@ -19,7 +19,7 @@ export interface SubmitPayload {
   name: string;
   score: number;
   correct: number;
+  cards: number;
   modeId: string;
   gameMode: RevealMode;
-  deviceId: string;
 }

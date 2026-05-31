@@ -7,6 +7,11 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({ from, functions: { invoke } })),
 }));
 
+vi.mock('./identity', () => ({
+  ensureUserId: vi.fn().mockResolvedValue('uid-1'),
+  getUserId: vi.fn().mockResolvedValue('uid-1'),
+}));
+
 /** A chainable query stub that resolves (when awaited) to `result`. */
 function query(result: unknown) {
   const q: Record<string, unknown> = {};
@@ -199,27 +204,27 @@ describe('submitScore', () => {
   it('returns ok with id and rank on success', async () => {
     invoke.mockResolvedValueOnce({ data: { ok: true, id: 'x', rank: 7 }, error: null });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid', gameMode: 'blur', deviceId: 'dev-1' })).toEqual({ ok: true, id: 'x', rank: 7 });
+    expect(await submitScore({ name: 'Al', score: 900, correct: 9, cards: 12, modeId: 'mode-uuid', gameMode: 'blur' })).toEqual({ ok: true, id: 'x', rank: 7 });
   });
   it('returns a reason on function error', async () => {
     invoke.mockResolvedValueOnce({ data: null, error: { message: 'rate-limited' } });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid', gameMode: 'blur', deviceId: 'dev-1' })).toEqual({ ok: false, reason: 'rate-limited' });
+    expect(await submitScore({ name: 'Al', score: 900, correct: 9, cards: 12, modeId: 'mode-uuid', gameMode: 'blur' })).toEqual({ ok: false, reason: 'rate-limited' });
   });
   it('returns a reason when the function rejects the payload', async () => {
     invoke.mockResolvedValueOnce({ data: { ok: false, reason: 'score' }, error: null });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 1, correct: 9, modeId: 'mode-uuid', gameMode: 'blur', deviceId: 'dev-1' })).toEqual({ ok: false, reason: 'score' });
+    expect(await submitScore({ name: 'Al', score: 1, correct: 9, cards: 12, modeId: 'mode-uuid', gameMode: 'blur' })).toEqual({ ok: false, reason: 'score' });
   });
-  it('sends mode_id, game_mode and device_id (not pool) in the request body', async () => {
+  it('sends name, score, correct, cards, mode_id, game_mode and NOT device_id', async () => {
     invoke.mockResolvedValueOnce({ data: { ok: true, id: 'x', rank: 1 }, error: null });
     const { submitScore } = await importClient();
-    await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid', gameMode: 'blur', deviceId: 'dev-1' });
+    await submitScore({ name: 'Al', score: 900, correct: 9, cards: 12, modeId: 'mode-uuid', gameMode: 'blur' });
     expect(invoke).toHaveBeenCalledWith('submit-score', {
-      body: expect.objectContaining({ mode_id: 'mode-uuid', game_mode: 'blur', device_id: 'dev-1' }),
+      body: expect.objectContaining({ name: 'Al', score: 900, correct: 9, cards: 12, mode_id: 'mode-uuid', game_mode: 'blur' }),
     });
     expect(invoke).toHaveBeenCalledWith('submit-score', {
-      body: expect.not.objectContaining({ pool: expect.anything() }),
+      body: expect.not.objectContaining({ device_id: expect.anything() }),
     });
   });
 });

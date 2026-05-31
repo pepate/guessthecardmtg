@@ -1,4 +1,5 @@
 import { getSupabase } from '../supabase/client';
+import { ensureUserId } from './identity';
 import type { GlobalEntry, SubmitPayload } from './types';
 import type { RevealMode } from '../engine/timeAttack';
 import { aggregateByPerson, type LeaderboardRun } from './aggregate';
@@ -183,13 +184,16 @@ export type SubmitResult =
 export async function submitScore(payload: SubmitPayload): Promise<SubmitResult> {
   const c = getSupabase();
   if (!c) return { ok: false, reason: 'disabled' };
+  // Ensure a session exists so supabase-js attaches the user JWT to the invoke.
+  const uid = await ensureUserId();
+  if (!uid) return { ok: false, reason: 'auth' };
   const body = {
     name: payload.name,
     score: payload.score,
     correct: payload.correct,
+    cards: payload.cards,
     mode_id: payload.modeId,
     game_mode: payload.gameMode,
-    device_id: payload.deviceId,
   };
   const { data, error } = await c.functions.invoke('submit-score', { body });
   if (error) return { ok: false, reason: error.message };
