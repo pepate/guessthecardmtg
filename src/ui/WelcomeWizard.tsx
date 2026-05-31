@@ -7,21 +7,19 @@ const SAMPLE_ART = `${import.meta.env.BASE_URL}og-image.jpeg`;
 // fast correct guess. Plain timers + CSS transitions keep it robust and testable.
 const REVEAL_MS = 200;
 const ANSWER_MS = 3400;
-const CLOSE_MS = 5800;
 
 const OPTIONS = ['Lightning Bolt', 'Llanowar Elves', 'Dark Ritual', 'Serra Angel'] as const;
 const CORRECT = 'Llanowar Elves';
 
-export function WelcomeWizard({ onClose }: { onClose: () => void }) {
+export function WelcomeWizard({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
   const [revealed, setRevealed] = useState(false);
   const [answered, setAnswered] = useState(false);
 
   useEffect(() => {
     const t0 = setTimeout(() => setRevealed(true), REVEAL_MS);
     const t1 = setTimeout(() => setAnswered(true), ANSWER_MS);
-    const t2 = setTimeout(onClose, CLOSE_MS);
-    return () => { clearTimeout(t0); clearTimeout(t1); clearTimeout(t2); };
-  }, [onClose]);
+    return () => { clearTimeout(t0); clearTimeout(t1); };
+  }, []);
 
   const caption = answered
     ? 'Nice — a fast guess scores the most points.'
@@ -48,28 +46,6 @@ export function WelcomeWizard({ onClose }: { onClose: () => void }) {
         textAlign: 'center',
       }}
     >
-      <button
-        type="button"
-        data-testid="welcome-skip"
-        onClick={onClose}
-        style={{
-          position: 'absolute',
-          top: 'calc(14px + env(safe-area-inset-top))',
-          right: 16,
-          padding: '7px 14px',
-          borderRadius: 10,
-          border: '1px solid var(--line-strong)',
-          background: 'rgba(20,17,28,0.6)',
-          color: 'var(--ink-1)',
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 12,
-          letterSpacing: 0.5,
-          cursor: 'pointer',
-        }}
-      >
-        Skip
-      </button>
-
       <div style={{ maxWidth: 420, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
         <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 34, color: 'var(--ink-0)' }}>
           Welcome to Arcane Drift
@@ -128,6 +104,15 @@ export function WelcomeWizard({ onClose }: { onClose: () => void }) {
       <p data-testid="welcome-caption" style={{ margin: 0, minHeight: 20, color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 13, letterSpacing: 0.5 }}>
         {caption}
       </p>
+
+      <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <button type="button" className="ember-btn" data-testid="welcome-start" onClick={onStart} style={{ padding: '13px 0', fontSize: 16 }}>
+          Start playing
+        </button>
+        <button type="button" className="ghost-btn" data-testid="welcome-close" onClick={onClose} style={{ fontSize: 13 }}>
+          Close
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { listModes, getModeById } from '../modes/client';
+import { startMostPlayedGame } from '../modes/quickStart';
 import type { CustomMode, CustomModeListItem } from '../modes/types';
 import { fetchModeRuns, fetchAutoAdvanceTarget } from '../leaderboard/client';
 import { deviceModeStanding, type Run } from '../leaderboard/boards';
@@ -248,16 +249,6 @@ export function StartModes({
     };
   }, [win]);
 
-  // First-timers (no games yet) get a one-tap start into the most-played mode,
-  // so they land in a populated game with a real leaderboard rather than an empty one.
-  function quickGame() {
-    if (!views || views.length === 0) return;
-    const target = views.reduce((a, b) => (b.mode.entry_count > a.mode.entry_count ? b : a)).mode;
-    const store = useGameStore.getState();
-    store.setRevealChoice('blur');
-    void store.selectPool({ kind: 'custom', modeId: target.id, filter: target.filter, name: target.name });
-  }
-
   return (
     <motion.div
       key="modes"
@@ -339,8 +330,8 @@ export function StartModes({
           type="button"
           className="ember-btn"
           data-testid="quick-game"
-          onClick={quickGame}
-          style={{ ...centered, flexShrink: 0, padding: '15px 0', fontSize: 17 }}
+          onClick={() => void startMostPlayedGame()}
+          style={{ alignSelf: 'center', flexShrink: 0, padding: '11px 32px', fontSize: 15 }}
         >
           Quick Game
         </button>

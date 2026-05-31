@@ -10,6 +10,7 @@ import { RevealPicker } from './ui/RevealPicker';
 import { CustomModeBuilder } from './ui/CustomModeBuilder';
 import { ProfilePanel } from './ui/ProfilePanel';
 import { WelcomeWizard } from './ui/WelcomeWizard';
+import { startMostPlayedGame } from './modes/quickStart';
 import { useAuth } from './auth/useAuth';
 import type { CustomMode } from './modes/types';
 import { HUD } from './ui/HUD';
@@ -247,7 +248,12 @@ export function App() {
 
   return (
     <div className="stage-root" data-wide={wide}>
-      {showWizard && <WelcomeWizard onClose={dismissWizard} />}
+      {showWizard && (
+        <WelcomeWizard
+          onClose={dismissWizard}
+          onStart={() => { dismissWizard(); void startMostPlayedGame(); }}
+        />
+      )}
       {phase === 'playing' || phase === 'loading' ? (
         <button
           type="button"
