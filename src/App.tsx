@@ -8,6 +8,8 @@ import { stageAt, scanProgressAt, scanAngleFor, tilesRevealedAt, tileOrderFor, s
 import { StartModes } from './ui/StartModes';
 import { RevealPicker } from './ui/RevealPicker';
 import { CustomModeBuilder } from './ui/CustomModeBuilder';
+import { ProfilePanel } from './ui/ProfilePanel';
+import { useAuth } from './auth/useAuth';
 import type { CustomMode } from './modes/types';
 import { HUD } from './ui/HUD';
 import { Timer } from './ui/Timer';
@@ -190,12 +192,27 @@ export function App() {
   const spotlightOrigin = spotlightOriginFor(revealSeed, roundIndex);
   const wide = useWideLayout();
 
-  type StartView = { s: 'list' } | { s: 'picker'; mode: CustomMode } | { s: 'create' };
+  type StartView = { s: 'list' } | { s: 'picker'; mode: CustomMode } | { s: 'create' } | { s: 'profile' };
   const [view, setView] = useState<StartView>({ s: 'list' });
+  const { recovery } = useAuth();
 
   useEffect(() => {
     if (phase !== 'idle') setView({ s: 'list' });
   }, [phase]);
+
+  // Returning from a password-reset link drops the player into recovery mode —
+  // open the profile panel so they can set a new password.
+  useEffect(() => {
+    if (recovery && phase === 'idle') setView({ s: 'profile' });
+  }, [recovery, phase]);
+
+  // Strip auth params (OAuth/recovery tokens) from the URL once supabase has
+  // consumed them, so a refresh doesn't replay the callback.
+  useEffect(() => {
+    if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+      window.history.replaceState({}, '', window.location.origin + window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     void loadRevealModes();
@@ -280,6 +297,38 @@ export function App() {
       )}
 
       {phase === 'idle' && <StartShare />}
+      {phase === 'idle' && view.s === 'list' && (
+        <button
+          type="button"
+          aria-label="Profile"
+          data-testid="account-btn"
+          onClick={() => setView({ s: 'profile' })}
+          style={{
+            position: 'absolute',
+            top: 'calc(12px + env(safe-area-inset-top))',
+            right: 12,
+            zIndex: 5,
+            width: 40,
+            height: 40,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 10,
+            border: '1px solid var(--line-strong)',
+            background: 'rgba(13,11,19,0.6)',
+            color: 'var(--ink-0)',
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            pointerEvents: 'auto',
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </button>
+      )}
       {phase === 'idle' && view.s !== 'list' && <BackButton onBack={() => setView({ s: 'list' })} />}
       {phase === 'gameover' && <InstallButton />}
       {phase === 'idle' && <StartArtwork />}
@@ -305,6 +354,8 @@ export function App() {
           {phase === 'idle' && view.s === 'create' && (
             <CustomModeBuilder key="create" onCreated={(mode) => setView({ s: 'picker', mode })} />
           )}
+
+          {phase === 'idle' && view.s === 'profile' && <ProfilePanel key="profile" />}
 
           {phase === 'loading' && <LoadingScreen />}
           {phase === 'error' && <ErrorScreen />}
