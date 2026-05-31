@@ -9,6 +9,7 @@ const cors = {
 const NAME_MIN = 3;
 const NAME_MAX = 16;
 const MAX_CORRECT = 40;
+const MAX_CARDS = 200; // generous upper bound on cards faced in one 90s run
 const MIN_PER_CARD = 100;
 const MAX_PER_CARD = 1000;
 const RATE_MAX = 5;
@@ -21,6 +22,11 @@ function sanitizeName(raw: unknown): string | null {
   const cleaned = raw.replace(/[ -]/g, '').replace(/\s+/g, ' ').trim();
   const capped = cleaned.slice(0, NAME_MAX).trim();
   return capped.length >= NAME_MIN ? capped : null;
+}
+
+function validCards(cards: unknown, correct: number): boolean {
+  if (typeof cards !== 'number' || !Number.isInteger(cards)) return false;
+  return cards >= correct && cards <= MAX_CARDS;
 }
 
 function validScore(score: unknown, correct: unknown): boolean {
@@ -83,11 +89,8 @@ Deno.serve(async (req) => {
   const score = body.score as number;
   const correct = body.correct as number;
 
-  const rawDeviceId = body.device_id;
-  if (typeof rawDeviceId !== 'string' || !/^[0-9a-f-]{36}$/.test(rawDeviceId)) {
-    return json({ ok: false, reason: 'device' }, 400);
-  }
-  const deviceId = rawDeviceId;
+  const cards = body.cards;
+  if (!validCards(cards, correct)) return json({ ok: false, reason: 'cards' }, 400);
 
   // game_mode is optional — null when absent or unrecognised
   const rawGameMode = body.game_mode;
@@ -105,6 +108,12 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
+  const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+  const { data: userData } = await supabase.auth.getUser(token);
+  const user = userData?.user;
+  if (!user) return json({ ok: false, reason: 'auth' }, 401);
+  const deviceId = user.id; // server-authoritative identity; not spoofable
+
   const since = new Date(Date.now() - RATE_WINDOW_MS).toISOString();
   const recent = await supabase
     .from('leaderboard')
@@ -117,6 +126,13 @@ Deno.serve(async (req) => {
   if ((m.count ?? 0) === 0) return json({ ok: false, reason: 'mode-not-found' }, 400);
 
   const country = await lookupCountry(ip);
+
+  await supabase.rpc('bump_profile_stats', {
+    p_user: deviceId,
+    p_name: name,
+    p_correct: correct,
+    p_cards: cards as number,
+  });
 
   // One row per (mode_id, game_mode, device_id): keep this device's best run in
   // each reveal mode. Boards are per (mode, reveal_mode); the display name is
