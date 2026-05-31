@@ -1,6 +1,12 @@
 import { getSupabase } from '../supabase/client';
 import type { GlobalEntry, SubmitPayload } from './types';
 import type { RevealMode } from '../engine/timeAttack';
+import { aggregateByPerson, type LeaderboardRun } from './aggregate';
+
+// Upper bound on raw rows pulled per board. The board is collapsed to one row per
+// person client-side, so we fetch enough runs to cover every reveal mode of the top
+// players rather than a small per-row limit.
+const ROW_FETCH_CAP = 500;
 
 export function isLeaderboardEnabled(): boolean {
   return getSupabase() !== null;
@@ -17,7 +23,7 @@ interface Row {
   created_at: string;
 }
 
-function toEntry(r: Row): GlobalEntry {
+function toRun(r: Row): LeaderboardRun {
   return {
     id: r.id,
     name: r.name,
@@ -29,11 +35,8 @@ function toEntry(r: Row): GlobalEntry {
   };
 }
 
-export async function fetchModeTopScores(
-  modeId: string,
-  limit = 5,
-  since: number | null = null,
-): Promise<GlobalEntry[]> {
+/** All runs for a mode, collapsed to one entry per person and ranked by best score. */
+async function fetchPersons(modeId: string, since: number | null): Promise<GlobalEntry[]> {
   const c = getSupabase();
   if (!c) return [];
   let q = c
@@ -44,29 +47,27 @@ export async function fetchModeTopScores(
   const { data, error } = await q
     .order('score', { ascending: false })
     .order('created_at', { ascending: true })
-    .limit(limit);
+    .limit(ROW_FETCH_CAP);
   if (error) throw new Error(error.message);
-  return ((data ?? []) as Row[]).map(toEntry);
+  return aggregateByPerson(((data ?? []) as Row[]).map(toRun));
+}
+
+export async function fetchModeTopScores(
+  modeId: string,
+  limit = 5,
+  since: number | null = null,
+): Promise<GlobalEntry[]> {
+  const persons = await fetchPersons(modeId, since);
+  return persons.slice(0, limit);
 }
 
 export async function fetchModeProjectedRank(
   modeId: string,
   score: number,
 ): Promise<{ rank: number; total: number }> {
-  const c = getSupabase();
-  if (!c) return { rank: 1, total: 0 };
-  const higher = await c
-    .from('leaderboard_top')
-    .select('id', { count: 'exact', head: true })
-    .eq('mode_id', modeId)
-    .gt('score', score);
-  if (higher.error) throw new Error(higher.error.message);
-  const all = await c
-    .from('leaderboard_top')
-    .select('id', { count: 'exact', head: true })
-    .eq('mode_id', modeId);
-  if (all.error) throw new Error(all.error.message);
-  return { rank: (higher.count ?? 0) + 1, total: all.count ?? 0 };
+  const persons = await fetchPersons(modeId, null);
+  const higher = persons.filter((p) => p.score > score).length;
+  return { rank: higher + 1, total: persons.length };
 }
 
 export type SubmitResult =
@@ -82,6 +83,7 @@ export async function submitScore(payload: SubmitPayload): Promise<SubmitResult>
     correct: payload.correct,
     mode_id: payload.modeId,
     game_mode: payload.gameMode,
+    device_id: payload.deviceId,
   };
   const { data, error } = await c.functions.invoke('submit-score', { body });
   if (error) return { ok: false, reason: error.message };

@@ -58,9 +58,26 @@ describe('fetchModeTopScores', () => {
     const { fetchModeTopScores } = await importClient();
     const rows = await fetchModeTopScores('mode-uuid', 5);
     expect(rows[0]).toEqual({
-      id: '1', name: 'Al', score: 900, correct: 9, gameMode: null, country: 'DE',
+      id: '1', name: 'Al', score: 900, correct: 9, gameModes: [], country: 'DE',
       createdAt: Date.parse('2026-01-01T00:00:00.000Z'),
     });
+  });
+
+  it('collapses a name to one row, badging each reveal mode by points', async () => {
+    from.mockReturnValueOnce(
+      query({
+        data: [
+          { id: '1', name: 'Al', score: 900, correct: 9, mode_id: 'm', game_mode: 'zoom', country: 'DE', created_at: '2026-01-01T00:00:00.000Z' },
+          { id: '2', name: 'Al', score: 500, correct: 5, mode_id: 'm', game_mode: 'blur', country: 'DE', created_at: '2026-01-02T00:00:00.000Z' },
+        ],
+        error: null,
+      }),
+    );
+    const { fetchModeTopScores } = await importClient();
+    const rows = await fetchModeTopScores('m', 5);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].score).toBe(900);
+    expect(rows[0].gameModes).toEqual(['zoom', 'blur']);
   });
   it('throws on a query error', async () => {
     from.mockReturnValueOnce(query({ data: null, error: { message: 'boom' } }));
@@ -84,12 +101,22 @@ describe('fetchModeTopScores', () => {
 });
 
 describe('fetchModeProjectedRank', () => {
-  it('returns count-of-higher + 1 and the total', async () => {
-    from
-      .mockReturnValueOnce(query({ count: 3, error: null })) // higher
-      .mockReturnValueOnce(query({ count: 12, error: null })); // total
+  it('ranks against distinct people (best score each), not raw rows', async () => {
+    // Al has two runs; they collapse to one person at their best (900). Three
+    // distinct people total; two of them beat a score of 500.
+    from.mockReturnValueOnce(
+      query({
+        data: [
+          { id: '1', name: 'Al', score: 900, correct: 9, mode_id: 'm', game_mode: 'zoom', country: 'DE', created_at: '2026-01-01T00:00:00.000Z' },
+          { id: '2', name: 'Al', score: 200, correct: 2, mode_id: 'm', game_mode: 'blur', country: 'DE', created_at: '2026-01-02T00:00:00.000Z' },
+          { id: '3', name: 'Bo', score: 700, correct: 7, mode_id: 'm', game_mode: 'blur', country: 'DE', created_at: '2026-01-01T00:00:00.000Z' },
+          { id: '4', name: 'Cy', score: 300, correct: 3, mode_id: 'm', game_mode: 'blur', country: 'DE', created_at: '2026-01-01T00:00:00.000Z' },
+        ],
+        error: null,
+      }),
+    );
     const { fetchModeProjectedRank } = await importClient();
-    expect(await fetchModeProjectedRank('mode-uuid', 500)).toEqual({ rank: 4, total: 12 });
+    expect(await fetchModeProjectedRank('m', 500)).toEqual({ rank: 3, total: 3 });
   });
 });
 
@@ -97,24 +124,24 @@ describe('submitScore', () => {
   it('returns ok with id and rank on success', async () => {
     invoke.mockResolvedValueOnce({ data: { ok: true, id: 'x', rank: 7 }, error: null });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid', gameMode: 'blur' })).toEqual({ ok: true, id: 'x', rank: 7 });
+    expect(await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid', gameMode: 'blur', deviceId: 'dev-1' })).toEqual({ ok: true, id: 'x', rank: 7 });
   });
   it('returns a reason on function error', async () => {
     invoke.mockResolvedValueOnce({ data: null, error: { message: 'rate-limited' } });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid', gameMode: 'blur' })).toEqual({ ok: false, reason: 'rate-limited' });
+    expect(await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid', gameMode: 'blur', deviceId: 'dev-1' })).toEqual({ ok: false, reason: 'rate-limited' });
   });
   it('returns a reason when the function rejects the payload', async () => {
     invoke.mockResolvedValueOnce({ data: { ok: false, reason: 'score' }, error: null });
     const { submitScore } = await importClient();
-    expect(await submitScore({ name: 'Al', score: 1, correct: 9, modeId: 'mode-uuid', gameMode: 'blur' })).toEqual({ ok: false, reason: 'score' });
+    expect(await submitScore({ name: 'Al', score: 1, correct: 9, modeId: 'mode-uuid', gameMode: 'blur', deviceId: 'dev-1' })).toEqual({ ok: false, reason: 'score' });
   });
-  it('sends mode_id and game_mode (not pool) in the request body', async () => {
+  it('sends mode_id, game_mode and device_id (not pool) in the request body', async () => {
     invoke.mockResolvedValueOnce({ data: { ok: true, id: 'x', rank: 1 }, error: null });
     const { submitScore } = await importClient();
-    await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid', gameMode: 'blur' });
+    await submitScore({ name: 'Al', score: 900, correct: 9, modeId: 'mode-uuid', gameMode: 'blur', deviceId: 'dev-1' });
     expect(invoke).toHaveBeenCalledWith('submit-score', {
-      body: expect.objectContaining({ mode_id: 'mode-uuid', game_mode: 'blur' }),
+      body: expect.objectContaining({ mode_id: 'mode-uuid', game_mode: 'blur', device_id: 'dev-1' }),
     });
     expect(invoke).toHaveBeenCalledWith('submit-score', {
       body: expect.not.objectContaining({ pool: expect.anything() }),

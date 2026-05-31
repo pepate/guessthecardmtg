@@ -29,7 +29,7 @@ describe('GameOverLeaderboard', () => {
 
   it('shows the online top-5 board on mount', async () => {
     vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([
-      { id: '1', name: 'Top', score: 999, correct: 9, gameMode: 'blur', country: 'DE', createdAt: 0 },
+      { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0 },
     ]);
     render(<GameOverLeaderboard score={500} correct={5} modeId={MODE_ID} gameMode="blur" />);
     await waitFor(() => expect(screen.getByTestId('global-list')).toBeInTheDocument());
@@ -39,7 +39,7 @@ describe('GameOverLeaderboard', () => {
   it('pins the projected position when outside the top five', async () => {
     vi.spyOn(client, 'fetchModeProjectedRank').mockResolvedValue({ rank: 8, total: 20 });
     vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([
-      { id: '1', name: 'Top', score: 999, correct: 9, gameMode: 'blur', country: 'DE', createdAt: 0 },
+      { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0 },
     ]);
     render(<GameOverLeaderboard score={500} correct={5} modeId={MODE_ID} gameMode="blur" />);
     await waitFor(() => expect(screen.getByTestId('global-pinned')).toBeInTheDocument());
@@ -48,7 +48,7 @@ describe('GameOverLeaderboard', () => {
   it('renders the name input inside the pinned row when outside the top five', async () => {
     vi.spyOn(client, 'fetchModeProjectedRank').mockResolvedValue({ rank: 8, total: 20 });
     vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([
-      { id: '1', name: 'Top', score: 999, correct: 9, gameMode: 'blur', country: 'DE', createdAt: 0 },
+      { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0 },
     ]);
     render(<GameOverLeaderboard score={500} correct={5} modeId={MODE_ID} gameMode="blur" />);
     const pinned = await screen.findByTestId('global-pinned');
@@ -83,7 +83,7 @@ describe('GameOverLeaderboard', () => {
     fireEvent.click(screen.getByTestId('post-btn'));
     await waitFor(() => expect(screen.getByTestId('post-confirm')).toBeInTheDocument());
     expect(localStorage.getItem('guessthecard.playername')).toBe('Alice');
-    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, modeId: MODE_ID, gameMode: 'blur' });
+    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, modeId: MODE_ID, gameMode: 'blur', deviceId: expect.any(String) });
   });
 
   it('shows an error message when submission fails', async () => {
@@ -118,7 +118,7 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
     await waitFor(() => expect(screen.getByTestId('post-confirm')).toBeInTheDocument());
     expect(findExisting).toHaveBeenCalledWith(SET_FILTER);
     expect(create).not.toHaveBeenCalled();
-    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, modeId: 'existing-mode-id', gameMode: 'scanner' });
+    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, modeId: 'existing-mode-id', gameMode: 'scanner', deviceId: expect.any(String) });
   });
 
   it('creates a mode when none exists and submits with the new id', async () => {
@@ -131,7 +131,7 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
 
     await waitFor(() => expect(screen.getByTestId('post-confirm')).toBeInTheDocument());
     expect(create).toHaveBeenCalledWith(SET_FILTER);
-    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, modeId: 'new-mode-id', gameMode: 'mosaic' });
+    expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, modeId: 'new-mode-id', gameMode: 'mosaic', deviceId: expect.any(String) });
   });
 
   it('shows an error and does not submit when createMode fails', async () => {

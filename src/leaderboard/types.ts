@@ -5,7 +5,8 @@ export interface GlobalEntry {
   name: string;
   score: number;
   correct: number;
-  gameMode: RevealMode | null;
+  /** Reveal modes this person has a score in, ordered by points (highest first). */
+  gameModes: RevealMode[];
   /** ISO 3166-1 alpha-2 (uppercase), or null when unknown. */
   country: string | null;
   /** Epoch milliseconds. */
@@ -18,4 +19,5 @@ export interface SubmitPayload {
   correct: number;
   modeId: string;
   gameMode: RevealMode;
+  deviceId: string;
 }

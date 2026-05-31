@@ -8,6 +8,7 @@ import {
   fetchModeTopScores,
   submitScore,
 } from '../leaderboard/client';
+import { getDeviceId } from '../leaderboard/identity';
 import { findExistingMode, createMode } from '../modes/client';
 import type { CustomFilter } from '../modes/filter';
 import { GlobalScoreList } from './GlobalScoreList';
@@ -99,7 +100,7 @@ export function GameOverLeaderboard({
       }
     }
 
-    const res = await submitScore({ name: clean, score, correct, modeId: resolvedModeId, gameMode });
+    const res = await submitScore({ name: clean, score, correct, modeId: resolvedModeId, gameMode, deviceId: getDeviceId() });
     if (!res.ok) {
       setStatus('error');
       return;
@@ -119,7 +120,7 @@ export function GameOverLeaderboard({
     name: posted?.name ?? (sanitizeName(name) ?? 'You'),
     score,
     correct,
-    gameMode,
+    gameModes: [gameMode],
     country: null,
     createdAt: Date.now(),
   };
