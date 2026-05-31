@@ -31,11 +31,11 @@ describe('GlobalScoreList', () => {
     expect(onPlay).toHaveBeenCalledWith('zoom');
   });
 
-  it('shows a badge for every reveal mode on a single person row', () => {
+  it('shows only the winning (first) reveal mode badge on a person row', () => {
     render(<GlobalScoreList entries={[multiModeEntry]} now={NOW} />);
     expect(screen.getAllByTestId('global-entry')).toHaveLength(1);
     expect(screen.getByText(/spotlight/i)).toBeTruthy();
-    expect(screen.getByText(/blur/i)).toBeTruthy();
+    expect(screen.queryByText(/blur/i)).toBeNull();
   });
 
   it('renders one row per entry with rank, name and score', () => {

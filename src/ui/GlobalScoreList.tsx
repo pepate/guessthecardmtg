@@ -51,18 +51,12 @@ function Row({
         </span>
       )}
       <span style={{ color: 'var(--ink-2)', fontSize: 11 }}>{entry.correct}✓ · {formatAge(entry.createdAt, now)}</span>
-      <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end' }}>
-        {entry.gameModes.length === 0 ? (
-          <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", padding: '2px 6px', borderRadius: 6, border: '1px solid var(--line)' }}>
-            —
-          </span>
-        ) : (
-          entry.gameModes.map((mode) => (
-            <span key={mode} style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", padding: '2px 6px', borderRadius: 6, border: '1px solid var(--line)', whiteSpace: 'nowrap' }}>
-              {REVEAL_MODE_LABELS[mode]}
-            </span>
-          ))
-        )}
+      <span style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+        {/* Only the reveal mode that earned this placement (the best score), so the
+            name stays readable on mobile. */}
+        <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", padding: '2px 6px', borderRadius: 6, border: '1px solid var(--line)', whiteSpace: 'nowrap' }}>
+          {entry.gameModes.length === 0 ? '—' : REVEAL_MODE_LABELS[entry.gameModes[0]]}
+        </span>
       </span>
       <ScoreValue score={entry.score} />
     </div>

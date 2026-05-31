@@ -5,11 +5,9 @@ import { useCountUp } from './useCountUp';
 import { GameOverLeaderboard } from './GameOverLeaderboard';
 import { shareLink } from '../share/score';
 import type { RevealMode } from '../engine/timeAttack';
-import { listModes, getModeById } from '../modes/client';
-import { fetchAutoAdvanceTarget, fetchRevealLeaders } from '../leaderboard/client';
+import { fetchRevealLeaders } from '../leaderboard/client';
 import { fetchEnabledRevealModes } from '../reveal/client';
 import { REVEAL_MODE_LABELS } from '../reveal/labels';
-import { getDeviceId } from '../leaderboard/identity';
 import type { GlobalEntry } from '../leaderboard/types';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
@@ -27,7 +25,6 @@ export function GameOver() {
   const reset = useGameStore((s) => s.reset);
 
   const [shareLabel, setShareLabel] = useState('Share score');
-  const [nextTarget, setNextTarget] = useState<{ modeId: string; reveal: RevealMode } | null>(null);
   const [otherLeaders, setOtherLeaders] = useState<Record<RevealMode, GlobalEntry | null> | null>(null);
   const [enabledModes, setEnabledModes] = useState<RevealMode[]>([]);
 
@@ -50,30 +47,6 @@ export function GameOver() {
     const store = useGameStore.getState();
     store.setRevealChoice(reveal);
     void store.selectPool({ kind: 'custom', modeId: currentModeId, filter: currentModeFilter, name: currentModeName ?? '' });
-  }
-
-  // Suggest the next combo to chase: one where this device isn't already #1 and
-  // someone else has set a score (preferring where the device has fewest points).
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const modes = await listModes(200);
-      const enabled = await fetchEnabledRevealModes();
-      const target = await fetchAutoAdvanceTarget(modes.map((m) => m.id), getDeviceId(), enabled);
-      if (!cancelled) setNextTarget(target);
-    })().catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function onNext() {
-    if (!nextTarget) return;
-    const mode = await getModeById(nextTarget.modeId);
-    if (!mode) return;
-    const store = useGameStore.getState();
-    store.setRevealChoice(nextTarget.reveal);
-    void store.selectPool({ kind: 'custom', modeId: mode.id, filter: mode.filter, name: mode.name });
   }
 
   const animatedScore = useCountUp(totalScore, 1100, 1, 0);
@@ -190,16 +163,7 @@ export function GameOver() {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
-        {nextTarget && (
-          <button className="ember-btn" style={{ width: '100%' }} onClick={onNext} data-testid="next-challenge-btn">
-            Beat a new highscore →
-          </button>
-        )}
-        <button
-          className={nextTarget ? 'ghost-btn' : 'ember-btn'}
-          style={{ width: '100%' }}
-          onClick={restart}
-        >
+        <button className="ember-btn" style={{ width: '100%' }} onClick={restart}>
           Play again
         </button>
         <button

@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { listModes } from '../modes/client';
+import { listModes, getModeById } from '../modes/client';
 import type { CustomMode, CustomModeListItem } from '../modes/types';
-import { fetchModeRuns } from '../leaderboard/client';
+import { fetchModeRuns, fetchAutoAdvanceTarget } from '../leaderboard/client';
 import { deviceModeStanding, type Run } from '../leaderboard/boards';
 import { getDeviceId } from '../leaderboard/identity';
+import { fetchEnabledRevealModes } from '../reveal/client';
+import { useGameStore } from '../state/gameStore';
+import type { RevealMode } from '../engine/timeAttack';
 import { windowCutoff, WINDOW_TABS, type TimeWindow } from '../leaderboard/window';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
@@ -153,23 +156,56 @@ export function StartModes({
   const [win, setWin] = useState<TimeWindow>('week');
   const [views, setViews] = useState<ModeView[] | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
+  const [advanceOpen, setAdvanceOpen] = useState(false);
+  const [nextTarget, setNextTarget] = useState<{ modeId: string; reveal: RevealMode } | null>(null);
+
+  const touchDevice = () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
 
   function onFabClick() {
     // Touch devices have no hover: first tap reveals the label, the next creates.
-    const touch = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
-    if (touch && !fabOpen) {
+    if (touchDevice() && !fabOpen) {
       setFabOpen(true);
       return;
     }
     onCreate();
   }
 
-  // Auto-collapse the expanded mobile FAB so it doesn't sit over the list.
+  async function onAdvanceClick() {
+    if (touchDevice() && !advanceOpen) {
+      setAdvanceOpen(true);
+      return;
+    }
+    if (!nextTarget) return;
+    const mode = await getModeById(nextTarget.modeId);
+    if (!mode) return;
+    const store = useGameStore.getState();
+    store.setRevealChoice(nextTarget.reveal);
+    void store.selectPool({ kind: 'custom', modeId: mode.id, filter: mode.filter, name: mode.name });
+  }
+
+  // Auto-collapse the expanded mobile FABs so they don't sit over the list.
   useEffect(() => {
     if (!fabOpen) return;
     const id = setTimeout(() => setFabOpen(false), 3000);
     return () => clearTimeout(id);
   }, [fabOpen]);
+  useEffect(() => {
+    if (!advanceOpen) return;
+    const id = setTimeout(() => setAdvanceOpen(false), 3000);
+    return () => clearTimeout(id);
+  }, [advanceOpen]);
+
+  // The next highscore worth chasing across all modes (none → no advance FAB).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const modes = await listModes(200);
+      const enabled = await fetchEnabledRevealModes();
+      const target = await fetchAutoAdvanceTarget(modes.map((m) => m.id), getDeviceId(), enabled);
+      if (!cancelled) setNextTarget(target);
+    })().catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -251,7 +287,7 @@ export function StartModes({
           display: 'flex',
           flexDirection: 'column',
           gap: 10,
-          paddingBottom: 76,
+          paddingBottom: 140,
         }}
       >
         {views === null ? (
@@ -269,11 +305,29 @@ export function StartModes({
         )}
       </div>
 
+      {nextTarget && (
+        <button
+          type="button"
+          data-testid="advance-fab"
+          aria-label="Beat a highscore"
+          className={`fab advance-fab${advanceOpen ? ' is-open' : ''}`}
+          onClick={onAdvanceClick}
+        >
+          <span className="fab-plus" aria-hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="8" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </span>
+          <span className="fab-label">Beat a highscore</span>
+        </button>
+      )}
+
       <button
         type="button"
         data-testid="create-mode-btn"
         aria-label="Create Mode"
-        className={`create-fab${fabOpen ? ' is-open' : ''}`}
+        className={`fab create-fab${fabOpen ? ' is-open' : ''}`}
         onClick={onFabClick}
       >
         <span className="fab-plus" aria-hidden>+</span>
