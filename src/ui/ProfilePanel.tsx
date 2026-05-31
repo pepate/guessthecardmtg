@@ -11,12 +11,14 @@ import {
   signOut,
 } from '../auth/actions';
 import { clearRecovery, refreshUser } from '../auth/session';
-import { getProfile, upsertDisplayName, checkNameAvailable } from '../profile/client';
+import { getProfile, upsertDisplayName, checkNameAvailable, updateCountry } from '../profile/client';
 import type { Profile } from '../profile/client';
 import { fetchPlayerBests, type PlayerBest } from '../profile/stats';
 import { ProfileStats } from './ProfileStats';
 import { getUserId } from '../leaderboard/identity';
 import { sanitizeName, NAME_MIN, NAME_MAX } from '../leaderboard/validation';
+import { COUNTRIES } from '../leaderboard/countries';
+import { countryToFlag } from '../leaderboard/flag';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -294,6 +296,37 @@ export function ProfilePanel() {
     setNotice('Name saved.');
   }
 
+  // Home country — auto-detected on first game, freely changeable here. Only
+  // shown once a profile exists (i.e. the player has posted at least once).
+  function countryEditor() {
+    if (!profile) return null;
+    return (
+      <div style={sectionStyle}>
+        <p style={labelStyle}>Home country</p>
+        <select
+          data-testid="profile-country"
+          value={profile.country ?? ''}
+          onChange={e => void handleCountryChange(e.target.value)}
+          style={{ ...inputStyle, appearance: 'auto' }}
+        >
+          <option value="" disabled>Select your country</option>
+          {COUNTRIES.map(c => (
+            <option key={c.code} value={c.code}>{countryToFlag(c.code)} {c.name}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  async function handleCountryChange(code: string) {
+    clearMessages();
+    if (!uid || !code) return;
+    const res = await updateCountry(uid, code);
+    if (!res.ok) { setError(res.error); return; }
+    setProfile(prev => prev ? { ...prev, country: code } : prev);
+    setNotice('Home country saved.');
+  }
+
   // ── 1. Recovery mode ─────────────────────────────────────────────────────────
   if (recovery) {
     async function handleRecovery() {
@@ -346,6 +379,7 @@ export function ProfilePanel() {
     return shell(
       <>
         {nameEditor()}
+        {countryEditor()}
         <div style={sectionStyle}>
           <p style={labelStyle}>Secure your account</p>
           <input data-testid="secure-email" type="email" placeholder="Email" value={secureEmail} onChange={e => setSecureEmail(e.target.value)} style={inputStyle} />
@@ -391,6 +425,7 @@ export function ProfilePanel() {
   return shell(
     <>
       {nameEditor()}
+      {countryEditor()}
       <div style={sectionStyle}>
         <p style={labelStyle}>Linked accounts</p>
         {hasEmail && (

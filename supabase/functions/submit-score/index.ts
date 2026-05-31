@@ -42,11 +42,6 @@ function isClean(name: string): boolean {
   return !BANNED.some((w) => low.includes(w));
 }
 
-async function sha256(input: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 async function lookupCountry(ip: string): Promise<string | null> {
   try {
     const res = await fetch(`https://ipwho.is/${ip}?fields=country_code`);
@@ -100,8 +95,6 @@ Deno.serve(async (req) => {
       : null;
 
   const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'unknown';
-  const salt = Deno.env.get('IP_HASH_SALT') ?? '';
-  const ipHash = await sha256(ip + salt);
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -114,11 +107,12 @@ Deno.serve(async (req) => {
   if (!user) return json({ ok: false, reason: 'auth' }, 401);
   const deviceId = user.id; // server-authoritative identity; not spoofable
 
+  // Rate-limit by the authenticated user (no IP is stored anymore).
   const since = new Date(Date.now() - RATE_WINDOW_MS).toISOString();
   const recent = await supabase
     .from('leaderboard')
     .select('id', { count: 'exact', head: true })
-    .eq('ip_hash', ipHash)
+    .eq('device_id', deviceId)
     .gte('created_at', since);
   if ((recent.count ?? 0) >= RATE_MAX) return json({ ok: false, reason: 'rate-limited' }, 429);
 
@@ -132,6 +126,7 @@ Deno.serve(async (req) => {
     p_name: name,
     p_correct: correct,
     p_cards: cards as number,
+    p_country: country,
   });
   if (bump.error) {
     // Another player already owns this display name (unique_violation). Reject
@@ -158,7 +153,7 @@ Deno.serve(async (req) => {
   if (!existing.data) {
     const inserted = await supabase
       .from('leaderboard')
-      .insert({ name, score, correct, mode_id: modeId, game_mode: gameMode, device_id: deviceId, country, ip_hash: ipHash })
+      .insert({ score, correct, mode_id: modeId, game_mode: gameMode, device_id: deviceId })
       .select('id')
       .single();
     if (inserted.error) return json({ ok: false, reason: 'insert' }, 500);
@@ -166,7 +161,7 @@ Deno.serve(async (req) => {
   } else if (score > existing.data.score) {
     const updated = await supabase
       .from('leaderboard')
-      .update({ name, score, correct, country, ip_hash: ipHash, created_at: new Date().toISOString() })
+      .update({ score, correct, created_at: new Date().toISOString() })
       .eq('id', existing.data.id)
       .select('id')
       .single();

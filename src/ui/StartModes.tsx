@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { listModes, getModeById } from '../modes/client';
-import { startMostPlayedGame } from '../modes/quickStart';
+import { listModes } from '../modes/client';
+import { startMostPlayedGame, startRandomGame } from '../modes/quickStart';
 import type { CustomMode, CustomModeListItem } from '../modes/types';
-import { fetchModeRuns, fetchAutoAdvanceTarget } from '../leaderboard/client';
+import { fetchModeRuns } from '../leaderboard/client';
 import { deviceModeStanding, type Run } from '../leaderboard/boards';
 import { getUserId } from '../leaderboard/identity';
-import { fetchEnabledRevealModes } from '../reveal/client';
-import { useGameStore } from '../state/gameStore';
 import { getGamesPlayed } from '../state/highscores';
-import type { RevealMode } from '../engine/timeAttack';
 import { windowCutoff, WINDOW_TABS, type TimeWindow } from '../leaderboard/window';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
@@ -159,7 +156,6 @@ export function StartModes({
   const [views, setViews] = useState<ModeView[] | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
   const [advanceOpen, setAdvanceOpen] = useState(false);
-  const [nextTarget, setNextTarget] = useState<{ modeId: string; reveal: RevealMode } | null>(null);
   const [createHint, setCreateHint] = useState(false);
   const [gamesPlayed] = useState(() => getGamesPlayed());
   const GAMES_TO_UNLOCK = 3;
@@ -186,12 +182,7 @@ export function StartModes({
       setAdvanceOpen(true);
       return;
     }
-    if (!nextTarget) return;
-    const mode = await getModeById(nextTarget.modeId);
-    if (!mode) return;
-    const store = useGameStore.getState();
-    store.setRevealChoice(nextTarget.reveal);
-    void store.selectPool({ kind: 'custom', modeId: mode.id, filter: mode.filter, name: mode.name });
+    await startRandomGame();
   }
 
   // Auto-collapse the expanded mobile FABs so they don't sit over the list.
@@ -210,20 +201,6 @@ export function StartModes({
     const id = setTimeout(() => setCreateHint(false), 3800);
     return () => clearTimeout(id);
   }, [createHint]);
-
-  // The next highscore worth chasing across all modes (none → no advance FAB).
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const modes = await listModes(200);
-      const enabled = await fetchEnabledRevealModes();
-      const uid = await getUserId();
-      if (!uid) return;
-      const target = await fetchAutoAdvanceTarget(modes.map((m) => m.id), uid, enabled);
-      if (!cancelled) setNextTarget(target);
-    })().catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -363,7 +340,7 @@ export function StartModes({
         </div>
       )}
 
-      {nextTarget && (
+      {views && views.length > 0 && (
         <button
           type="button"
           data-testid="advance-fab"

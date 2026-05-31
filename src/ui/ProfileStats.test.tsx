@@ -4,7 +4,7 @@ import { ProfileStats } from './ProfileStats';
 import type { Profile } from '../profile/client';
 import type { PlayerBest } from '../profile/stats';
 
-const profile: Profile = { displayName: 'Al', gamesPlayed: 4, totalCorrect: 12, totalCards: 24 };
+const profile: Profile = { displayName: 'Al', gamesPlayed: 4, totalCorrect: 12, totalCards: 24, country: 'DE' };
 
 describe('ProfileStats', () => {
   it('renders nothing without a profile', () => {

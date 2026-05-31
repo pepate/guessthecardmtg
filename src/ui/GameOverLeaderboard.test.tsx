@@ -14,6 +14,7 @@ beforeEach(() => {
   vi.spyOn(client, 'isLeaderboardEnabled').mockReturnValue(true);
   vi.spyOn(client, 'fetchModeProjectedRank').mockResolvedValue({ rank: 4, total: 20 });
   vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([]);
+  // No session/profile → the player has no name yet → the onboarding overlay shows.
   vi.spyOn(identity, 'getUserId').mockResolvedValue(null);
 });
 
@@ -47,54 +48,58 @@ describe('GameOverLeaderboard', () => {
     await waitFor(() => expect(screen.getByTestId('global-pinned')).toBeInTheDocument());
   });
 
-  it('renders the name input inside the pinned row when outside the top five', async () => {
-    vi.spyOn(client, 'fetchModeProjectedRank').mockResolvedValue({ rank: 8, total: 20 });
-    vi.spyOn(client, 'fetchModeTopScores').mockResolvedValue([
-      { id: '1', name: 'Top', score: 999, correct: 9, gameModes: ['blur'], country: 'DE', createdAt: 0, deviceId: 'dev-top' },
-    ]);
-    render(<GameOverLeaderboard score={500} correct={5} cards={5} modeId={MODE_ID} gameMode="blur" />);
-    const pinned = await screen.findByTestId('global-pinned');
-    expect(pinned).toContainElement(screen.getByTestId('name-input'));
+  it('shows the onboarding overlay (name + projected rank) for a player with no name yet', async () => {
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
+    await waitFor(() => expect(screen.getByTestId('onboard-overlay')).toBeInTheDocument());
+    expect(screen.getByTestId('onboard-name')).toBeInTheDocument();
+    expect(screen.getByTestId('onboard-projected')).toHaveTextContent('#4');
   });
 
-  it('flags the name field and does not submit when the name is too short', async () => {
+  it('keeps Save disabled for a too-short name and does not submit', async () => {
     const submit = vi.spyOn(client, 'submitScore');
     render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
-    await waitFor(() => screen.getByTestId('name-input'));
-    fireEvent.change(screen.getByTestId('name-input'), { target: { value: 'ab' } });
-    fireEvent.click(screen.getByTestId('post-btn'));
-    expect(screen.getByTestId('name-hint')).toBeInTheDocument();
-    expect(screen.getByTestId('name-input')).toHaveAttribute('aria-invalid', 'true');
+    await waitFor(() => screen.getByTestId('onboard-name'));
+    fireEvent.change(screen.getByTestId('onboard-name'), { target: { value: 'ab' } });
+    expect(screen.getByTestId('onboard-save')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('onboard-save'));
     expect(submit).not.toHaveBeenCalled();
   });
 
-  it('clears the name hint once the user types a valid name', async () => {
+  it('enables Save once a valid name is typed', async () => {
     render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
-    await waitFor(() => screen.getByTestId('name-input'));
-    fireEvent.click(screen.getByTestId('post-btn'));
-    expect(screen.getByTestId('name-hint')).toBeInTheDocument();
-    fireEvent.change(screen.getByTestId('name-input'), { target: { value: 'Alice' } });
-    expect(screen.queryByTestId('name-hint')).toBeNull();
+    await waitFor(() => screen.getByTestId('onboard-name'));
+    fireEvent.change(screen.getByTestId('onboard-name'), { target: { value: 'Alice' } });
+    expect(screen.getByTestId('onboard-save')).not.toBeDisabled();
   });
 
   it('submits with modeId+gameMode and shows a confirmation, persisting the name', async () => {
     vi.spyOn(client, 'submitScore').mockResolvedValue({ ok: true, id: 'x', rank: 4 });
     render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
-    await waitFor(() => screen.getByTestId('name-input'));
-    fireEvent.change(screen.getByTestId('name-input'), { target: { value: 'Alice' } });
-    fireEvent.click(screen.getByTestId('post-btn'));
+    await waitFor(() => screen.getByTestId('onboard-name'));
+    fireEvent.change(screen.getByTestId('onboard-name'), { target: { value: 'Alice' } });
+    fireEvent.click(screen.getByTestId('onboard-save'));
     await waitFor(() => expect(screen.getByTestId('post-confirm')).toBeInTheDocument());
     expect(localStorage.getItem('guessthecard.playername')).toBe('Alice');
     expect(client.submitScore).toHaveBeenCalledWith({ name: 'Alice', score: 5000, correct: 10, cards: 10, modeId: MODE_ID, gameMode: 'blur' });
   });
 
-  it('shows an error message when submission fails', async () => {
+  it('shows an error in the overlay when submission fails', async () => {
     vi.spyOn(client, 'submitScore').mockResolvedValue({ ok: false, reason: 'rate-limited' });
     render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
-    await waitFor(() => screen.getByTestId('name-input'));
-    fireEvent.change(screen.getByTestId('name-input'), { target: { value: 'Alice' } });
-    fireEvent.click(screen.getByTestId('post-btn'));
-    await waitFor(() => expect(screen.getByTestId('post-error')).toBeInTheDocument());
+    await waitFor(() => screen.getByTestId('onboard-name'));
+    fireEvent.change(screen.getByTestId('onboard-name'), { target: { value: 'Alice' } });
+    fireEvent.click(screen.getByTestId('onboard-save'));
+    await waitFor(() => expect(screen.getByTestId('onboard-error')).toBeInTheDocument());
+  });
+
+  it('flags a taken name and does not confirm', async () => {
+    vi.spyOn(client, 'submitScore').mockResolvedValue({ ok: false, reason: 'name-taken' });
+    render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={MODE_ID} gameMode="blur" />);
+    await waitFor(() => screen.getByTestId('onboard-name'));
+    fireEvent.change(screen.getByTestId('onboard-name'), { target: { value: 'Alice' } });
+    fireEvent.click(screen.getByTestId('onboard-save'));
+    await waitFor(() => expect(screen.getByTestId('onboard-taken')).toBeInTheDocument());
+    expect(screen.queryByTestId('post-confirm')).toBeNull();
   });
 });
 
@@ -103,10 +108,10 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
   const NEW_MODE = { id: 'new-mode-id', name: 'DOM', filter: SET_FILTER, card_count: 60 };
   const EXISTING_MODE = { id: 'existing-mode-id', name: 'DOM', filter: SET_FILTER, card_count: 60 };
 
-  async function typeAndPost(name = 'Alice') {
-    await waitFor(() => screen.getByTestId('name-input'));
-    fireEvent.change(screen.getByTestId('name-input'), { target: { value: name } });
-    fireEvent.click(screen.getByTestId('post-btn'));
+  async function typeAndSave(name = 'Alice') {
+    await waitFor(() => screen.getByTestId('onboard-name'));
+    fireEvent.change(screen.getByTestId('onboard-name'), { target: { value: name } });
+    fireEvent.click(screen.getByTestId('onboard-save'));
   }
 
   it('submits with an existing mode id and does not create a mode', async () => {
@@ -115,7 +120,7 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
     vi.spyOn(client, 'submitScore').mockResolvedValue({ ok: true, id: 'x', rank: 3 });
 
     render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={null} modeFilter={SET_FILTER} gameMode="scanner" />);
-    await typeAndPost();
+    await typeAndSave();
 
     await waitFor(() => expect(screen.getByTestId('post-confirm')).toBeInTheDocument());
     expect(findExisting).toHaveBeenCalledWith(SET_FILTER);
@@ -129,7 +134,7 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
     vi.spyOn(client, 'submitScore').mockResolvedValue({ ok: true, id: 'x', rank: 1 });
 
     render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={null} modeFilter={SET_FILTER} gameMode="mosaic" />);
-    await typeAndPost();
+    await typeAndSave();
 
     await waitFor(() => expect(screen.getByTestId('post-confirm')).toBeInTheDocument());
     expect(create).toHaveBeenCalledWith(SET_FILTER);
@@ -142,9 +147,9 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
     const submit = vi.spyOn(client, 'submitScore');
 
     render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={null} modeFilter={SET_FILTER} gameMode="blur" />);
-    await typeAndPost();
+    await typeAndSave();
 
-    await waitFor(() => expect(screen.getByTestId('post-error')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('onboard-error')).toBeInTheDocument());
     expect(submit).not.toHaveBeenCalled();
   });
 
@@ -154,9 +159,9 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
     const submit = vi.spyOn(client, 'submitScore');
 
     render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={null} gameMode="blur" />);
-    await typeAndPost();
+    await typeAndSave();
 
-    await waitFor(() => expect(screen.getByTestId('post-error')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('onboard-error')).toBeInTheDocument());
     expect(findExisting).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
     expect(submit).not.toHaveBeenCalled();
@@ -167,7 +172,7 @@ describe('GameOverLeaderboard lazy set-mode creation', () => {
     const topScores = vi.spyOn(client, 'fetchModeTopScores');
 
     render(<GameOverLeaderboard score={5000} correct={10} cards={10} modeId={null} modeFilter={SET_FILTER} gameMode="blur" />);
-    await waitFor(() => screen.getByTestId('name-input'));
+    await waitFor(() => screen.getByTestId('onboard-name'));
 
     expect(rank).not.toHaveBeenCalled();
     expect(topScores).not.toHaveBeenCalled();

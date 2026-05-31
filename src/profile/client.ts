@@ -5,6 +5,7 @@ export interface Profile {
   gamesPlayed: number;
   totalCorrect: number;
   totalCards: number;
+  country: string | null;
 }
 
 export async function getProfile(uid: string): Promise<Profile | null> {
@@ -12,7 +13,7 @@ export async function getProfile(uid: string): Promise<Profile | null> {
   if (!c) return null;
   const { data, error } = await c
     .from('profiles')
-    .select('display_name,games_played,total_correct,total_cards')
+    .select('display_name,games_played,total_correct,total_cards,country')
     .eq('user_id', uid)
     .maybeSingle();
   if (error || !data) return null;
@@ -21,7 +22,20 @@ export async function getProfile(uid: string): Promise<Profile | null> {
     gamesPlayed: data.games_played,
     totalCorrect: data.total_correct,
     totalCards: data.total_cards,
+    country: data.country ?? null,
   };
+}
+
+/** Update the player's home country (ISO 3166-1 alpha-2). RLS lets a user write
+ *  only their own row. */
+export async function updateCountry(
+  uid: string,
+  country: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const c = getSupabase();
+  if (!c) return { ok: false, error: 'offline' };
+  const { error } = await c.from('profiles').update({ country }).eq('user_id', uid);
+  return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 export async function upsertDisplayName(

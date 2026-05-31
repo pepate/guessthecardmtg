@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { GlobalEntry } from '../leaderboard/types';
 import type { RevealMode } from '../engine/timeAttack';
-import { sanitizeName, NAME_MAX, NAME_MIN } from '../leaderboard/validation';
+import { sanitizeName } from '../leaderboard/validation';
 import {
   isLeaderboardEnabled,
   fetchModeProjectedRank,
@@ -9,9 +9,11 @@ import {
   submitScore,
 } from '../leaderboard/client';
 import { getUserId } from '../leaderboard/identity';
+import { getProfile } from '../profile/client';
 import { findExistingMode, createMode } from '../modes/client';
 import type { CustomFilter } from '../modes/filter';
 import { GlobalScoreList } from './GlobalScoreList';
+import { GameOverOnboard } from './GameOverOnboard';
 
 const NAME_KEY = 'guessthecard.playername';
 const VISIBLE = 5;
@@ -25,6 +27,7 @@ export function GameOverLeaderboard({
   gameMode,
   shareButton,
   onPosted,
+  onOpenProfile,
 }: {
   score: number;
   correct: number;
@@ -34,6 +37,7 @@ export function GameOverLeaderboard({
   gameMode: RevealMode;
   shareButton?: ReactNode;
   onPosted?: (info: { id: string; name: string; rank: number }) => void;
+  onOpenProfile?: () => void;
 }) {
   const enabled = isLeaderboardEnabled();
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? '');
@@ -41,10 +45,9 @@ export function GameOverLeaderboard({
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [posted, setPosted] = useState<{ rank: number; id: string; name: string } | null>(null);
   const [top, setTop] = useState<GlobalEntry[]>([]);
-  const [nameError, setNameError] = useState(false);
   const [nameTaken, setNameTaken] = useState(false);
+  const [needsName, setNeedsName] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { getUserId().then(setMyId).catch(() => {}); }, []);
 
@@ -61,17 +64,23 @@ export function GameOverLeaderboard({
     };
   }, [enabled, modeId, score]);
 
-  // Logged-in players with a saved name post automatically — the name prompt is
-  // only for first-time players creating their anonymous account.
+  // Players who already have a name post automatically. The name of record is the
+  // server profile's display_name (works across devices); localStorage is only a
+  // fallback. Players with no name yet get the onboarding overlay instead.
   useEffect(() => {
-    if (!enabled || score <= 0 || !modeId) return;
+    // Runs even when modeId is null (unplayed set): post() resolves/creates the
+    // mode, and a nameless player still needs the overlay.
+    if (!enabled || score <= 0) return;
     let cancelled = false;
     (async () => {
       const uid = await getUserId();
-      const savedName = sanitizeName(localStorage.getItem(NAME_KEY) ?? '');
-      if (cancelled || !uid || !savedName) return; // first-timer → manual prompt
-      setName(savedName);
-      await post();
+      if (cancelled) return;
+      const profile = uid ? await getProfile(uid).catch(() => null) : null;
+      if (cancelled) return;
+      const known = sanitizeName(profile?.displayName ?? localStorage.getItem(NAME_KEY) ?? '');
+      if (!known) { setNeedsName(true); return; } // no name yet → onboarding overlay
+      setName(known);
+      await post(known);
     })().catch(() => {});
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -79,29 +88,11 @@ export function GameOverLeaderboard({
 
   if (!enabled || score <= 0) return null;
 
-  function nudgeName() {
-    setNameError(true);
-    const el = inputRef.current;
-    el?.focus();
-    el?.animate?.(
-      [
-        { transform: 'translateX(0)' },
-        { transform: 'translateX(-6px)' },
-        { transform: 'translateX(6px)' },
-        { transform: 'translateX(-4px)' },
-        { transform: 'translateX(4px)' },
-        { transform: 'translateX(0)' },
-      ],
-      { duration: 380, easing: 'ease-in-out' },
-    );
-  }
-
-  async function post() {
-    const clean = sanitizeName(name);
-    if (!clean) {
-      nudgeName();
-      return;
-    }
+  // Returns true once the score is posted. `override` lets the auto-post path
+  // pass the resolved profile name without waiting for the name state to settle.
+  async function post(override?: string): Promise<boolean> {
+    const clean = sanitizeName(override ?? name);
+    if (!clean) return false;
     setStatus('sending');
     setNameTaken(false);
 
@@ -110,7 +101,7 @@ export function GameOverLeaderboard({
     if (!resolvedModeId) {
       if (!modeFilter) {
         setStatus('error');
-        return;
+        return false;
       }
       const existing = await findExistingMode(modeFilter).catch(() => null);
       if (existing) {
@@ -119,7 +110,7 @@ export function GameOverLeaderboard({
         const created = await createMode(modeFilter).catch(() => null);
         if (!created || !created.ok) {
           setStatus('error');
-          return;
+          return false;
         }
         resolvedModeId = created.mode.id;
       }
@@ -131,18 +122,31 @@ export function GameOverLeaderboard({
       if (res.reason === 'name-taken') {
         setStatus('idle');
         setNameTaken(true);
-        nudgeName();
-        return;
+        return false;
       }
       setStatus('error');
-      return;
+      return false;
     }
     localStorage.setItem(NAME_KEY, clean);
     const list = await fetchModeTopScores(resolvedModeId, VISIBLE).catch(() => []);
     setTop(list);
     setPosted({ rank: res.rank, id: res.id, name: clean });
     setStatus('done');
+    setNeedsName(false);
     onPosted?.({ id: res.id, name: clean, rank: res.rank });
+    return true;
+  }
+
+  // "Save & sync" from the onboarding overlay: post first (never lose the run),
+  // then hand off to the profile to optionally add an email.
+  async function postThenProfile() {
+    const ok = await post();
+    if (ok) onOpenProfile?.();
+  }
+
+  function changeName(v: string) {
+    setName(v);
+    if (nameTaken) setNameTaken(false);
   }
 
   // The online board for this mode, with the player's own row pinned below when
@@ -165,57 +169,6 @@ export function GameOverLeaderboard({
       ? { rank: pinnedRank, entry: youEntry }
       : null;
 
-  // When the player's row is pinned below the board, let them type their name
-  // directly in that row instead of a separate field below the button.
-  const showInlineInput = top.length > 0 && !!pinned && status !== 'done';
-
-  function nameInput(inline: boolean) {
-    const errorBorder = '1px solid var(--ember-hot)';
-    return (
-      <input
-        ref={inputRef}
-        data-testid="name-input"
-        aria-invalid={nameError}
-        value={name}
-        maxLength={NAME_MAX}
-        placeholder="Your name"
-        onChange={(ev) => {
-          setName(ev.target.value);
-          if (nameError) setNameError(false);
-          if (nameTaken) setNameTaken(false);
-        }}
-        onKeyDown={(ev) => {
-          if (ev.key === 'Enter' && status !== 'sending') void post();
-        }}
-        style={
-          inline
-            ? {
-                width: '100%',
-                minWidth: 0,
-                boxSizing: 'border-box',
-                padding: '3px 7px',
-                borderRadius: 6,
-                border: nameError ? errorBorder : '1px solid var(--ember)',
-                background: 'rgba(0,0,0,0.28)',
-                color: 'var(--ink-0)',
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 14,
-              }
-            : {
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 10,
-                border: nameError ? errorBorder : '1px solid var(--line-strong)',
-                background: 'rgba(20,17,28,0.6)',
-                color: 'var(--ink-0)',
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 14,
-              }
-        }
-      />
-    );
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
       {projected && status !== 'done' && (
@@ -228,52 +181,40 @@ export function GameOverLeaderboard({
       )}
 
       {top.length > 0 && (
-        <GlobalScoreList
-          entries={top}
-          highlightId={posted?.id}
-          pinned={pinned}
-          pinnedNameInput={showInlineInput ? nameInput(true) : undefined}
-        />
+        <GlobalScoreList entries={top} highlightId={posted?.id} pinned={pinned} />
       )}
 
-      {status !== 'done' ? (
-        <>
-          {!showInlineInput && nameInput(false)}
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              className="ember-btn"
-              data-testid="post-btn"
-              style={{ flex: '1 1 80%', minWidth: 0 }}
-              disabled={status === 'sending'}
-              onClick={post}
-            >
-              {status === 'sending' ? 'Posting…' : 'Post to online board'}
-            </button>
-            {shareButton && <div style={{ flex: '0 0 20%', display: 'flex' }}>{shareButton}</div>}
-          </div>
-          {nameError && (
-            <p data-testid="name-hint" style={{ color: 'var(--ember-hot)', fontSize: 12, textAlign: 'center', margin: 0 }}>
-              Please enter your name (at least {NAME_MIN} characters).
-            </p>
-          )}
-          {nameTaken && (
-            <p data-testid="name-taken" style={{ color: 'var(--ember-hot)', fontSize: 12, textAlign: 'center', margin: 0 }}>
-              That name is taken — please choose another.
-            </p>
-          )}
-          {status === 'error' && (
-            <p data-testid="post-error" style={{ color: 'var(--ember-hot)', fontSize: 12, textAlign: 'center', margin: 0 }}>
-              Posting failed — please try again.
-            </p>
-          )}
-        </>
-      ) : (
+      {status === 'done' ? (
         <div data-testid="post-confirm" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <p style={{ flex: '1 1 80%', color: 'var(--ink-0)', fontSize: 13, textAlign: 'center', margin: 0 }}>
             Posted! You're ranked <span style={{ color: 'var(--ember-hot)' }}>#{posted?.rank}</span>.
           </p>
           {shareButton && <div style={{ flex: '0 0 20%', display: 'flex' }}>{shareButton}</div>}
         </div>
+      ) : status === 'sending' && !needsName ? (
+        <p data-testid="posting" style={{ textAlign: 'center', color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, margin: 0 }}>
+          Posting…
+        </p>
+      ) : status === 'error' && !needsName ? (
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button className="ember-btn" data-testid="post-error" style={{ flex: '1 1 80%', minWidth: 0 }} onClick={() => void post()}>
+            Posting failed — retry
+          </button>
+          {shareButton && <div style={{ flex: '0 0 20%', display: 'flex' }}>{shareButton}</div>}
+        </div>
+      ) : null}
+
+      {needsName && status !== 'done' && (
+        <GameOverOnboard
+          name={name}
+          onNameChange={changeName}
+          projected={projected}
+          nameTaken={nameTaken}
+          sending={status === 'sending'}
+          error={status === 'error'}
+          onSave={() => void post()}
+          onSaveAndSync={() => void postThenProfile()}
+        />
       )}
     </div>
   );

@@ -22,10 +22,10 @@ beforeEach(() => {
 describe('getProfile', () => {
   it('maps a row to a Profile', async () => {
     from.mockReturnValueOnce(
-      query({ data: { display_name: 'Al', games_played: 3, total_correct: 12, total_cards: 20 }, error: null }),
+      query({ data: { display_name: 'Al', games_played: 3, total_correct: 12, total_cards: 20, country: 'DE' }, error: null }),
     );
     const { getProfile } = await importClient();
-    expect(await getProfile('uid')).toEqual({ displayName: 'Al', gamesPlayed: 3, totalCorrect: 12, totalCards: 20 });
+    expect(await getProfile('uid')).toEqual({ displayName: 'Al', gamesPlayed: 3, totalCorrect: 12, totalCards: 20, country: 'DE' });
   });
 
   it('returns null when there is no row', async () => {

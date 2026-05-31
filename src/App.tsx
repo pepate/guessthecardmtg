@@ -371,7 +371,9 @@ export function App() {
 
           {phase === 'loading' && <LoadingScreen />}
           {phase === 'error' && <ErrorScreen />}
-          {phase === 'gameover' && <GameOver />}
+          {phase === 'gameover' && (
+            <GameOver onOpenProfile={() => { reset(); setView({ s: 'profile' }); }} />
+          )}
 
           {phase === 'playing' && round && (
             <motion.div

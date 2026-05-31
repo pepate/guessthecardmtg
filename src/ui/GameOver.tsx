@@ -11,7 +11,7 @@ import type { GlobalEntry } from '../leaderboard/types';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
 
-export function GameOver() {
+export function GameOver({ onOpenProfile }: { onOpenProfile?: () => void }) {
   const correctCount = useGameStore((s) => s.correctCount);
   const totalScore = useGameStore((s) => s.totalScore);
   const poolKind = useGameStore((s) => s.poolKind);
@@ -150,6 +150,7 @@ export function GameOver() {
         gameMode={gameMode}
         shareButton={shareButton}
         onPosted={handlePosted}
+        onOpenProfile={onOpenProfile}
       />
 
       {currentModeId && otherLeaders && enabledModes.length > 0 && (
