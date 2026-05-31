@@ -205,7 +205,7 @@ export function GameOverLeaderboard({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
-      {projected && (
+      {projected && status !== 'done' && (
         <div
           data-testid="projected-rank"
           style={{ textAlign: 'center', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--ink-2)', letterSpacing: 1 }}
