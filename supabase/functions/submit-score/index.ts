@@ -83,6 +83,12 @@ Deno.serve(async (req) => {
   const score = body.score as number;
   const correct = body.correct as number;
 
+  const rawDeviceId = body.device_id;
+  if (typeof rawDeviceId !== 'string' || !/^[0-9a-f-]{36}$/.test(rawDeviceId)) {
+    return json({ ok: false, reason: 'device' }, 400);
+  }
+  const deviceId = rawDeviceId;
+
   // game_mode is optional — null when absent or unrecognised
   const rawGameMode = body.game_mode;
   const gameMode: string | null =
@@ -112,22 +118,34 @@ Deno.serve(async (req) => {
 
   const country = await lookupCountry(ip);
 
-  // One row per (mode_id, game_mode, name): keep the player's best run in each
-  // reveal mode. The board collapses these to a single row per person (best score)
-  // with a badge per reveal mode, so we never store the same name twice for a mode.
+  // One row per (mode_id, game_mode, device_id): keep this device's best run in
+  // each reveal mode. Boards are per (mode, reveal_mode); the display name is
+  // whatever the device last submitted.
   let existingQ = supabase
     .from('leaderboard')
     .select('id,score')
     .eq('mode_id', modeId)
-    .eq('name', name);
+    .eq('device_id', deviceId);
   existingQ = gameMode === null ? existingQ.is('game_mode', null) : existingQ.eq('game_mode', gameMode);
   const existing = await existingQ.order('score', { ascending: false }).limit(1).maybeSingle();
+
+  // Rank-1 lockout: a device that already holds the top score in this exact
+  // (mode, reveal_mode) board may not play it again — give others a chance.
+  let lockQ = supabase
+    .from('leaderboard')
+    .select('device_id,score')
+    .eq('mode_id', modeId);
+  lockQ = gameMode === null ? lockQ.is('game_mode', null) : lockQ.eq('game_mode', gameMode);
+  const board = await lockQ.order('score', { ascending: false }).limit(1).maybeSingle();
+  if (board.data && board.data.device_id === deviceId) {
+    return json({ ok: false, reason: 'rank-1-locked' }, 409);
+  }
 
   let rowId: string;
   if (!existing.data) {
     const inserted = await supabase
       .from('leaderboard')
-      .insert({ name, score, correct, mode_id: modeId, game_mode: gameMode, country, ip_hash: ipHash })
+      .insert({ name, score, correct, mode_id: modeId, game_mode: gameMode, device_id: deviceId, country, ip_hash: ipHash })
       .select('id')
       .single();
     if (inserted.error) return json({ ok: false, reason: 'insert' }, 500);
@@ -135,7 +153,7 @@ Deno.serve(async (req) => {
   } else if (score > existing.data.score) {
     const updated = await supabase
       .from('leaderboard')
-      .update({ score, correct, country, ip_hash: ipHash, created_at: new Date().toISOString() })
+      .update({ name, score, correct, country, ip_hash: ipHash, created_at: new Date().toISOString() })
       .eq('id', existing.data.id)
       .select('id')
       .single();
@@ -146,17 +164,17 @@ Deno.serve(async (req) => {
     rowId = existing.data.id;
   }
 
-  // Rank by distinct person (each player's best score for this mode), not raw rows.
-  const all = await supabase.from('leaderboard').select('name,score').eq('mode_id', modeId);
-  const bestByName = new Map<string, number>();
-  for (const r of (all.data ?? []) as { name: string; score: number }[]) {
-    const prev = bestByName.get(r.name);
-    if (prev === undefined || r.score > prev) bestByName.set(r.name, r.score);
+  // Rank by distinct device (each device's best score for this mode), not raw rows.
+  const all = await supabase.from('leaderboard').select('device_id,score').eq('mode_id', modeId);
+  const bestByDevice = new Map<string, number>();
+  for (const r of (all.data ?? []) as { device_id: string; score: number }[]) {
+    const prev = bestByDevice.get(r.device_id);
+    if (prev === undefined || r.score > prev) bestByDevice.set(r.device_id, r.score);
   }
-  const myBest = bestByName.get(name) ?? score;
+  const myBest = bestByDevice.get(deviceId) ?? score;
   let higher = 0;
-  for (const [otherName, otherScore] of bestByName) {
-    if (otherName !== name && otherScore > myBest) higher++;
+  for (const [otherDevice, otherScore] of bestByDevice) {
+    if (otherDevice !== deviceId && otherScore > myBest) higher++;
   }
 
   return json({ ok: true, id: rowId, rank: higher + 1 }, 200);
