@@ -31,7 +31,7 @@ describe('WelcomeWizard', () => {
   it('highlights the correct option after the reveal step', () => {
     render(<WelcomeWizard onClose={vi.fn()} onStart={vi.fn()} />);
     act(() => { vi.advanceTimersByTime(3500); });
-    const correct = screen.getByText('Llanowar Elves').closest('[data-testid="welcome-option"]');
+    const correct = screen.getByText('Swords to Plowshares').closest('[data-testid="welcome-option"]');
     expect(correct).toHaveAttribute('data-correct', 'true');
   });
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const SAMPLE_ART = `${import.meta.env.BASE_URL}og-image.jpeg`;
+const SAMPLE_ART = `${import.meta.env.BASE_URL}swords.jpg`;
 
 // A scripted, self-contained demo — no real game data needed. The card art
 // un-blurs over a few seconds, then the correct option is revealed, mirroring a
@@ -8,8 +8,8 @@ const SAMPLE_ART = `${import.meta.env.BASE_URL}og-image.jpeg`;
 const REVEAL_MS = 200;
 const ANSWER_MS = 3400;
 
-const OPTIONS = ['Lightning Bolt', 'Llanowar Elves', 'Dark Ritual', 'Serra Angel'] as const;
-const CORRECT = 'Llanowar Elves';
+const OPTIONS = ['Sol Ring', 'Swords to Plowshares', 'Counterspell', 'Lightning Bolt'] as const;
+const CORRECT = 'Swords to Plowshares';
 
 export function WelcomeWizard({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
   const [revealed, setRevealed] = useState(false);
@@ -60,9 +60,9 @@ export function WelcomeWizard({ onClose, onStart }: { onClose: () => void; onSta
       <div
         aria-hidden
         style={{
-          width: 230,
-          height: 168,
-          borderRadius: 14,
+          width: 196,
+          height: 273,
+          borderRadius: 12,
           backgroundImage: `url(${SAMPLE_ART})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
