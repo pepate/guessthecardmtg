@@ -12,6 +12,8 @@ import {
 import { clearRecovery } from '../auth/session';
 import { getProfile, upsertDisplayName } from '../profile/client';
 import type { Profile } from '../profile/client';
+import { fetchPlayerBests, type PlayerBest } from '../profile/stats';
+import { ProfileStats } from './ProfileStats';
 import { getUserId } from '../leaderboard/identity';
 import { sanitizeName, NAME_MIN, NAME_MAX } from '../leaderboard/validation';
 
@@ -128,6 +130,7 @@ export function ProfilePanel() {
   const { user, status, recovery } = useAuth();
   const [uid, setUid] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [bests, setBests] = useState<PlayerBest[]>([]);
   const [nameInput, setNameInput] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -152,6 +155,7 @@ export function ProfilePanel() {
             setNameInput(p.displayName ?? '');
           }
         }).catch(() => {});
+        fetchPlayerBests(id).then(setBests).catch(() => {});
       }
     }).catch(() => {});
   }, [status]);
@@ -249,37 +253,7 @@ export function ProfilePanel() {
     );
   }
 
-  function statsBlock() {
-    if (!profile) return null;
-    const hitRate = profile.totalCards > 0
-      ? Math.round(100 * profile.totalCorrect / profile.totalCards) + '%'
-      : '—';
-    return (
-      <div
-        data-testid="profile-stats"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4,
-          background: 'rgba(20,17,28,0.6)',
-          borderRadius: 10,
-          padding: '10px 12px',
-          border: '1px solid var(--line-strong)',
-        }}
-      >
-        <p style={labelStyle}>Stats</p>
-        <span style={{ fontSize: 13, color: 'var(--ink-1)' }}>
-          Games played: <strong style={{ color: 'var(--ink-0)' }}>{profile.gamesPlayed}</strong>
-        </span>
-        <span style={{ fontSize: 13, color: 'var(--ink-1)' }}>
-          Correct guesses: <strong style={{ color: 'var(--ink-0)' }}>{profile.totalCorrect}</strong>
-        </span>
-        <span style={{ fontSize: 13, color: 'var(--ink-1)' }}>
-          Hit rate: <strong style={{ color: 'var(--ink-0)' }}>{hitRate}</strong>
-        </span>
-      </div>
-    );
-  }
+  const statsBlock = () => <ProfileStats profile={profile} bests={bests} />;
 
   // ── 3. Anonymous ─────────────────────────────────────────────────────────────
   if (status === 'anonymous') {
