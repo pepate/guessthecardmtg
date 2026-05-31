@@ -5,9 +5,10 @@ import { fetchRandomCard } from './cards/client';
 import { useGameStore } from './state/gameStore';
 import { useGameClock, useGameTimeLeft } from './state/useGameClock';
 import { stageAt, scanProgressAt, scanAngleFor, tilesRevealedAt, tileOrderFor, spotlightOriginFor } from './engine/timeAttack';
-import { PoolSelect } from './ui/PoolSelect';
-import { CustomModeBrowser } from './ui/CustomModeBrowser';
-import { SetsBrowser } from './ui/SetsBrowser';
+import { StartModes } from './ui/StartModes';
+import { RevealPicker } from './ui/RevealPicker';
+import { CustomModeBuilder } from './ui/CustomModeBuilder';
+import type { CustomMode } from './modes/types';
 import { HUD } from './ui/HUD';
 import { Timer } from './ui/Timer';
 import { NameChoice } from './ui/NameChoice';
@@ -16,9 +17,7 @@ import { GameOver } from './ui/GameOver';
 import { GameOverArtwork } from './ui/GameOverArtwork';
 import { StartShare } from './ui/StartShare';
 import { InstallButton } from './ui/InstallButton';
-import { StartLeaderboard } from './ui/StartLeaderboard';
 import { useWideLayout } from './ui/useWideLayout';
-import { usePullToRefresh } from './ui/usePullToRefresh';
 import { SUMMONING_TEXTS } from './ui/summoningTexts';
 
 // After a round resolves: a correct guess flashes green briefly, a miss / timeout
@@ -188,14 +187,11 @@ export function App() {
   const spotlightOrigin = spotlightOriginFor(revealSeed, roundIndex);
   const wide = useWideLayout();
 
-  const [screen, setScreen] = useState<'home' | 'custom' | 'sets'>('home');
-  const [lbRefreshKey, setLbRefreshKey] = useState(0);
-  const { ref: pullRef, pull } = usePullToRefresh<HTMLDivElement>(() =>
-    setLbRefreshKey((k) => k + 1),
-  );
+  type StartView = { s: 'list' } | { s: 'picker'; mode: CustomMode } | { s: 'create' };
+  const [view, setView] = useState<StartView>({ s: 'list' });
 
   useEffect(() => {
-    if (phase !== 'idle') setScreen('home');
+    if (phase !== 'idle') setView({ s: 'list' });
   }, [phase]);
 
   useEffect(() => {
@@ -243,52 +239,31 @@ export function App() {
 
       <div className="overlay">
         <AnimatePresence mode="wait">
-          {phase === 'idle' && screen === 'custom' && (
-            <motion.div
-              key="custom"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <CustomModeBrowser onBack={() => setScreen('home')} />
-            </motion.div>
+          {phase === 'idle' && view.s === 'list' && (
+            <StartModes
+              key="modes"
+              onPick={(mode) => setView({ s: 'picker', mode })}
+              onCreate={() => setView({ s: 'create' })}
+            />
           )}
 
-          {phase === 'idle' && screen === 'sets' && (
-            <motion.div
-              key="sets"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <SetsBrowser onBack={() => setScreen('home')} />
-            </motion.div>
+          {phase === 'idle' && view.s === 'picker' && (
+            <RevealPicker key="picker" mode={view.mode} onBack={() => setView({ s: 'list' })} />
           )}
 
-          {phase === 'idle' && screen === 'home' && (
+          {phase === 'idle' && view.s === 'create' && (
             <motion.div
-              key="idle"
+              key="create"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="bottom-sheet"
               style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: '92%' }}
             >
-              <div
-                ref={pullRef}
-                style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}
-              >
-                <div
-                  aria-hidden
-                  style={{ height: pull, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}
-                >
-                  {pull > 0 && <span className="spinner" />}
-                </div>
-                <StartLeaderboard refreshKey={lbRefreshKey} />
-              </div>
-              <div style={{ flexShrink: 0 }}>
-                <PoolSelect onOpenCustom={() => setScreen('custom')} onOpenSets={() => setScreen('sets')} />
-              </div>
+              <CustomModeBuilder
+                onCreated={(mode) => setView({ s: 'picker', mode })}
+                onCancel={() => setView({ s: 'list' })}
+              />
             </motion.div>
           )}
 

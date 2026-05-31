@@ -1,0 +1,172 @@
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { listModes } from '../modes/client';
+import type { CustomMode, CustomModeListItem } from '../modes/types';
+import { fetchModeRuns } from '../leaderboard/client';
+import { deviceModeStanding, type Run } from '../leaderboard/boards';
+import { getDeviceId } from '../leaderboard/identity';
+import { windowCutoff, WINDOW_TABS, type TimeWindow } from '../leaderboard/window';
+import { FilterChips } from './FilterChips';
+import { ScoreValue } from './ScoreValue';
+import { countryToFlag } from '../leaderboard/flag';
+
+interface ModeView {
+  mode: CustomModeListItem;
+  /** Device's best rank across this mode's reveal boards; null when unplaced. */
+  standing: number | null;
+  /** The mode's overall best run (any reveal), shown as a peek. */
+  top: { name: string; score: number; country: string | null } | null;
+}
+
+function overallTop(runs: Run[]): ModeView['top'] {
+  let best: Run | null = null;
+  for (const r of runs) if (!best || r.score > best.score) best = r;
+  return best ? { name: best.name, score: best.score, country: best.country } : null;
+}
+
+// "Zuerst keine Platzierung, zuletzt Platz 1": unplaced modes first, then ranked
+// worst-to-best so the modes the player has already conquered sink to the bottom.
+function sortModes(views: ModeView[]): ModeView[] {
+  return [...views].sort((a, b) => {
+    if (a.standing === null && b.standing === null) return a.mode.name.localeCompare(b.mode.name);
+    if (a.standing === null) return -1;
+    if (b.standing === null) return 1;
+    return b.standing - a.standing;
+  });
+}
+
+function StandingBadge({ standing }: { standing: number | null }) {
+  const first = standing === 1;
+  return (
+    <span
+      style={{
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 11,
+        padding: '3px 8px',
+        borderRadius: 999,
+        whiteSpace: 'nowrap',
+        border: `1px solid ${first ? 'var(--ember)' : 'var(--line-strong)'}`,
+        background: first ? 'rgba(255,138,60,0.18)' : 'rgba(255,186,120,0.06)',
+        color: first ? 'var(--ember-hot)' : 'var(--ink-2)',
+      }}
+    >
+      {standing === null ? 'unranked' : `you #${standing}`}
+    </span>
+  );
+}
+
+export function StartModes({
+  onPick,
+  onCreate,
+}: {
+  onPick: (mode: CustomMode) => void;
+  onCreate: () => void;
+}) {
+  const [win, setWin] = useState<TimeWindow>('all');
+  const [views, setViews] = useState<ModeView[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setViews(null);
+    (async () => {
+      const modes = await listModes(200);
+      const device = getDeviceId();
+      const since = windowCutoff(win);
+      const built = await Promise.all(
+        modes.map(async (mode) => {
+          const runs = await fetchModeRuns(mode.id, since);
+          return { mode, standing: deviceModeStanding(runs, device), top: overallTop(runs) };
+        }),
+      );
+      if (!cancelled) setViews(sortModes(built));
+    })().catch(() => {
+      if (!cancelled) setViews([]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [win]);
+
+  return (
+    <motion.div
+      key="modes"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="bottom-sheet"
+      style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: '92%' }}
+    >
+      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        {WINDOW_TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setWin(t.key)}
+            className={win === t.key ? 'ember-btn' : 'ghost-btn'}
+            style={{ flex: 1, minHeight: 0, padding: '8px 0', fontSize: 13 }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div
+        data-testid="mode-list"
+        style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}
+      >
+        {views === null ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
+            <span className="spinner" />
+          </div>
+        ) : views.length === 0 ? (
+          <p data-testid="modes-empty" style={{ color: 'var(--ink-2)', fontSize: 13, textAlign: 'center', margin: 0 }}>
+            No modes yet — create one below.
+          </p>
+        ) : (
+          views.map(({ mode, standing, top }) => (
+            <button
+              key={mode.id}
+              type="button"
+              data-testid="mode-row"
+              onClick={() => onPick(mode)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                textAlign: 'left',
+                padding: '12px 14px',
+                borderRadius: 12,
+                border: '1px solid var(--line)',
+                background: 'rgba(20,17,28,0.55)',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ flex: 1, color: 'var(--ink-0)', fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700 }}>
+                  {mode.name}
+                </span>
+                <StandingBadge standing={standing} />
+              </div>
+              <FilterChips filter={mode.filter} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--ink-2)' }}>
+                {top ? (
+                  <>
+                    <span aria-hidden>{countryToFlag(top.country)}</span>
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{top.name}</span>
+                    <ScoreValue score={top.score} fontSize={13} />
+                  </>
+                ) : (
+                  <span style={{ flex: 1 }}>No scores yet — be the first!</span>
+                )}
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+
+      <button type="button" data-testid="create-mode-btn" className="ember-btn" onClick={onCreate} style={{ flexShrink: 0 }}>
+        Create Mode
+      </button>
+    </motion.div>
+  );
+}
