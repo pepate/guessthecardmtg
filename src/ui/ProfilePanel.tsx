@@ -10,7 +10,7 @@ import {
   updatePassword,
   signOut,
 } from '../auth/actions';
-import { clearRecovery } from '../auth/session';
+import { clearRecovery, refreshUser } from '../auth/session';
 import { getProfile, upsertDisplayName } from '../profile/client';
 import type { Profile } from '../profile/client';
 import { fetchPlayerBests, type PlayerBest } from '../profile/stats';
@@ -119,6 +119,22 @@ export function ProfilePanel() {
   // The secure-account button only appears once both fields have content.
   const secureReady = secureEmail.trim().length > 0 && securePassword.length > 0;
 
+  // An email that's been submitted but not yet confirmed: either a pending
+  // change (new_email) or a first email on a still-anonymous account (email
+  // set, not yet confirmed). Derived from the user object, so it survives a
+  // reload. A confirmed permanent user has neither and is not pending.
+  const pendingEmail =
+    user?.new_email ||
+    (status === 'anonymous' && user?.email && !user?.email_confirmed_at ? user.email : null);
+
+  // While a confirmation is outstanding, re-poll the server so the panel flips
+  // to "confirmed" the moment the user clicks the link on another tab/device.
+  useEffect(() => {
+    if (!pendingEmail) return;
+    const id = setInterval(() => void refreshUser(), 5000);
+    return () => clearInterval(id);
+  }, [pendingEmail]);
+
   useEffect(() => {
     getUserId().then(id => {
       setUid(id);
@@ -192,6 +208,28 @@ export function ProfilePanel() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {error && <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0, textAlign: 'center' }}>{error}</p>}
               {notice && <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 12, margin: 0, textAlign: 'center' }}>{notice}</p>}
+            </div>
+          )}
+          {pendingEmail && (
+            <div
+              data-testid="profile-pending"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                background: 'rgba(255,122,44,0.10)',
+                border: '1px solid var(--ember-deep)',
+                borderRadius: 12,
+                padding: '12px 14px',
+              }}
+            >
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--ember-hot)', fontWeight: 600 }}>
+                Confirm your email to finish
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-1)', lineHeight: 1.5 }}>
+                We sent a link to <strong style={{ color: 'var(--ink-0)' }}>{pendingEmail}</strong>. This
+                page updates automatically once you click it.
+              </p>
             </div>
           )}
           {children}

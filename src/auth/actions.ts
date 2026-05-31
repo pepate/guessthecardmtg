@@ -15,7 +15,7 @@ function offline(): ActionResult {
 export async function secureWithEmailPassword(email: string, password: string): Promise<ActionResult> {
   const c = getSupabase();
   if (!c) return offline();
-  return done((await c.auth.updateUser({ email, password })).error);
+  return done((await c.auth.updateUser({ email, password }, { emailRedirectTo: redirectTo() })).error);
 }
 
 export async function linkGoogle(): Promise<ActionResult> {

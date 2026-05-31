@@ -64,6 +64,20 @@ export function getRecoverySnapshot(): boolean {
   return recovering;
 }
 
+/** Re-fetch the user from the server and broadcast it. Lets the UI pick up an
+ *  out-of-band email confirmation (clicked on another tab/device) without a
+ *  local session change. */
+export async function refreshUser(): Promise<void> {
+  const c = getSupabase();
+  if (!c) return;
+  try {
+    const { data } = await c.auth.getUser();
+    sync(data?.user ?? null);
+  } catch {
+    // network blip — keep current user
+  }
+}
+
 /** Clear the recovery flag once the set-new-password UI has been shown/handled. */
 export function clearRecovery(): void {
   recovering = false;

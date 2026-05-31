@@ -24,7 +24,10 @@ describe('auth actions', () => {
     auth.updateUser.mockResolvedValue({ error: null });
     const { secureWithEmailPassword } = await importActions();
     expect(await secureWithEmailPassword('a@b.c', 'pw123456')).toEqual({ ok: true });
-    expect(auth.updateUser).toHaveBeenCalledWith({ email: 'a@b.c', password: 'pw123456' });
+    expect(auth.updateUser).toHaveBeenCalledWith(
+      { email: 'a@b.c', password: 'pw123456' },
+      expect.objectContaining({ emailRedirectTo: expect.any(String) }),
+    );
   });
 
   it('normalizes errors to { ok:false, error }', async () => {
