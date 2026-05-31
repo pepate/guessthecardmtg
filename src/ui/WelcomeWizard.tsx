@@ -21,9 +21,7 @@ export function WelcomeWizard({ onClose, onStart }: { onClose: () => void; onSta
     return () => { clearTimeout(t0); clearTimeout(t1); };
   }, []);
 
-  const caption = answered
-    ? 'Nice — a fast guess scores the most points.'
-    : 'Name the card before it fully reveals.';
+  const caption = 'Name the card before it fully reveals.';
 
   return (
     <div
@@ -110,7 +108,7 @@ export function WelcomeWizard({ onClose, onStart }: { onClose: () => void; onSta
           Start playing
         </button>
         <button type="button" className="ghost-btn" data-testid="welcome-close" onClick={onClose} style={{ fontSize: 13 }}>
-          Close
+          Leaderboard
         </button>
       </div>
     </div>
