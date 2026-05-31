@@ -36,7 +36,7 @@ export function useGameClock(): number {
 }
 
 /**
- * Drives the overall 90-second game timer. Returns the remaining ms and calls
+ * Drives the overall game timer (config.gameDurationMs). Returns the remaining ms and calls
  * store.endGame() once the game duration elapses. Like useGameClock it uses
  * requestAnimationFrame so Playwright's page.clock can drive it in e2e.
  */
