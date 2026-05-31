@@ -22,7 +22,6 @@ export function GameOver() {
   const gameMode = useGameStore((s) => s.gameMode);
   const highscores = useGameStore((s) => s.highscores);
   const restart = useGameStore((s) => s.restart);
-  const reset = useGameStore((s) => s.reset);
 
   const [shareLabel, setShareLabel] = useState('Share score');
   const [otherLeaders, setOtherLeaders] = useState<Record<RevealMode, GlobalEntry | null> | null>(null);
@@ -180,9 +179,6 @@ export function GameOver() {
           data-testid="share-btn"
         >
           {shareLabel}
-        </button>
-        <button className="ghost-btn" style={{ width: '100%' }} onClick={reset}>
-          Back to menu
         </button>
       </div>
     </motion.div>

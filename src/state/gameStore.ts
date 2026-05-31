@@ -209,6 +209,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       const plan = planGame(pool, config);
       const remaining = MIN_SUMMON_MS - (Date.now() - summonStart);
       if (remaining > 0) await sleep(remaining);
+      // The player may have backed out of the loading screen while we were
+      // fetching — don't yank them into a game they cancelled.
+      if (get().phase !== 'loading') return;
       set({
         pool,
         poolKind,

@@ -19,6 +19,9 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
   const [runs, setRuns] = useState<Run[]>([]);
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
   const [copied, setCopied] = useState<RevealMode | null>(null);
+  const [confirm, setConfirm] = useState<RevealMode | null>(null);
+
+  const touchDevice = () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
 
   async function share(reveal: RevealMode) {
     const url = buildDeeplink(mode.id, reveal);
@@ -60,6 +63,12 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
     const store = useGameStore.getState();
     store.setRevealChoice(reveal);
     void store.selectPool({ kind: 'custom', modeId: mode.id, filter: mode.filter, name: mode.name });
+  }
+
+  // On touch, confirm with a big tap target first; on desktop start directly.
+  function choose(reveal: RevealMode) {
+    if (touchDevice()) setConfirm(reveal);
+    else play(reveal);
   }
 
   // The most recent recorded runs in this mode (newest first), for quick replay.
@@ -104,7 +113,7 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
                 key={r.id}
                 type="button"
                 data-testid="recent-game"
-                onClick={() => r.gameMode && play(r.gameMode)}
+                onClick={() => r.gameMode && choose(r.gameMode)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
                   padding: '8px 12px', borderRadius: 10, border: '1px solid var(--line)',
@@ -141,7 +150,7 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
                 data-testid="reveal-row"
                 data-reveal={reveal}
                 role="button"
-                onClick={() => play(reveal)}
+                onClick={() => choose(reveal)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -197,6 +206,35 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
         )}
         </div>
       </div>
+
+      {confirm && (
+        <div
+          data-testid="play-confirm"
+          onClick={() => setConfirm(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+            background: 'rgba(5,4,8,0.8)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+          }}
+        >
+          <button
+            type="button"
+            data-testid="play-confirm-btn"
+            className="ember-btn"
+            onClick={(e) => { e.stopPropagation(); play(confirm); }}
+            style={{ width: '100%', maxWidth: 420, minHeight: 76, fontSize: 24 }}
+          >
+            Play {REVEAL_MODE_LABELS[confirm]}
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }
