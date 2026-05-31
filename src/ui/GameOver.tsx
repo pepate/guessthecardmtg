@@ -39,6 +39,31 @@ export function GameOver() {
     return () => { cancelled = true; };
   }, [currentModeId]);
 
+  // After the score posts, the once-fetched reveal-mode leaders are stale (the
+  // just-set score is missing). Optimistically promote the player to leader of
+  // the mode they just played when it beats the current holder, so the row
+  // reflects the fresh score instead of "no scores".
+  function handlePosted(info: { id: string; name: string }) {
+    setOtherLeaders((prev) => {
+      if (!prev) return prev;
+      const cur = prev[gameMode];
+      if (cur && cur.score >= totalScore) return prev;
+      return {
+        ...prev,
+        [gameMode]: {
+          id: info.id,
+          name: info.name,
+          score: totalScore,
+          correct: correctCount,
+          gameModes: [gameMode],
+          country: null,
+          createdAt: Date.now(),
+          deviceId: info.id,
+        },
+      };
+    });
+  }
+
   function playReveal(reveal: RevealMode) {
     if (!currentModeId || !currentModeFilter) return;
     const store = useGameStore.getState();
@@ -124,6 +149,7 @@ export function GameOver() {
         modeFilter={currentModeFilter ?? undefined}
         gameMode={gameMode}
         shareButton={shareButton}
+        onPosted={handlePosted}
       />
 
       {currentModeId && otherLeaders && enabledModes.length > 0 && (

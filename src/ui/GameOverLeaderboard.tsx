@@ -24,6 +24,7 @@ export function GameOverLeaderboard({
   modeFilter,
   gameMode,
   shareButton,
+  onPosted,
 }: {
   score: number;
   correct: number;
@@ -32,6 +33,7 @@ export function GameOverLeaderboard({
   modeFilter?: CustomFilter;
   gameMode: RevealMode;
   shareButton?: ReactNode;
+  onPosted?: (info: { id: string; name: string; rank: number }) => void;
 }) {
   const enabled = isLeaderboardEnabled();
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? '');
@@ -131,6 +133,7 @@ export function GameOverLeaderboard({
     setTop(list);
     setPosted({ rank: res.rank, id: res.id, name: clean });
     setStatus('done');
+    onPosted?.({ id: res.id, name: clean, rank: res.rank });
   }
 
   // The online board for this mode, with the player's own row pinned below when
