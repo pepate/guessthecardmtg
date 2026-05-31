@@ -3,8 +3,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Project-Pages base path: https://pepate.github.io/guessthecardmtg/
-const BASE = '/guessthecardmtg/';
+// Served at the root on the custom domain https://guessthecard.de/
+const BASE = '/';
 
 export default defineConfig({
   base: BASE,
