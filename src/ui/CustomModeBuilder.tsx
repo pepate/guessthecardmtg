@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  CARD_TYPES, COLORS, RARITIES, validateFilter,
+  CARD_TYPES, COLORS, RARITIES, validateFilter, modeName,
   type CardType, type ColorCode, type CustomFilter, type Range, type Rarity,
 } from '../modes/filter';
 import { countFilteredCards, createMode } from '../modes/client';
@@ -74,6 +74,12 @@ export function CustomModeBuilder({ onCreated, onCancel }: {
   const [counting, setCounting] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [nameTouched, setNameTouched] = useState(false);
+
+  // The suggested name tracks the filter until the player edits the field.
+  const suggested = useMemo(() => modeName(filter), [filter]);
+  const displayName = nameTouched ? name : suggested;
 
   const validation = useMemo(() => validateFilter(filter), [filter]);
   const creatureOnly = filter.types?.length === 1 && filter.types[0] === 'Creature';
@@ -96,7 +102,7 @@ export function CustomModeBuilder({ onCreated, onCancel }: {
   async function onCreate() {
     setCreating(true);
     setError(null);
-    const res = await createMode(filter);
+    const res = await createMode(filter, displayName);
     setCreating(false);
     if (!res.ok) { setError(res.reason === 'too-few' ? `Only ${res.count} cards — need ≥${MIN_CARDS}.` : 'Could not create this mode.'); return; }
     onCreated(res.mode, res.existed);
@@ -183,6 +189,30 @@ export function CustomModeBuilder({ onCreated, onCancel }: {
       </div>
 
       {error && <p style={{ color: 'var(--ember-hot)', fontSize: 12, textAlign: 'center', margin: 0 }}>{error}</p>}
+
+      <div style={section}>
+        <label htmlFor="mode-name" style={legend}>Name</label>
+        <input
+          id="mode-name"
+          data-testid="mode-name-input"
+          type="text"
+          value={displayName}
+          maxLength={60}
+          placeholder={suggested}
+          onChange={(e) => { setNameTouched(true); setName(e.target.value); }}
+          style={{
+            width: '100%',
+            padding: '10px 12px',
+            borderRadius: 10,
+            border: '1px solid var(--line-strong)',
+            background: 'rgba(20,17,28,0.6)',
+            color: 'var(--ink-0)',
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: 18,
+            fontWeight: 700,
+          }}
+        />
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <button className="ember-btn" style={{ width: '100%' }} disabled={!canCreate} onClick={onCreate} data-testid="create-mode-btn">

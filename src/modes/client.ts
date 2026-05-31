@@ -28,11 +28,16 @@ export async function randomMode(): Promise<CustomModeListItem | null> {
   return modes[Math.floor(Math.random() * modes.length)];
 }
 
-export async function createMode(filter: CustomFilter): Promise<CreateModeResult> {
+export async function createMode(filter: CustomFilter, name?: string): Promise<CreateModeResult> {
   const c = getSupabase();
   if (!c) return { ok: false, reason: 'disabled' };
   const canonical = canonicalizeFilter(filter);
-  const payload = { filter: canonical, name: modeName(canonical), filter_hash: await filterHash(canonical) };
+  const chosen = name?.trim();
+  const payload = {
+    filter: canonical,
+    name: chosen && chosen.length > 0 ? chosen : modeName(canonical),
+    filter_hash: await filterHash(canonical),
+  };
   const { data, error } = await c.functions.invoke('create-mode', { body: payload });
   if (error) return { ok: false, reason: error.message };
   return data as CreateModeResult;
