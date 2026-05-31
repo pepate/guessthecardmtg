@@ -150,8 +150,26 @@ export function StartModes({
   onPick: (mode: CustomMode) => void;
   onCreate: () => void;
 }) {
-  const [win, setWin] = useState<TimeWindow>('all');
+  const [win, setWin] = useState<TimeWindow>('week');
   const [views, setViews] = useState<ModeView[] | null>(null);
+  const [fabOpen, setFabOpen] = useState(false);
+
+  function onFabClick() {
+    // Touch devices have no hover: first tap reveals the label, the next creates.
+    const touch = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
+    if (touch && !fabOpen) {
+      setFabOpen(true);
+      return;
+    }
+    onCreate();
+  }
+
+  // Auto-collapse the expanded mobile FAB so it doesn't sit over the list.
+  useEffect(() => {
+    if (!fabOpen) return;
+    const id = setTimeout(() => setFabOpen(false), 3000);
+    return () => clearTimeout(id);
+  }, [fabOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -233,6 +251,7 @@ export function StartModes({
           display: 'flex',
           flexDirection: 'column',
           gap: 10,
+          paddingBottom: 76,
         }}
       >
         {views === null ? (
@@ -241,7 +260,7 @@ export function StartModes({
           </div>
         ) : views.length === 0 ? (
           <p data-testid="modes-empty" style={{ color: 'var(--ink-1)', fontSize: 14, textAlign: 'center', margin: 0 }}>
-            No modes yet — create one below.
+            No modes yet — tap + to create one.
           </p>
         ) : (
           views.map(({ mode, standing, top }) => (
@@ -250,16 +269,16 @@ export function StartModes({
         )}
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.12, duration: 0.32, ease: 'easeOut' }}
-        style={{ ...centered, flexShrink: 0, paddingBottom: 'env(safe-area-inset-bottom)' }}
+      <button
+        type="button"
+        data-testid="create-mode-btn"
+        aria-label="Create Mode"
+        className={`create-fab${fabOpen ? ' is-open' : ''}`}
+        onClick={onFabClick}
       >
-        <button type="button" data-testid="create-mode-btn" className="ember-btn" onClick={onCreate} style={{ width: '100%' }}>
-          Create Mode
-        </button>
-      </motion.div>
+        <span className="fab-plus" aria-hidden>+</span>
+        <span className="fab-label">Create Mode</span>
+      </button>
     </motion.div>
   );
 }

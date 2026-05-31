@@ -209,6 +209,68 @@ body::after {
   cursor: pointer;
 }
 
+/* Floating Create-Mode action button: a + that expands into a labelled pill on
+   hover (desktop) or after the first tap (mobile, via .is-open). */
+.create-fab {
+  position: fixed;
+  right: calc(18px + env(safe-area-inset-right));
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  height: 58px;
+  width: 58px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(180deg, var(--ember) 0%, var(--ember-deep) 100%);
+  color: #fff;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 8px 22px rgba(184, 69, 15, 0.45);
+  transition: width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease,
+    transform 0.18s ease;
+}
+
+.create-fab .fab-plus {
+  flex: 0 0 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.create-fab .fab-label {
+  white-space: nowrap;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  transition: max-width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease 0.05s,
+    padding 0.28s ease;
+}
+
+.create-fab:hover,
+.create-fab:focus-visible,
+.create-fab.is-open {
+  width: 196px;
+  box-shadow: 0 12px 34px rgba(255, 122, 44, 0.6);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.create-fab:hover .fab-label,
+.create-fab:focus-visible .fab-label,
+.create-fab.is-open .fab-label {
+  max-width: 150px;
+  opacity: 1;
+  padding-right: 22px;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
