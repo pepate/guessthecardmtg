@@ -1,4 +1,5 @@
 import type { HighscoreEntry } from '../state/highscores';
+import { ScoreValue } from './ScoreValue';
 
 export function HighscoreList({
   entries,
@@ -72,7 +73,7 @@ export function HighscoreList({
                 {e.pool === 'all' ? 'All' : 'Popular'}
               </span>
             </span>
-            <span style={{ color: 'var(--ember-hot)', fontSize: 15, fontWeight: 700 }}>{e.score}</span>
+            <ScoreValue score={e.score} />
           </div>
         );
       })}

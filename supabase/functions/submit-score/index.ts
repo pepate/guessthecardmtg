@@ -112,19 +112,52 @@ Deno.serve(async (req) => {
 
   const country = await lookupCountry(ip);
 
-  const inserted = await supabase
+  // One row per (mode_id, game_mode, name): keep the player's best run in each
+  // reveal mode. The board collapses these to a single row per person (best score)
+  // with a badge per reveal mode, so we never store the same name twice for a mode.
+  let existingQ = supabase
     .from('leaderboard')
-    .insert({ name, score, correct, mode_id: modeId, game_mode: gameMode, country, ip_hash: ipHash })
-    .select('id')
-    .single();
-  if (inserted.error) return json({ ok: false, reason: 'insert' }, 500);
+    .select('id,score')
+    .eq('mode_id', modeId)
+    .eq('name', name);
+  existingQ = gameMode === null ? existingQ.is('game_mode', null) : existingQ.eq('game_mode', gameMode);
+  const existing = await existingQ.order('score', { ascending: false }).limit(1).maybeSingle();
 
-  const higher = await supabase
-    .from('leaderboard')
-    .select('id', { count: 'exact', head: true })
-    .gt('score', score)
-    .eq('mode_id', modeId);
-  const rank = (higher.count ?? 0) + 1;
+  let rowId: string;
+  if (!existing.data) {
+    const inserted = await supabase
+      .from('leaderboard')
+      .insert({ name, score, correct, mode_id: modeId, game_mode: gameMode, country, ip_hash: ipHash })
+      .select('id')
+      .single();
+    if (inserted.error) return json({ ok: false, reason: 'insert' }, 500);
+    rowId = inserted.data.id;
+  } else if (score > existing.data.score) {
+    const updated = await supabase
+      .from('leaderboard')
+      .update({ score, correct, country, ip_hash: ipHash, created_at: new Date().toISOString() })
+      .eq('id', existing.data.id)
+      .select('id')
+      .single();
+    if (updated.error) return json({ ok: false, reason: 'insert' }, 500);
+    rowId = updated.data.id;
+  } else {
+    // The stored run is already at least this good — leave it as the player's best.
+    rowId = existing.data.id;
+  }
 
-  return json({ ok: true, id: inserted.data.id, rank }, 200);
+  // Rank by distinct person (each player's best score for this mode), not raw rows.
+  const all = await supabase.from('leaderboard').select('name,score').eq('mode_id', modeId);
+  const bestByName = new Map<string, number>();
+  for (const r of (all.data ?? []) as { name: string; score: number }[]) {
+    const prev = bestByName.get(r.name);
+    if (prev === undefined || r.score > prev) bestByName.set(r.name, r.score);
+  }
+  const myBest = bestByName.get(name) ?? score;
+  let higher = 0;
+  for (const [otherName, otherScore] of bestByName) {
+    if (otherName !== name && otherScore > myBest) higher++;
+  }
+
+  return json({ ok: true, id: rowId, rank: higher + 1 }, 200);
 });

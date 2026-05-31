@@ -10,8 +10,3 @@ export function getSupabase(): SupabaseClient | null {
   cached = url && key ? createClient(url, key) : null;
   return cached;
 }
-
-/** Test-only: reset the cached client between tests. */
-export function _resetSupabase(): void {
-  cached = undefined;
-}

@@ -18,6 +18,10 @@ const PROBE = VISIBLE + 1;
 // Sentinel used while builtin mode ids are loading.
 const LOADING_ID = '';
 
+const Unavailable = () => (
+  <p style={{ color: 'var(--ember-hot)', fontSize: 13, textAlign: 'center' }}>Leaderboard unavailable.</p>
+);
+
 function GlobalView({
   state,
   expanded,
@@ -32,7 +36,7 @@ function GlobalView({
   poolKind: 'all' | 'popular';
 }) {
   if (state.error) {
-    return <p style={{ color: 'var(--ember-hot)', fontSize: 13, textAlign: 'center' }}>Leaderboard unavailable.</p>;
+    return <Unavailable />;
   }
   if (state.loading && state.entries.length === 0) {
     return (
@@ -99,7 +103,7 @@ export function Leaderboard({ refreshKey = 0, onPlayMode }: { refreshKey?: numbe
   if (builtinsError) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', maxWidth: 420 }}>
-        <p style={{ color: 'var(--ember-hot)', fontSize: 13, textAlign: 'center' }}>Leaderboard unavailable.</p>
+        <Unavailable />
       </div>
     );
   }

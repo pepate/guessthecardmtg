@@ -40,7 +40,7 @@ export function rowToCard(r: GameCardRow): ScryfallCard {
   };
 }
 
-export async function fetchFilteredCards(filter: CustomFilter, count = DEFAULT_LIMIT): Promise<ScryfallCard[]> {
+async function fetchFilteredCards(filter: CustomFilter, count = DEFAULT_LIMIT): Promise<ScryfallCard[]> {
   const c = getSupabase();
   if (!c) throw new Error('Card database is not configured.');
   const { data, error } = await c.rpc('get_filtered_game_cards', { p_filter: filter, p_count: count });

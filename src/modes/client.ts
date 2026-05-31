@@ -2,12 +2,6 @@ import { getSupabase } from '../supabase/client';
 import { canonicalizeFilter, filterHash, modeName, type CustomFilter } from './filter';
 import type { CreateModeResult, CustomMode, CustomModeListItem } from './types';
 
-export interface SetItem {
-  code: string;
-  name: string;
-  released_at: string | null;
-}
-
 export async function countFilteredCards(filter: CustomFilter): Promise<number> {
   const c = getSupabase();
   if (!c) return 0;
@@ -26,14 +20,6 @@ export async function listModes(limit = 50): Promise<CustomModeListItem[]> {
     .limit(limit);
   if (error) throw new Error(error.message);
   return (data ?? []) as CustomModeListItem[];
-}
-
-export async function getMode(id: string): Promise<CustomMode | null> {
-  const c = getSupabase();
-  if (!c) return null;
-  const { data, error } = await c.from('mode').select('id,name,filter,card_count').eq('id', id).maybeSingle();
-  if (error) throw new Error(error.message);
-  return (data as CustomMode) ?? null;
 }
 
 export async function randomMode(): Promise<CustomModeListItem | null> {
@@ -62,16 +48,6 @@ export async function getBuiltinModes(): Promise<{ all: CustomMode; popular: Cus
   const popular = rows.find((r) => r.slug === 'popular');
   if (!all || !popular) return null;
   return { all, popular };
-}
-
-export async function listSets(): Promise<SetItem[]> {
-  const c = getSupabase();
-  if (!c) return [];
-  const { data, error } = await c.from('card_set')
-    .select('code,name,released_at')
-    .order('released_at', { ascending: false, nullsFirst: false });
-  if (error) throw new Error(error.message);
-  return (data ?? []) as SetItem[];
 }
 
 export async function findExistingMode(filter: CustomFilter): Promise<CustomMode | null> {

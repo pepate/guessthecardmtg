@@ -6,11 +6,15 @@ import type { GlobalEntry } from '../leaderboard/types';
 
 const NOW = 1_000_000_000_000;
 function e(id: string, score: number): GlobalEntry {
-  return { id, name: `P${id}`, score, correct: 9, gameMode: null, country: 'DE', createdAt: NOW };
+  return { id, name: `P${id}`, score, correct: 9, gameModes: [], country: 'DE', createdAt: NOW };
 }
 
 const zoomEntry: GlobalEntry = {
-  id: '1', name: 'Al', score: 900, correct: 9, gameMode: 'zoom', country: 'DE', createdAt: 0,
+  id: '1', name: 'Al', score: 900, correct: 9, gameModes: ['zoom'], country: 'DE', createdAt: 0,
+};
+
+const multiModeEntry: GlobalEntry = {
+  id: '2', name: 'Bo', score: 1200, correct: 11, gameModes: ['spotlight', 'blur'], country: 'DE', createdAt: 0,
 };
 
 beforeEach(() => {
@@ -25,6 +29,13 @@ describe('GlobalScoreList', () => {
     expect(screen.getByText(/zoom/i)).toBeTruthy();
     fireEvent.click(screen.getByTestId('global-entry'));
     expect(onPlay).toHaveBeenCalledWith('zoom');
+  });
+
+  it('shows a badge for every reveal mode on a single person row', () => {
+    render(<GlobalScoreList entries={[multiModeEntry]} now={NOW} />);
+    expect(screen.getAllByTestId('global-entry')).toHaveLength(1);
+    expect(screen.getByText(/spotlight/i)).toBeTruthy();
+    expect(screen.getByText(/blur/i)).toBeTruthy();
   });
 
   it('renders one row per entry with rank, name and score', () => {

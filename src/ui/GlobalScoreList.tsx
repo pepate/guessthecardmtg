@@ -4,6 +4,7 @@ import type { RevealMode } from '../engine/timeAttack';
 import { countryToFlag } from '../leaderboard/flag';
 import { formatAge } from '../leaderboard/age';
 import { REVEAL_MODE_LABELS } from '../reveal/labels';
+import { ScoreValue } from './ScoreValue';
 
 const GRID = '32px 20px 1fr auto auto auto';
 
@@ -50,10 +51,20 @@ function Row({
         </span>
       )}
       <span style={{ color: 'var(--ink-2)', fontSize: 11 }}>{entry.correct}✓ · {formatAge(entry.createdAt, now)}</span>
-      <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", padding: '2px 6px', borderRadius: 6, border: '1px solid var(--line)' }}>
-        {entry.gameMode ? REVEAL_MODE_LABELS[entry.gameMode] : '—'}
+      <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end' }}>
+        {entry.gameModes.length === 0 ? (
+          <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", padding: '2px 6px', borderRadius: 6, border: '1px solid var(--line)' }}>
+            —
+          </span>
+        ) : (
+          entry.gameModes.map((mode) => (
+            <span key={mode} style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", padding: '2px 6px', borderRadius: 6, border: '1px solid var(--line)', whiteSpace: 'nowrap' }}>
+              {REVEAL_MODE_LABELS[mode]}
+            </span>
+          ))
+        )}
       </span>
-      <span style={{ color: 'var(--ember-hot)', fontSize: 15, fontWeight: 700 }}>{entry.score}</span>
+      <ScoreValue score={entry.score} />
     </div>
   );
 }
@@ -92,7 +103,7 @@ export function GlobalScoreList({
           now={now}
           highlight={entry.id === highlightId}
           testid="global-entry"
-          onPlay={onPlayMode && entry.gameMode ? () => onPlayMode(entry.gameMode!) : undefined}
+          onPlay={onPlayMode && entry.gameModes.length > 0 ? () => onPlayMode(entry.gameModes[0]) : undefined}
         />
       ))}
       {pinned && (
