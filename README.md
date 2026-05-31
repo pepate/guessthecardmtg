@@ -109,6 +109,17 @@ npm run build        # type-check + production build
 The end-to-end tests run fully offline: backend requests are mocked and the
 clock is driven by Playwright’s `page.clock`, so they’re deterministic.
 
+## License
+
+The source code is released under the **[PolyForm Noncommercial 1.0.0](LICENSE.md)**
+license: you're free to read, use, modify and share it for **noncommercial**
+purposes, but **commercial use is not permitted**. (This is a source-available
+license, not an OSI "open source" one — that's deliberate, so the code stays
+public and free without anyone selling it.)
+
+This license covers **only this project's code**. _Magic: The Gathering_ card
+names and artwork are © Wizards of the Coast and are not licensed here.
+
 ## Credits
 
 Card data, names and artwork are provided by **Scryfall**. _Magic: The
