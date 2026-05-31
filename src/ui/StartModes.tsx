@@ -27,6 +27,8 @@ interface ModeRowProps {
   name: string;
   standing: number | null;
   top: ModeTop | null;
+  /** Total recorded scores (games) in this mode. */
+  plays: number;
   onSelect: () => void;
 }
 
@@ -75,7 +77,7 @@ function RankBadge({ standing }: { standing: number | null }) {
   );
 }
 
-function ModeRow({ name, standing, top, onSelect }: ModeRowProps) {
+function ModeRow({ name, standing, top, plays, onSelect }: ModeRowProps) {
   return (
     <button
       type="button"
@@ -108,6 +110,11 @@ function ModeRow({ name, standing, top, onSelect }: ModeRowProps) {
       >
         {name}
       </span>
+      {plays > 0 && (
+        <span title="games played" style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 2, color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>
+          <span aria-hidden style={{ fontSize: 8 }}>▶</span>{plays}
+        </span>
+      )}
       {top && (
         <>
           <span aria-hidden style={{ flex: '0 0 auto', fontSize: 14 }}>{countryToFlag(top.country)}</span>
@@ -238,7 +245,7 @@ export function StartModes({
           </p>
         ) : (
           views.map(({ mode, standing, top }) => (
-            <ModeRow key={mode.id} name={mode.name} standing={standing} top={top} onSelect={() => onPick(mode)} />
+            <ModeRow key={mode.id} name={mode.name} standing={standing} top={top} plays={mode.entry_count} onSelect={() => onPick(mode)} />
           ))
         )}
       </div>

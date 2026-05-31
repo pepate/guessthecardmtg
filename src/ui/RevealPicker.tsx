@@ -12,6 +12,7 @@ import { useGameStore } from '../state/gameStore';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
 import { buildDeeplink } from '../share/deeplink';
+import { FilterChips } from './FilterChips';
 
 export function RevealPicker({ mode }: { mode: CustomMode }) {
   const [leaders, setLeaders] = useState<Record<RevealMode, GlobalEntry | null> | null>(null);
@@ -62,6 +63,12 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
     void store.selectPool({ kind: 'custom', modeId: mode.id, filter: mode.filter, name: mode.name });
   }
 
+  // The most recent recorded runs in this mode (newest first), for quick replay.
+  const recent = runs
+    .filter((r) => r.gameMode)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 3);
+
   return (
     <motion.div
       key="picker"
@@ -76,11 +83,45 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
           {mode.name}
         </span>
       </div>
-      <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: 12, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>
-        Pick a reveal mode · beat the holder
-      </p>
 
-      <div data-testid="reveal-list" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <FilterChips filter={mode.filter} />
+          <div style={{ textAlign: 'center', color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
+            {mode.card_count.toLocaleString()} cards
+          </div>
+        </div>
+
+        {recent.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' }}>Recent games</span>
+            {recent.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                data-testid="recent-game"
+                onClick={() => r.gameMode && play(r.gameMode)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
+                  padding: '8px 12px', borderRadius: 10, border: '1px solid var(--line)',
+                  background: 'rgba(20,17,28,0.45)', cursor: 'pointer',
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: 12,
+                }}
+              >
+                <span aria-hidden>{countryToFlag(r.country)}</span>
+                <span style={{ flex: 1, minWidth: 0, color: 'var(--ink-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                <span style={{ flex: '0 0 auto', color: 'var(--ink-2)' }}>{r.gameMode ? REVEAL_MODE_LABELS[r.gameMode] : ''}</span>
+                <ScoreValue score={r.score} fontSize={12} />
+              </button>
+            ))}
+          </div>
+        )}
+
+        <p style={{ margin: '2px 0 0', color: 'var(--ink-2)', fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>
+          Pick a reveal mode · beat the holder
+        </p>
+
+        <div data-testid="reveal-list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {enabled === null ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
             <span className="spinner" />
@@ -160,6 +201,7 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
             You top every reveal here — give the others a chance and try a different mode.
           </p>
         )}
+        </div>
       </div>
     </motion.div>
   );
