@@ -2,6 +2,11 @@ import { getSupabase } from '../supabase/client';
 
 let cachedUserId: string | null = null;
 
+/** Force the cached identity (called by the auth session store on auth changes). */
+export function setCachedUserId(id: string | null): void {
+  cachedUserId = id;
+}
+
 /** The current player's auth id, or null if not signed in. Does not create a session. */
 export async function getUserId(): Promise<string | null> {
   if (cachedUserId) return cachedUserId;

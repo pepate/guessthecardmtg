@@ -63,3 +63,21 @@ describe('ensureUserId', () => {
     expect(await ensureUserId()).toBeNull();
   });
 });
+
+describe('setCachedUserId', () => {
+  it('overrides the cached id so getUserId returns it without hitting getSession', async () => {
+    getSession.mockResolvedValue({ data: { session: null } });
+    const { setCachedUserId, getUserId } = await importIdentity();
+    setCachedUserId('uid-forced');
+    expect(await getUserId()).toBe('uid-forced');
+    expect(getSession).not.toHaveBeenCalled();
+  });
+
+  it('clears the cache when passed null (forces a re-read)', async () => {
+    getSession.mockResolvedValue({ data: { session: { user: { id: 'uid-sess' } } } });
+    const { setCachedUserId, getUserId } = await importIdentity();
+    setCachedUserId('uid-old');
+    setCachedUserId(null);
+    expect(await getUserId()).toBe('uid-sess');
+  });
+});
