@@ -77,7 +77,7 @@ function Section({ label, open, summary, onToggle, children }: {
   label: string; open: boolean; summary: string | null; onToggle: () => void; children: React.ReactNode;
 }) {
   return (
-    <div style={{ borderRadius: 12, border: '1px solid var(--line-strong)', background: 'rgba(20,17,28,0.5)', overflow: 'hidden' }}>
+    <div style={{ flexShrink: 0, borderRadius: 12, border: '1px solid var(--line-strong)', background: 'rgba(20,17,28,0.5)', overflow: 'hidden' }}>
       <button
         type="button"
         onClick={onToggle}
@@ -85,6 +85,7 @@ function Section({ label, open, summary, onToggle, children }: {
         style={{
           display: 'flex', alignItems: 'center', gap: 10, width: '100%', minHeight: 52,
           padding: '12px 14px', cursor: 'pointer', background: 'transparent', textAlign: 'left',
+          border: 'none', outline: 'none', color: 'inherit', WebkitTapHighlightColor: 'transparent',
         }}
       >
         <span aria-hidden style={{ width: 12, color: 'var(--ink-2)', fontSize: 12 }}>{open ? '▾' : '▸'}</span>
@@ -113,9 +114,9 @@ export function CustomModeBuilder({ onCreated }: {
   const [name, setName] = useState('');
   const [nameTouched, setNameTouched] = useState(false);
   const [sets, setSets] = useState<SetListItem[]>([]);
-  // Universe Beyond always carries a value (Exclude by default), so it starts open.
+  // Everything starts collapsed — Universe Beyond too, even though it has a value.
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
-    colors: false, types: false, ranges: false, ub: true, rarity: false,
+    colors: false, types: false, ranges: false, ub: false, rarity: false,
   });
   const toggleSec = (k: SectionKey) => setOpen((o) => ({ ...o, [k]: !o[k] }));
 

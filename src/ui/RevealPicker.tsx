@@ -162,6 +162,7 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
                     <>
                       <span aria-hidden>{countryToFlag(leader.country)}</span>
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{leader.name}</span>
+                      <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', fontSize: 11 }}>{formatAge(leader.createdAt, now)}</span>
                       <ScoreValue score={leader.score} fontSize={13} />
                     </>
                   ) : (

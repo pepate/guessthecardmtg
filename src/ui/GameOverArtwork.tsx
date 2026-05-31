@@ -86,13 +86,12 @@ export function GameOverArtwork() {
         <div style={{ position: 'absolute', inset: 0, background: SCRIM }} />
       </motion.div>
 
-      {/* Info pill — interactive, so it sits above the scrim with pointerEvents on. */}
+      {/* Info icon — top-right corner, icon only; tap/hover to inspect the card. */}
       <div
         style={{
           position: 'absolute',
-          top: 'calc(env(safe-area-inset-top) + 64px)',
-          left: '50%',
-          transform: 'translateX(-50%)',
+          top: 'calc(env(safe-area-inset-top) + 12px)',
+          right: 16,
           zIndex: 6,
           pointerEvents: 'auto',
         }}
@@ -100,7 +99,7 @@ export function GameOverArtwork() {
         <button
           type="button"
           data-testid="gameover-info-pill"
-          aria-label={mobile ? 'Tap for card info' : 'Hover for card info'}
+          aria-label="Card info"
           onClick={() => {
             // Desktop uses hover; tap is the mobile toggle (and a click fallback).
             if (mobile) (inspect ? setInspect(false) : openInspect());
@@ -121,19 +120,16 @@ export function GameOverArtwork() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '7px 13px',
-            borderRadius: 999,
+            justifyContent: 'center',
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
             border: '1px solid rgba(255,255,255,0.18)',
             background: 'rgba(7,6,10,0.55)',
             backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
-            color: 'var(--ink-2)',
+            color: 'var(--ink-1)',
             cursor: 'pointer',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-            letterSpacing: 2,
-            textTransform: 'uppercase',
           }}
         >
           <span
@@ -142,11 +138,11 @@ export function GameOverArtwork() {
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 16,
-              height: 16,
+              width: 18,
+              height: 18,
               borderRadius: '50%',
               border: '1px solid currentColor',
-              fontSize: 10,
+              fontSize: 11,
               fontStyle: 'italic',
               fontFamily: "'Cormorant Garamond', serif",
               lineHeight: 1,
@@ -154,7 +150,6 @@ export function GameOverArtwork() {
           >
             i
           </span>
-          {mobile ? 'Tap for card info' : 'Hover for card info'}
         </button>
       </div>
 
