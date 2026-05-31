@@ -112,13 +112,20 @@ export function GameOver() {
         <div style={{ color: 'var(--ember-hot)', fontSize: 24, fontWeight: 600, marginTop: 6 }}>
           <span data-testid="final-score">{animatedScore}</span> points
         </div>
+        {currentModeName && (
+          <div
+            data-testid="gameover-mode"
+            style={{ marginTop: 10, color: 'var(--ink-1)', fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 19 }}
+          >
+            {currentModeName} · {REVEAL_MODE_LABELS[gameMode]}
+          </div>
+        )}
       </div>
 
       <GameOverLeaderboard
         score={totalScore}
         correct={correctCount}
         modeId={currentModeId}
-        modeName={currentModeName ?? undefined}
         modeFilter={currentModeFilter ?? undefined}
         gameMode={gameMode}
       />

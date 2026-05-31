@@ -20,14 +20,12 @@ export function GameOverLeaderboard({
   score,
   correct,
   modeId,
-  modeName,
   modeFilter,
   gameMode,
 }: {
   score: number;
   correct: number;
   modeId: string | null;
-  modeName?: string;
   modeFilter?: CustomFilter;
   gameMode: RevealMode;
 }) {
@@ -184,14 +182,6 @@ export function GameOverLeaderboard({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
-      {modeName && (
-        <div
-          data-testid="mode-board-title"
-          style={{ textAlign: 'center', color: 'var(--ink-1)', fontSize: 14, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 0.5 }}
-        >
-          {modeName}
-        </div>
-      )}
       {projected && (
         <div
           data-testid="projected-rank"
