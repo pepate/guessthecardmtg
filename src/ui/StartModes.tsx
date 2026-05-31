@@ -4,7 +4,7 @@ import { listModes, getModeById } from '../modes/client';
 import type { CustomMode, CustomModeListItem } from '../modes/types';
 import { fetchModeRuns, fetchAutoAdvanceTarget } from '../leaderboard/client';
 import { deviceModeStanding, type Run } from '../leaderboard/boards';
-import { getDeviceId } from '../leaderboard/identity';
+import { getUserId } from '../leaderboard/identity';
 import { fetchEnabledRevealModes } from '../reveal/client';
 import { useGameStore } from '../state/gameStore';
 import type { RevealMode } from '../engine/timeAttack';
@@ -201,7 +201,9 @@ export function StartModes({
     (async () => {
       const modes = await listModes(200);
       const enabled = await fetchEnabledRevealModes();
-      const target = await fetchAutoAdvanceTarget(modes.map((m) => m.id), getDeviceId(), enabled);
+      const uid = await getUserId();
+      if (!uid) return;
+      const target = await fetchAutoAdvanceTarget(modes.map((m) => m.id), uid, enabled);
       if (!cancelled) setNextTarget(target);
     })().catch(() => {});
     return () => { cancelled = true; };
@@ -212,7 +214,9 @@ export function StartModes({
     setViews(null);
     (async () => {
       const modes = await listModes(200);
-      const device = getDeviceId();
+      // No session yet → empty id matches no rows, so standings are simply absent
+      // while the mode list still renders for everyone.
+      const device = (await getUserId()) ?? '';
       const since = windowCutoff(win);
       const built = await Promise.all(
         modes.map(async (mode) => {
