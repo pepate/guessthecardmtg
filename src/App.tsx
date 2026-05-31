@@ -201,7 +201,7 @@ export function App() {
 
   type StartView = { s: 'list' } | { s: 'picker'; mode: CustomMode } | { s: 'create' } | { s: 'profile' };
   const [view, setView] = useState<StartView>({ s: 'list' });
-  const { recovery } = useAuth();
+  const { recovery, authError } = useAuth();
 
   // First-ever open (and not arriving via a shared deeplink) → show the wizard once.
   const [showWizard, setShowWizard] = useState(
@@ -221,6 +221,12 @@ export function App() {
   useEffect(() => {
     if (recovery && phase === 'idle') setView({ s: 'profile' });
   }, [recovery, phase]);
+
+  // A failed Google link/sign-in redirects back here with an error — open the
+  // profile so the message (and the sign-in option) are visible.
+  useEffect(() => {
+    if (authError && phase === 'idle') setView({ s: 'profile' });
+  }, [authError, phase]);
 
   useEffect(() => {
     void loadRevealModes();

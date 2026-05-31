@@ -30,6 +30,8 @@ vi.mock('../auth/actions', () => ({
 
 vi.mock('../auth/session', () => ({
   clearRecovery: vi.fn(),
+  clearAuthError: vi.fn(),
+  refreshUser: vi.fn(),
 }));
 
 const sampleProfile = {

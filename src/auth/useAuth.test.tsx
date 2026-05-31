@@ -6,6 +6,7 @@ vi.mock('./session', () => ({
   subscribe: (_cb: () => void) => () => {},
   getUserSnapshot: () => state.user,
   getRecoverySnapshot: () => state.recovery,
+  getAuthErrorSnapshot: () => null,
 }));
 
 import { useAuth } from './useAuth';

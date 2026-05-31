@@ -6,11 +6,40 @@ type Listener = () => void;
 const listeners = new Set<Listener>();
 let currentUser: User | null = null;
 let recovering = false;
+let authError: string | null = null;
 let started = false;
 
 function emit() {
   for (const l of listeners) l();
 }
+
+// OAuth (Google) returns land back on the app URL. On failure the provider/Supabase
+// append error params (hash for the implicit flow, sometimes the query). Read them
+// once, turn them into a friendly message, and strip them so a reload is clean.
+function readOAuthError(): string | null {
+  if (typeof window === 'undefined') return null;
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const search = new URLSearchParams(window.location.search);
+  const err = hash.get('error') || search.get('error');
+  if (!err) return null;
+
+  const code = hash.get('error_code') || search.get('error_code') || '';
+  const desc = (hash.get('error_description') || search.get('error_description') || '').replace(/\+/g, ' ');
+
+  const url = new URL(window.location.href);
+  ['error', 'error_code', 'error_description'].forEach((k) => url.searchParams.delete(k));
+  url.hash = '';
+  window.history.replaceState({}, '', url.pathname + url.search);
+
+  if (/already|another|linked|exists/i.test(`${desc} ${code}`)) {
+    return 'That Google account already belongs to another account. Use “Sign in to another account” below to log in with it instead.';
+  }
+  return desc ? `Google sign-in failed: ${desc}` : 'Google sign-in failed — please try again.';
+}
+
+// Read at module load (before the first render reads the snapshot) so a failed
+// OAuth return is shown without needing a re-emit. Only touches the URL on error.
+authError = readOAuthError();
 
 function sync(user: User | null) {
   currentUser = user;
@@ -62,6 +91,16 @@ export function getUserSnapshot(): User | null {
 
 export function getRecoverySnapshot(): boolean {
   return recovering;
+}
+
+export function getAuthErrorSnapshot(): string | null {
+  return authError;
+}
+
+/** Clear the surfaced OAuth error once it's been shown/handled. */
+export function clearAuthError(): void {
+  authError = null;
+  emit();
 }
 
 /** Re-fetch the user from the server and broadcast it. Lets the UI pick up an

@@ -10,7 +10,7 @@ import {
   updatePassword,
   signOut,
 } from '../auth/actions';
-import { clearRecovery, refreshUser } from '../auth/session';
+import { clearRecovery, refreshUser, clearAuthError } from '../auth/session';
 import { getProfile, upsertDisplayName, checkNameAvailable, updateCountry } from '../profile/client';
 import type { Profile } from '../profile/client';
 import { fetchPlayerBests, type PlayerBest } from '../profile/stats';
@@ -105,7 +105,7 @@ function SignInForm({ onSuccess, warning }: SignInFormProps) {
 }
 
 export function ProfilePanel() {
-  const { user, status, recovery } = useAuth();
+  const { user, status, recovery, authError } = useAuth();
   const [uid, setUid] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [bests, setBests] = useState<PlayerBest[]>([]);
@@ -155,6 +155,7 @@ export function ProfilePanel() {
   function clearMessages() {
     setError('');
     setNotice('');
+    clearAuthError();
   }
 
   async function shareApp() {
@@ -206,10 +207,10 @@ export function ProfilePanel() {
           >
             Profile
           </h2>
-          {(error || notice) && (
+          {(error || notice || authError) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {error && <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0, textAlign: 'center' }}>{error}</p>}
-              {notice && <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 12, margin: 0, textAlign: 'center' }}>{notice}</p>}
+              {(error || authError) && <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 13, margin: 0, textAlign: 'center', lineHeight: 1.5 }}>{error || authError}</p>}
+              {notice && <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 13, margin: 0, textAlign: 'center' }}>{notice}</p>}
             </div>
           )}
           {pendingEmail && (
