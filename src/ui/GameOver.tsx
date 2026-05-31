@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
-import { useCountUp } from './useCountUp';
 import { GameOverLeaderboard } from './GameOverLeaderboard';
 import { shareLink } from '../share/score';
 import type { RevealMode } from '../engine/timeAttack';
-import { fetchRevealLeaders } from '../leaderboard/client';
+import { fetchRevealLeaders, isLeaderboardEnabled } from '../leaderboard/client';
 import { fetchEnabledRevealModes } from '../reveal/client';
 import { REVEAL_MODE_LABELS } from '../reveal/labels';
 import type { GlobalEntry } from '../leaderboard/types';
@@ -20,8 +19,6 @@ export function GameOver() {
   const currentModeName = useGameStore((s) => s.currentModeName);
   const currentModeFilter = useGameStore((s) => s.currentModeFilter);
   const gameMode = useGameStore((s) => s.gameMode);
-  const highscores = useGameStore((s) => s.highscores);
-  const restart = useGameStore((s) => s.restart);
 
   const [shareLabel, setShareLabel] = useState('Share score');
   const [otherLeaders, setOtherLeaders] = useState<Record<RevealMode, GlobalEntry | null> | null>(null);
@@ -48,10 +45,6 @@ export function GameOver() {
     void store.selectPool({ kind: 'custom', modeId: currentModeId, filter: currentModeFilter, name: currentModeName ?? '' });
   }
 
-  const animatedScore = useCountUp(totalScore, 1100, 1, 0);
-  const best = highscores[0]?.score ?? 0;
-  const isBest = totalScore > 0 && totalScore >= best;
-
   async function onShare() {
     const url = shareLink({ score: totalScore, correct: correctCount, pool: poolKind });
     const text = `I scored ${totalScore} points in Arcane Drift — beat me: ${url}`;
@@ -69,6 +62,29 @@ export function GameOver() {
       // User cancelled the share sheet, or clipboard was blocked — no-op.
     }
   }
+
+  const boardShown = isLeaderboardEnabled() && totalScore > 0;
+  const shareButton = (
+    <button
+      className="ghost-btn"
+      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0' }}
+      onClick={onShare}
+      data-testid="share-btn"
+      aria-label={shareLabel}
+      title={shareLabel}
+    >
+      {shareLabel === 'Link copied' ? (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+      ) : (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <polyline points="15 17 20 12 15 7" />
+          <path d="M4 18v-1a5 5 0 0 1 5-5h11" />
+        </svg>
+      )}
+    </button>
+  );
 
   return (
     <motion.div
@@ -90,36 +106,14 @@ export function GameOver() {
         overflowY: 'auto',
       }}
     >
-      <div style={{ textAlign: 'center' }}>
+      {currentModeName && (
         <div
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 12,
-            letterSpacing: 3,
-            textTransform: 'uppercase',
-            color: isBest ? 'var(--ember-hot)' : 'var(--ink-2)',
-          }}
+          data-testid="gameover-mode"
+          style={{ textAlign: 'center', color: 'var(--ink-1)', fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 22 }}
         >
-          {isBest ? 'New record' : 'Time up'}
+          {currentModeName} · {REVEAL_MODE_LABELS[gameMode]}
         </div>
-        <div data-testid="final-correct" style={{ fontSize: 52, fontWeight: 700, color: 'var(--ink-0)', margin: '4px 0' }}>
-          {correctCount}
-        </div>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ink-2)' }}>
-          cards correct
-        </div>
-        <div style={{ color: 'var(--ember-hot)', fontSize: 24, fontWeight: 600, marginTop: 6 }}>
-          <span data-testid="final-score">{animatedScore}</span> points
-        </div>
-        {currentModeName && (
-          <div
-            data-testid="gameover-mode"
-            style={{ marginTop: 10, color: 'var(--ink-1)', fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 19 }}
-          >
-            {currentModeName} · {REVEAL_MODE_LABELS[gameMode]}
-          </div>
-        )}
-      </div>
+      )}
 
       <GameOverLeaderboard
         score={totalScore}
@@ -127,25 +121,31 @@ export function GameOver() {
         modeId={currentModeId}
         modeFilter={currentModeFilter ?? undefined}
         gameMode={gameMode}
+        shareButton={shareButton}
       />
 
-      {currentModeId && otherLeaders && enabledModes.filter((r) => r !== gameMode).length > 0 && (
+      {currentModeId && otherLeaders && enabledModes.length > 0 && (
         <div style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={{ color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' }}>
-            Other reveal modes
+            Reveal modes
           </span>
-          {enabledModes.filter((r) => r !== gameMode).map((reveal) => {
+          {(enabledModes.includes(gameMode)
+            ? [gameMode, ...enabledModes.filter((r) => r !== gameMode)]
+            : enabledModes
+          ).map((reveal) => {
             const leader = otherLeaders[reveal];
+            const isCurrent = reveal === gameMode;
             return (
               <button
                 key={reveal}
                 type="button"
-                data-testid="other-reveal"
+                data-testid={isCurrent ? 'played-reveal' : 'other-reveal'}
                 onClick={() => playReveal(reveal)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
-                  padding: '10px 12px', borderRadius: 10, border: '1px solid var(--line-strong)',
-                  background: 'rgba(20,17,28,0.55)', cursor: 'pointer',
+                  padding: '10px 12px', borderRadius: 10,
+                  border: isCurrent ? '1px solid var(--ember)' : '1px solid var(--line-strong)',
+                  background: isCurrent ? 'rgba(255,138,76,0.10)' : 'rgba(20,17,28,0.55)', cursor: 'pointer',
                 }}
               >
                 <span style={{ width: 84, color: 'var(--ink-0)', fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700 }}>
@@ -162,25 +162,20 @@ export function GameOver() {
                     <span style={{ flex: 1 }}>open · no scores</span>
                   )}
                 </span>
+                {isCurrent && (
+                  <span style={{ color: 'var(--ember-hot)', fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                    just played
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
-        <button className="ember-btn" style={{ width: '100%' }} onClick={restart}>
-          Play again
-        </button>
-        <button
-          className="ghost-btn"
-          style={{ width: '100%' }}
-          onClick={onShare}
-          data-testid="share-btn"
-        >
-          {shareLabel}
-        </button>
-      </div>
+      {!boardShown && (
+        <div style={{ width: '100%', maxWidth: 420 }}>{shareButton}</div>
+      )}
     </motion.div>
   );
 }

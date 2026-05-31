@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { CustomMode } from '../modes/types';
 import type { GlobalEntry } from '../leaderboard/types';
@@ -20,6 +20,7 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
   const [copied, setCopied] = useState<RevealMode | null>(null);
   const [confirm, setConfirm] = useState<RevealMode | null>(null);
+  const [idleHint, setIdleHint] = useState<string | null>(null);
 
   const touchDevice = () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
 
@@ -82,6 +83,41 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
   const rankOf = (reveal: RevealMode, score: number): number =>
     comboBoard(runs, reveal).filter((e) => e.score > score).length + 1;
 
+  // Tappable rows the idle nudge can point at — recent games first, then modes.
+  // Join into a stable string so the idle effect doesn't re-arm every render
+  // (recent/enabled are fresh arrays each pass).
+  const idleKey = useMemo(
+    () => [...recent.map((r) => `recent:${r.id}`), ...(enabled ?? []).map((rv) => `reveal:${rv}`)].join('|'),
+    [recent, enabled],
+  );
+
+  // After 10s of no input, pulse a random row to show it's tappable; any
+  // interaction clears the hint and restarts the idle countdown.
+  useEffect(() => {
+    const candidates = idleKey ? idleKey.split('|') : [];
+    if (candidates.length === 0 || confirm) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const arm = () => {
+      clearTimeout(timer);
+      setIdleHint(null);
+      timer = setTimeout(() => {
+        setIdleHint(candidates[Math.floor(Math.random() * candidates.length)]);
+      }, 10000);
+    };
+    arm();
+    window.addEventListener('pointerdown', arm);
+    window.addEventListener('pointermove', arm);
+    window.addEventListener('keydown', arm);
+    window.addEventListener('wheel', arm);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('pointerdown', arm);
+      window.removeEventListener('pointermove', arm);
+      window.removeEventListener('keydown', arm);
+      window.removeEventListener('wheel', arm);
+    };
+  }, [idleKey, confirm]);
+
   return (
     <motion.div
       key="picker"
@@ -89,7 +125,7 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="bottom-sheet"
-      style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: '92%' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '92%' }}
     >
       <div style={{ width: '100%', maxWidth: 700, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, paddingRight: 96 }}>
         <span style={{ flex: 1, color: 'var(--ink-0)', fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -113,6 +149,7 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
                 key={r.id}
                 type="button"
                 data-testid="recent-game"
+                className={idleHint === `recent:${r.id}` ? 'idle-hint' : undefined}
                 onClick={() => r.gameMode && choose(r.gameMode)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
@@ -150,6 +187,7 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
                 data-testid="reveal-row"
                 data-reveal={reveal}
                 role="button"
+                className={idleHint === `reveal:${reveal}` ? 'idle-hint' : undefined}
                 onClick={() => choose(reveal)}
                 style={{
                   display: 'flex',
