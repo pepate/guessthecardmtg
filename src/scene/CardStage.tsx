@@ -23,8 +23,10 @@ const MOSAIC_IDENTITY = Array.from({ length: MOSAIC_TILES }, (_, i) => i);
 // zoom-in phase runs until ZOOM_CROSSFADE of the reveal, then the full card crossfades in
 // from the same origin, scaling from ZOOM_CARD_START (art roughly fills the frame) down to
 // 1 so it continues seamlessly. ZOOM_ORIGIN sits over the art centre (top third of the card),
-// not the card centre, so the art stays put while the frame grows in around it. No redaction
-// overlays in zoom — the full card is the payoff once it lands (~scanRevealMs, 5s).
+// not the card centre, so the art stays put while the frame grows in around it. Neither layer
+// ever scales below 1, and the card layer is fully opaque beneath the fading art, so the dark
+// background never bleeds through (no black border). The reveal lands on the whole card with
+// only the name left blurred (the name layer scales with the card so it tracks it the whole way).
 const ZOOM_START_SCALE = 2.5;
 const ZOOM_CARD_START = 2.2;
 const ZOOM_CROSSFADE = 0.6;
@@ -149,7 +151,11 @@ export function CardStage({
     cardUrl;
   const zoomPa = Math.min(1, progress / ZOOM_CROSSFADE);
   const zoomPb = Math.max(0, (progress - ZOOM_CROSSFADE) / (1 - ZOOM_CROSSFADE));
-  const zoomArtScale = (1 + (1 - zoomPa) * (ZOOM_START_SCALE - 1)) * (1 - zoomPb * (1 - 1 / ZOOM_CARD_START));
+  // Phase 1 (0→crossfade): art_crop zooms out from ZOOM_START_SCALE to 1 (fills the frame).
+  // Phase 2 (crossfade→1): the full card scales from ZOOM_CARD_START down to 1 beneath the art,
+  // which fades out — the frame grows in around the art. Both scales stay >= 1 so nothing ever
+  // shrinks past the frame edge and reveals the dark background.
+  const zoomArtScale = 1 + (1 - zoomPa) * (ZOOM_START_SCALE - 1);
   const zoomCardScale = ZOOM_CARD_START - zoomPb * (ZOOM_CARD_START - 1);
 
   const artOnly = !over && stage === 0;
@@ -278,8 +284,9 @@ export function CardStage({
                   data-testid="zoom-card"
                   src={cardUrl}
                   alt=""
-                  style={{ ...fillImg, transform: `scale(${zoomCardScale})`, transformOrigin: ZOOM_ORIGIN, opacity: zoomPb }}
-                  initial={{ opacity: 0 }}
+                  style={{ ...fillImg, transform: `scale(${zoomCardScale})`, transformOrigin: ZOOM_ORIGIN }}
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 />
               )}
@@ -289,10 +296,33 @@ export function CardStage({
                   data-testid="zoom-art"
                   src={artUrl}
                   alt=""
-                  style={{ ...fillImg, transform: `scale(${zoomArtScale})`, transformOrigin: ZOOM_ORIGIN, opacity: 1 - zoomPb }}
+                  style={{ ...fillImg, objectFit: 'cover', transform: `scale(${zoomArtScale})`, transformOrigin: ZOOM_ORIGIN }}
                   initial={{ opacity: 1 }}
+                  animate={{ opacity: 1 - zoomPb }}
+                  transition={{ duration: 0 }}
                   exit={{ opacity: 0 }}
                 />
+              )}
+              {blurName && (
+                <motion.div
+                  key="name"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    transform: `scale(${zoomCardScale})`,
+                    transformOrigin: ZOOM_ORIGIN,
+                    zIndex: 3,
+                    pointerEvents: 'none',
+                  }}
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <div
+                    data-testid="blur-name"
+                    style={{ ...blurBase, top: '3.2%', left: '5%', width: '60%', height: '6.5%' }}
+                  />
+                </motion.div>
               )}
             </>
           ) : mode === 'silhouette' ? (

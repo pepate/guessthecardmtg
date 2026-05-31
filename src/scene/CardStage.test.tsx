@@ -177,19 +177,20 @@ describe('CardStage spotlight mode', () => {
 describe('CardStage zoom mode', () => {
   beforeEach(() => seedRound('playing'));
 
-  it('renders both image layers and NO redaction overlays while playing', () => {
+  it('renders both image layers and keeps only the name redacted while playing', () => {
     render(<CardStage mode="zoom" stage={0} progress={0.2} />);
     expect(screen.getByTestId('zoom-art')).toBeTruthy();
     expect(screen.getByTestId('zoom-card')).toBeTruthy();
-    expect(screen.queryByTestId('blur-name')).toBeNull();
+    expect(screen.getByTestId('blur-name')).toBeTruthy();
     expect(screen.queryByTestId('blur-text')).toBeNull();
     expect(screen.queryByTestId('blur-mana')).toBeNull();
   });
 
-  it('drops the zoom layers and shows the full card when over', () => {
+  it('drops the zoom layers and the name and shows the full card when over', () => {
     seedRound('won');
     render(<CardStage mode="zoom" stage={5} progress={1} />);
     expect(screen.queryByTestId('zoom-art')).toBeNull();
+    expect(screen.queryByTestId('blur-name')).toBeNull();
     expect(screen.getByTestId('card-image')).toBeTruthy();
   });
 });
