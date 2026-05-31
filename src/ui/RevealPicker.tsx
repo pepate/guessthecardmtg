@@ -4,7 +4,7 @@ import type { CustomMode } from '../modes/types';
 import type { GlobalEntry } from '../leaderboard/types';
 import type { RevealMode } from '../engine/timeAttack';
 import { fetchRevealLeaders, fetchModeRuns } from '../leaderboard/client';
-import { comboBoard, type Run } from '../leaderboard/boards';
+import type { Run } from '../leaderboard/boards';
 import { fetchEnabledRevealModes } from '../reveal/client';
 import { REVEAL_MODE_LABELS } from '../reveal/labels';
 import { formatAge } from '../leaderboard/age';
@@ -21,6 +21,8 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
   const [copied, setCopied] = useState<RevealMode | null>(null);
   const [confirm, setConfirm] = useState<RevealMode | null>(null);
   const [idleHint, setIdleHint] = useState<string | null>(null);
+  const [tab, setTab] = useState<'leaderboard' | 'recent'>('leaderboard');
+  const [expanded, setExpanded] = useState(false);
 
   const touchDevice = () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
 
@@ -72,23 +74,29 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
     else play(reveal);
   }
 
-  // The most recent recorded runs in this mode (newest first), for quick replay.
   const now = Date.now();
-  const recent = runs
-    .filter((r) => r.gameMode)
-    .sort((a, b) => b.createdAt - a.createdAt)
-    .slice(0, 3);
+  const PAGE = 8;
 
-  // Rank a score holds on its reveal board (distinct devices scoring higher).
-  const rankOf = (reveal: RevealMode, score: number): number =>
-    comboBoard(runs, reveal).filter((e) => e.score > score).length + 1;
+  // Every recorded run in this mode, ordered for each tab. Leaderboard = by score
+  // (ties to the earlier run); Recent = newest first.
+  const played = runs.filter((r) => r.gameMode);
+  const byScore = [...played].sort((a, b) => b.score - a.score || a.createdAt - b.createdAt);
+  const byRecent = [...played].sort((a, b) => b.createdAt - a.createdAt);
+  const activeList = tab === 'leaderboard' ? byScore : byRecent;
+  const shown = expanded ? activeList : activeList.slice(0, PAGE);
+  const hasMore = activeList.length > PAGE && !expanded;
 
-  // Tappable rows the idle nudge can point at — recent games first, then modes.
-  // Join into a stable string so the idle effect doesn't re-arm every render
-  // (recent/enabled are fresh arrays each pass).
+  function switchTab(next: 'leaderboard' | 'recent') {
+    setTab(next);
+    setExpanded(false);
+  }
+
+  // Tappable rows the idle nudge can point at — visible list rows first, then
+  // reveal modes. Join into a stable string so the idle effect doesn't re-arm
+  // every render (shown/enabled are fresh arrays each pass).
   const idleKey = useMemo(
-    () => [...recent.map((r) => `recent:${r.id}`), ...(enabled ?? []).map((rv) => `reveal:${rv}`)].join('|'),
-    [recent, enabled],
+    () => [...shown.map((r) => `row:${r.id}`), ...(enabled ?? []).map((rv) => `reveal:${rv}`)].join('|'),
+    [shown, enabled],
   );
 
   // After 10s of no input, pulse a random row to show it's tappable; any
@@ -141,15 +149,40 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
           </div>
         </div>
 
-        {recent.length > 0 && (
+        {played.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' }}>Recent games</span>
-            {recent.map((r) => (
+            <div style={{ display: 'flex', gap: 6 }}>
+              {(['leaderboard', 'recent'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  data-testid={`picker-tab-${t}`}
+                  aria-pressed={tab === t}
+                  onClick={() => switchTab(t)}
+                  style={{
+                    flex: 1,
+                    padding: '7px 10px',
+                    borderRadius: 8,
+                    border: `1px solid ${tab === t ? 'var(--ember)' : 'var(--line)'}`,
+                    background: tab === t ? 'rgba(255,122,44,0.12)' : 'rgba(20,17,28,0.45)',
+                    color: tab === t ? 'var(--ember-hot)' : 'var(--ink-2)',
+                    cursor: 'pointer',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 11,
+                    letterSpacing: 1,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {t === 'leaderboard' ? 'Leaderboard' : 'Recent games'}
+                </button>
+              ))}
+            </div>
+            {shown.map((r, i) => (
               <button
                 key={r.id}
                 type="button"
-                data-testid="recent-game"
-                className={idleHint === `recent:${r.id}` ? 'idle-hint' : undefined}
+                data-testid="game-row"
+                className={idleHint === `row:${r.id}` ? 'idle-hint' : undefined}
                 onClick={() => r.gameMode && choose(r.gameMode)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
@@ -158,14 +191,32 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
                   fontFamily: "'JetBrains Mono', monospace", fontSize: 12,
                 }}
               >
+                {tab === 'leaderboard' && (
+                  <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', width: 22 }}>#{i + 1}</span>
+                )}
                 <span aria-hidden>{countryToFlag(r.country)}</span>
                 <span style={{ flex: 1, minWidth: 0, color: 'var(--ink-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
                 <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', fontSize: 11 }}>
-                  {r.gameMode ? REVEAL_MODE_LABELS[r.gameMode] : ''} · #{rankOf(r.gameMode!, r.score)} · {formatAge(r.createdAt, now)}
+                  {r.gameMode ? REVEAL_MODE_LABELS[r.gameMode] : ''}
+                  {tab === 'recent' ? ` · ${formatAge(r.createdAt, now)}` : ''}
                 </span>
                 <ScoreValue score={r.score} fontSize={12} />
               </button>
             ))}
+            {hasMore && (
+              <button
+                type="button"
+                data-testid="picker-more"
+                onClick={() => setExpanded(true)}
+                style={{
+                  padding: '7px 10px', borderRadius: 8, border: '1px solid var(--line)',
+                  background: 'transparent', color: 'var(--ink-2)', cursor: 'pointer',
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+                }}
+              >
+                More ({activeList.length - PAGE})
+              </button>
+            )}
           </div>
         )}
 
