@@ -17,7 +17,6 @@ import { NameChoice } from './ui/NameChoice';
 import { Snackbar } from './ui/Snackbar';
 import { GameOver } from './ui/GameOver';
 import { GameOverArtwork } from './ui/GameOverArtwork';
-import { StartShare } from './ui/StartShare';
 import { BackButton } from './ui/BackButton';
 import { InstallButton } from './ui/InstallButton';
 import { useWideLayout } from './ui/useWideLayout';
@@ -296,7 +295,6 @@ export function App() {
         </header>
       )}
 
-      {phase === 'idle' && <StartShare />}
       {phase === 'idle' && view.s === 'list' && (
         <button
           type="button"

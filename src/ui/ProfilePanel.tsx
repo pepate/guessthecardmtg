@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../auth/useAuth';
 import {
   secureWithEmailPassword,
@@ -33,6 +34,10 @@ const sectionStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 8,
+  background: 'rgba(20,17,28,0.55)',
+  border: '1px solid var(--line-strong)',
+  borderRadius: 12,
+  padding: '12px 14px',
 };
 
 const labelStyle: React.CSSProperties = {
@@ -78,48 +83,19 @@ function SignInForm({ onSuccess, warning }: SignInFormProps) {
   return (
     <div style={sectionStyle}>
       {warning && (
-        <p data-testid="profile-notice" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0 }}>
-          {warning}
-        </p>
+        <p data-testid="profile-notice" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0 }}>{warning}</p>
       )}
       {notice && (
-        <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 12, margin: 0 }}>
-          {notice}
-        </p>
+        <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 12, margin: 0 }}>{notice}</p>
       )}
       {error && (
-        <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0 }}>
-          {error}
-        </p>
+        <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0 }}>{error}</p>
       )}
-      <input
-        data-testid="signin-email"
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        style={inputStyle}
-      />
-      <input
-        data-testid="signin-password"
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        style={inputStyle}
-      />
-      <button className="ember-btn" data-testid="signin-submit" onClick={handleSignIn}>
-        Sign in
-      </button>
-      <button className="ghost-btn" data-testid="signin-google" onClick={handleGoogle}>
-        Sign in with Google
-      </button>
-      <button
-        className="ghost-btn"
-        data-testid="forgot-password"
-        style={{ fontSize: 12, color: 'var(--ink-2)' }}
-        onClick={handleForgot}
-      >
+      <input data-testid="signin-email" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
+      <input data-testid="signin-password" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} />
+      <button className="ember-btn" data-testid="signin-submit" onClick={handleSignIn}>Sign in</button>
+      <button className="ghost-btn" data-testid="signin-google" onClick={handleGoogle}>Sign in with Google</button>
+      <button className="ghost-btn" data-testid="forgot-password" style={{ fontSize: 12, color: 'var(--ink-2)' }} onClick={handleForgot}>
         Forgot password?
       </button>
     </div>
@@ -134,16 +110,11 @@ export function ProfilePanel() {
   const [nameInput, setNameInput] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-
-  // Recovery form state
   const [recoveryPw, setRecoveryPw] = useState('');
-
-  // Secure account form state
   const [secureEmail, setSecureEmail] = useState('');
   const [securePassword, setSecurePassword] = useState('');
-
-  // Show sign-in toggle for anonymous users
   const [showSignIn, setShowSignIn] = useState(false);
+  const [shared, setShared] = useState(false);
 
   useEffect(() => {
     getUserId().then(id => {
@@ -165,72 +136,78 @@ export function ProfilePanel() {
     setNotice('');
   }
 
-  // ── 1. Recovery mode ─────────────────────────────────────────────────────────
-  if (recovery) {
-    async function handleRecovery() {
-      clearMessages();
-      const res = await updatePassword(recoveryPw);
-      if (!res.ok) { setError(res.error); return; }
-      clearRecovery();
-      setNotice('Password updated.');
+  async function shareApp() {
+    const url = `${location.origin}${import.meta.env.BASE_URL}`;
+    const text = `Play Arcane Drift — guess the Magic: The Gathering card before the clock runs out: ${url}`;
+    try {
+      if (navigator.share) { await navigator.share({ title: 'Arcane Drift', text }); return; }
+      await navigator.clipboard.writeText(text);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    } catch {
+      // dismissed or blocked — no-op
     }
+  }
 
+  // Shared scrollable container: clears the header, scrims the background for
+  // legibility, and shows the panel title + any error/notice at the top.
+  function shell(children: React.ReactNode) {
     return (
-      <div
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         data-testid="profile-panel"
-        style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 420 }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'all',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          overflowY: 'auto',
+          background: 'linear-gradient(180deg, rgba(7,6,10,0.86) 0%, rgba(7,6,10,0.96) 30%)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          padding: 'calc(76px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom))',
+        }}
       >
-        <p style={labelStyle}>Set new password</p>
-        {error && (
-          <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0 }}>
-            {error}
-          </p>
-        )}
-        {notice && (
-          <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 12, margin: 0 }}>
-            {notice}
-          </p>
-        )}
-        <input
-          data-testid="recovery-password"
-          type="password"
-          placeholder="New password"
-          value={recoveryPw}
-          onChange={e => setRecoveryPw(e.target.value)}
-          style={inputStyle}
-        />
-        <button className="ember-btn" data-testid="recovery-submit" onClick={handleRecovery}>
-          Update password
-        </button>
-      </div>
+        <div style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <h2
+            style={{
+              margin: 0,
+              textAlign: 'center',
+              fontFamily: "'Cormorant Garamond', serif",
+              fontWeight: 700,
+              fontSize: 26,
+              color: 'var(--ink-0)',
+            }}
+          >
+            Profile
+          </h2>
+          {(error || notice) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {error && <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0, textAlign: 'center' }}>{error}</p>}
+              {notice && <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 12, margin: 0, textAlign: 'center' }}>{notice}</p>}
+            </div>
+          )}
+          {children}
+        </div>
+      </motion.div>
     );
   }
 
-  // ── 2. Signed out ────────────────────────────────────────────────────────────
-  if (status === 'signed-out') {
+  function shareButton() {
     return (
-      <div
-        data-testid="profile-panel"
-        style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 420 }}
+      <button
+        className="ghost-btn"
+        data-testid="profile-share"
+        style={{ fontSize: 12 }}
+        onClick={() => void shareApp()}
       >
-        <SignInForm />
-      </div>
+        {shared ? 'Link copied' : 'Share Arcane Drift'}
+      </button>
     );
-  }
-
-  // ── Name save handler (shared by anonymous + permanent) ──────────────────────
-  async function handleNameSave() {
-    clearMessages();
-    const clean = sanitizeName(nameInput);
-    if (!clean) {
-      setError(`Name must be at least ${NAME_MIN} characters`);
-      return;
-    }
-    if (!uid) return;
-    const res = await upsertDisplayName(uid, clean);
-    if (!res.ok) { setError(res.error); return; }
-    setProfile(prev => prev ? { ...prev, displayName: clean } : null);
-    setNotice('Name saved.');
   }
 
   function nameEditor() {
@@ -246,14 +223,60 @@ export function ProfilePanel() {
           onChange={e => setNameInput(e.target.value)}
           style={inputStyle}
         />
-        <button className="ember-btn" data-testid="profile-name-save" onClick={handleNameSave}>
-          Save name
-        </button>
+        <button className="ember-btn" data-testid="profile-name-save" onClick={handleNameSave}>Save name</button>
       </div>
     );
   }
 
-  const statsBlock = () => <ProfileStats profile={profile} bests={bests} />;
+  async function handleNameSave() {
+    clearMessages();
+    const clean = sanitizeName(nameInput);
+    if (!clean) {
+      setError(`Name must be at least ${NAME_MIN} characters`);
+      return;
+    }
+    if (!uid) return;
+    const res = await upsertDisplayName(uid, clean);
+    if (!res.ok) { setError(res.error); return; }
+    setProfile(prev => prev ? { ...prev, displayName: clean } : null);
+    setNotice('Name saved.');
+  }
+
+  // ── 1. Recovery mode ─────────────────────────────────────────────────────────
+  if (recovery) {
+    async function handleRecovery() {
+      clearMessages();
+      const res = await updatePassword(recoveryPw);
+      if (!res.ok) { setError(res.error); return; }
+      clearRecovery();
+      setNotice('Password updated.');
+    }
+    return shell(
+      <div style={sectionStyle}>
+        <p style={labelStyle}>Set new password</p>
+        <input
+          data-testid="recovery-password"
+          type="password"
+          placeholder="New password"
+          value={recoveryPw}
+          onChange={e => setRecoveryPw(e.target.value)}
+          style={inputStyle}
+        />
+        <button className="ember-btn" data-testid="recovery-submit" onClick={handleRecovery}>Update password</button>
+      </div>,
+    );
+  }
+
+  // ── 2. Signed out ────────────────────────────────────────────────────────────
+  if (status === 'signed-out') {
+    return shell(
+      <>
+        <p style={{ ...labelStyle, textAlign: 'center' }}>Sign in to your account</p>
+        <SignInForm />
+        {shareButton()}
+      </>,
+    );
+  }
 
   // ── 3. Anonymous ─────────────────────────────────────────────────────────────
   if (status === 'anonymous') {
@@ -263,74 +286,30 @@ export function ProfilePanel() {
       if (!res.ok) { setError(res.error); return; }
       setNotice('Check your email to confirm.');
     }
-
     async function handleLinkGoogle() {
       clearMessages();
       const res = await linkGoogle();
       if (!res.ok) setError(res.error);
     }
-
-    return (
-      <div
-        data-testid="profile-panel"
-        style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 420 }}
-      >
-        {error && (
-          <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0 }}>
-            {error}
-          </p>
-        )}
-        {notice && (
-          <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 12, margin: 0 }}>
-            {notice}
-          </p>
-        )}
-
+    return shell(
+      <>
         {nameEditor()}
-
         <div style={sectionStyle}>
-          <p style={{ ...labelStyle, margin: 0 }}>Secure your account</p>
-          <input
-            data-testid="secure-email"
-            type="email"
-            placeholder="Email"
-            value={secureEmail}
-            onChange={e => setSecureEmail(e.target.value)}
-            style={inputStyle}
-          />
-          <input
-            data-testid="secure-password"
-            type="password"
-            placeholder="Password"
-            value={securePassword}
-            onChange={e => setSecurePassword(e.target.value)}
-            style={inputStyle}
-          />
-          <button className="ember-btn" data-testid="secure-submit" onClick={handleSecure}>
-            Save email &amp; password
-          </button>
-          <button className="ghost-btn" data-testid="link-google" onClick={handleLinkGoogle}>
-            Link Google account
-          </button>
+          <p style={labelStyle}>Secure your account</p>
+          <input data-testid="secure-email" type="email" placeholder="Email" value={secureEmail} onChange={e => setSecureEmail(e.target.value)} style={inputStyle} />
+          <input data-testid="secure-password" type="password" placeholder="Password" value={securePassword} onChange={e => setSecurePassword(e.target.value)} style={inputStyle} />
+          <button className="ember-btn" data-testid="secure-submit" onClick={handleSecure}>Save email &amp; password</button>
+          <button className="ghost-btn" data-testid="link-google" onClick={handleLinkGoogle}>Link Google account</button>
         </div>
-
-        {statsBlock()}
-
+        <ProfileStats profile={profile} bests={bests} />
         <div style={sectionStyle}>
-          <button
-            className="ghost-btn"
-            style={{ fontSize: 12 }}
-            onClick={() => { clearMessages(); setShowSignIn(s => !s); }}
-          >
+          <button className="ghost-btn" style={{ fontSize: 12 }} onClick={() => { clearMessages(); setShowSignIn(s => !s); }}>
             {showSignIn ? 'Cancel' : 'Sign in to another account'}
           </button>
-          {showSignIn && (
-            <SignInForm
-              warning="Signing into another account abandons this device's unsaved scores."
-            />
-          )}
+          {showSignIn && <SignInForm warning="Signing into another account abandons this device's unsaved scores." />}
         </div>
-      </div>
+        {shareButton()}
+      </>,
     );
   }
 
@@ -343,13 +322,11 @@ export function ProfilePanel() {
     const res = await signOut();
     if (!res.ok) setError(res.error);
   }
-
   async function handleLinkGooglePerm() {
     clearMessages();
     const res = await linkGoogle();
     if (!res.ok) setError(res.error);
   }
-
   async function handleSecurePerm() {
     clearMessages();
     const res = await secureWithEmailPassword(secureEmail, securePassword);
@@ -357,24 +334,9 @@ export function ProfilePanel() {
     setNotice('Check your email to confirm.');
   }
 
-  return (
-    <div
-      data-testid="profile-panel"
-      style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 420 }}
-    >
-      {error && (
-        <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0 }}>
-          {error}
-        </p>
-      )}
-      {notice && (
-        <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 12, margin: 0 }}>
-          {notice}
-        </p>
-      )}
-
+  return shell(
+    <>
       {nameEditor()}
-
       <div style={sectionStyle}>
         <p style={labelStyle}>Linked accounts</p>
         {hasEmail && (
@@ -384,44 +346,21 @@ export function ProfilePanel() {
         )}
         {!hasEmail && (
           <>
-            <p style={{ fontSize: 12, color: 'var(--ink-2)', margin: 0 }}>
-              Add an email and password to secure your account.
-            </p>
-            <input
-              data-testid="secure-email"
-              type="email"
-              placeholder="Email"
-              value={secureEmail}
-              onChange={e => setSecureEmail(e.target.value)}
-              style={inputStyle}
-            />
-            <input
-              data-testid="secure-password"
-              type="password"
-              placeholder="Password"
-              value={securePassword}
-              onChange={e => setSecurePassword(e.target.value)}
-              style={inputStyle}
-            />
-            <button className="ember-btn" data-testid="secure-submit" onClick={handleSecurePerm}>
-              Save email &amp; password
-            </button>
+            <p style={{ fontSize: 12, color: 'var(--ink-2)', margin: 0 }}>Add an email and password to secure your account.</p>
+            <input data-testid="secure-email" type="email" placeholder="Email" value={secureEmail} onChange={e => setSecureEmail(e.target.value)} style={inputStyle} />
+            <input data-testid="secure-password" type="password" placeholder="Password" value={securePassword} onChange={e => setSecurePassword(e.target.value)} style={inputStyle} />
+            <button className="ember-btn" data-testid="secure-submit" onClick={handleSecurePerm}>Save email &amp; password</button>
           </>
         )}
         {googleLinked ? (
           <span style={{ fontSize: 13, color: 'var(--ink-1)' }}>Google: connected</span>
         ) : (
-          <button className="ghost-btn" data-testid="link-google" onClick={handleLinkGooglePerm}>
-            Connect Google
-          </button>
+          <button className="ghost-btn" data-testid="link-google" onClick={handleLinkGooglePerm}>Connect Google</button>
         )}
       </div>
-
-      {statsBlock()}
-
-      <button className="ghost-btn" data-testid="sign-out" onClick={handleSignOut}>
-        Sign out
-      </button>
-    </div>
+      <ProfileStats profile={profile} bests={bests} />
+      <button className="ghost-btn" data-testid="sign-out" onClick={handleSignOut}>Sign out</button>
+      {shareButton()}
+    </>,
   );
 }
