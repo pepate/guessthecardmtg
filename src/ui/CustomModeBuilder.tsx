@@ -4,7 +4,9 @@ import {
   type CardType, type ColorCode, type CustomFilter, type Range, type Rarity,
 } from '../modes/filter';
 import { countFilteredCards, createMode } from '../modes/client';
+import { fetchSetList, type SetListItem } from '../sets/client';
 import type { CustomMode } from '../modes/types';
+import { SetSelect } from './SetSelect';
 
 const COLOR_LABEL: Record<ColorCode, string> = {
   W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless',
@@ -76,13 +78,36 @@ export function CustomModeBuilder({ onCreated, onCancel }: {
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [nameTouched, setNameTouched] = useState(false);
+  const [sets, setSets] = useState<SetListItem[]>([]);
 
-  // The suggested name tracks the filter until the player edits the field.
-  const suggested = useMemo(() => modeName(filter), [filter]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSetList()
+      .then((list) => { if (!cancelled) setSets(list); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  // A single set is exclusive (no other filters), so picking one locks the rest.
+  const selectedSetCode = filter.sets?.length === 1 ? filter.sets[0] : null;
+  const setLocked = selectedSetCode !== null;
+  const selectedSet = selectedSetCode ? sets.find((s) => s.code === selectedSetCode) ?? null : null;
+
+  // The suggested name tracks the filter until the player edits the field; a
+  // chosen set suggests its full name (nicer than the bare set code).
+  const suggested = useMemo(
+    () => (selectedSet ? selectedSet.name : modeName(filter)),
+    [filter, selectedSet],
+  );
   const displayName = nameTouched ? name : suggested;
 
   const validation = useMemo(() => validateFilter(filter), [filter]);
   const creatureOnly = filter.types?.length === 1 && filter.types[0] === 'Creature';
+
+  function selectSet(set: SetListItem | null) {
+    // Replace the whole filter: a single set must stand alone.
+    setFilter(set ? { sets: [set.code] } : {});
+  }
 
   useEffect(() => {
     if (!validation.ok) { setCount(null); return; }
@@ -112,7 +137,17 @@ export function CustomModeBuilder({ onCreated, onCancel }: {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 420, margin: '0 auto' }}>
       <h2 style={{ margin: 0, textAlign: 'center', color: 'var(--ink-0)', fontSize: 24 }}>Build a mode</h2>
 
-      <fieldset style={{ ...section, border: 'none', padding: 0, margin: 0 }}>
+      <div style={section}>
+        <span style={legend}>Set</span>
+        <SetSelect sets={sets} value={selectedSetCode} onChange={selectSet} />
+        {setLocked && (
+          <span style={{ fontSize: 11, color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace" }}>
+            A single set is played on its own — other filters are disabled.
+          </span>
+        )}
+      </div>
+
+      <fieldset disabled={setLocked} style={{ ...section, border: 'none', padding: 0, margin: 0, opacity: setLocked ? 0.4 : 1 }}>
         <span style={legend}>Colors</span>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {COLORS.map((c) => (
