@@ -16,6 +16,7 @@ import { Snackbar } from './ui/Snackbar';
 import { GameOver } from './ui/GameOver';
 import { GameOverArtwork } from './ui/GameOverArtwork';
 import { StartShare } from './ui/StartShare';
+import { BackButton } from './ui/BackButton';
 import { InstallButton } from './ui/InstallButton';
 import { useWideLayout } from './ui/useWideLayout';
 import { SUMMONING_TEXTS } from './ui/summoningTexts';
@@ -260,6 +261,7 @@ export function App() {
       )}
 
       {phase === 'idle' && <StartShare />}
+      {phase === 'idle' && view.s !== 'list' && <BackButton onBack={() => setView({ s: 'list' })} />}
       {phase === 'gameover' && <InstallButton />}
       {phase === 'idle' && <StartArtwork />}
       {phase === 'gameover' && <GameOverArtwork />}
@@ -278,23 +280,11 @@ export function App() {
           )}
 
           {phase === 'idle' && view.s === 'picker' && (
-            <RevealPicker key="picker" mode={view.mode} onBack={() => setView({ s: 'list' })} />
+            <RevealPicker key="picker" mode={view.mode} />
           )}
 
           {phase === 'idle' && view.s === 'create' && (
-            <motion.div
-              key="create"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="bottom-sheet"
-              style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: '92%' }}
-            >
-              <CustomModeBuilder
-                onCreated={(mode) => setView({ s: 'picker', mode })}
-                onCancel={() => setView({ s: 'list' })}
-              />
-            </motion.div>
+            <CustomModeBuilder key="create" onCreated={(mode) => setView({ s: 'picker', mode })} />
           )}
 
           {phase === 'loading' && <LoadingScreen />}

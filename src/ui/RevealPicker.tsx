@@ -13,7 +13,7 @@ import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
 import { buildDeeplink } from '../share/deeplink';
 
-export function RevealPicker({ mode, onBack }: { mode: CustomMode; onBack: () => void }) {
+export function RevealPicker({ mode }: { mode: CustomMode }) {
   const [leaders, setLeaders] = useState<Record<RevealMode, GlobalEntry | null> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
@@ -71,11 +71,8 @@ export function RevealPicker({ mode, onBack }: { mode: CustomMode; onBack: () =>
       className="bottom-sheet"
       style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: '92%' }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <button type="button" className="ghost-btn" data-testid="picker-back" onClick={onBack} style={{ padding: '6px 12px', minHeight: 0 }}>
-          ←
-        </button>
-        <span style={{ flex: 1, color: 'var(--ink-0)', fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, paddingRight: 96 }}>
+        <span style={{ flex: 1, color: 'var(--ink-0)', fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {mode.name}
         </span>
       </div>
