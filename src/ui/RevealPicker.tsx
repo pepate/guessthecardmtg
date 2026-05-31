@@ -11,12 +11,30 @@ import { getDeviceId } from '../leaderboard/identity';
 import { useGameStore } from '../state/gameStore';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
+import { buildDeeplink } from '../share/deeplink';
 
 export function RevealPicker({ mode, onBack }: { mode: CustomMode; onBack: () => void }) {
   const [leaders, setLeaders] = useState<Record<RevealMode, GlobalEntry | null> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
+  const [copied, setCopied] = useState<RevealMode | null>(null);
   const device = getDeviceId();
+
+  async function share(reveal: RevealMode) {
+    const url = buildDeeplink(mode.id, reveal);
+    const title = `${mode.name} · ${REVEAL_MODE_LABELS[reveal]} — beat my score!`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ url, title });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setCopied(reveal);
+        setTimeout(() => setCopied((c) => (c === reveal ? null : c)), 1500);
+      }
+    } catch {
+      /* user dismissed the share sheet — ignore */
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -75,13 +93,12 @@ export function RevealPicker({ mode, onBack }: { mode: CustomMode; onBack: () =>
             const leader = leaders?.[reveal] ?? null;
             const locked = isRank1(runs, reveal, device);
             return (
-              <button
+              <div
                 key={reveal}
-                type="button"
                 data-testid="reveal-row"
                 data-reveal={reveal}
                 data-locked={locked ? 'true' : 'false'}
-                disabled={locked}
+                role={locked ? undefined : 'button'}
                 onClick={() => !locked && play(reveal)}
                 style={{
                   display: 'flex',
@@ -115,7 +132,29 @@ export function RevealPicker({ mode, onBack }: { mode: CustomMode; onBack: () =>
                     you’re #1
                   </span>
                 )}
-              </button>
+                <button
+                  type="button"
+                  data-testid="reveal-share"
+                  aria-label={`Share ${REVEAL_MODE_LABELS[reveal]} challenge`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void share(reveal);
+                  }}
+                  style={{
+                    flexShrink: 0,
+                    background: 'transparent',
+                    border: '1px solid var(--line)',
+                    borderRadius: 8,
+                    color: copied === reveal ? 'var(--ember-hot)' : 'var(--ink-2)',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 10,
+                    padding: '5px 8px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {copied === reveal ? 'copied' : 'share'}
+                </button>
+              </div>
             );
           })
         )}

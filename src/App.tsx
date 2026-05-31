@@ -19,6 +19,11 @@ import { StartShare } from './ui/StartShare';
 import { InstallButton } from './ui/InstallButton';
 import { useWideLayout } from './ui/useWideLayout';
 import { SUMMONING_TEXTS } from './ui/summoningTexts';
+import { parseDeeplink } from './share/deeplink';
+import { getModeById } from './modes/client';
+import { fetchModeRuns } from './leaderboard/client';
+import { isRank1 } from './leaderboard/boards';
+import { getDeviceId } from './leaderboard/identity';
 
 // After a round resolves: a correct guess flashes green briefly, a miss / timeout
 // reveals the full card for a beat — then we auto-advance to the next card.
@@ -197,6 +202,31 @@ export function App() {
   useEffect(() => {
     void loadRevealModes();
   }, [loadRevealModes]);
+
+  // Deeplink (?m=&r=): open straight into the shared mode + reveal. If the device
+  // already tops that combo it can't replay it, so land on the picker (combo locked)
+  // instead of auto-starting.
+  useEffect(() => {
+    const dl = parseDeeplink(window.location.search);
+    if (!dl) return;
+    let cancelled = false;
+    (async () => {
+      const mode = await getModeById(dl.modeId);
+      if (cancelled || !mode) return;
+      const runs = await fetchModeRuns(mode.id);
+      if (cancelled) return;
+      if (isRank1(runs, dl.reveal, getDeviceId())) {
+        setView({ s: 'picker', mode });
+        return;
+      }
+      const store = useGameStore.getState();
+      store.setRevealChoice(dl.reveal);
+      void store.selectPool({ kind: 'custom', modeId: mode.id, filter: mode.filter, name: mode.name });
+    })().catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const status = round?.status;
   const startedAt = round?.startedAt;

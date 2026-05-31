@@ -50,6 +50,14 @@ export async function getBuiltinModes(): Promise<{ all: CustomMode; popular: Cus
   return { all, popular };
 }
 
+export async function getModeById(id: string): Promise<CustomMode | null> {
+  const c = getSupabase();
+  if (!c) return null;
+  const { data, error } = await c.from('mode').select('id,name,filter,card_count,slug').eq('id', id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as CustomMode) ?? null;
+}
+
 export async function findExistingMode(filter: CustomFilter): Promise<CustomMode | null> {
   const c = getSupabase();
   if (!c) return null;
