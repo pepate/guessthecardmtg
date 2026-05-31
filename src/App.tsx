@@ -229,23 +229,53 @@ export function App() {
 
   return (
     <div className="stage-root" data-wide={wide}>
-      {phase === 'playing' ? (
+      {phase === 'playing' || phase === 'loading' ? (
         <button
           type="button"
           className="home-btn"
-          aria-label="Quit to menu"
+          aria-label="Back"
           data-testid="home-btn"
           onClick={reset}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M3 10.5 12 3l9 7.5" />
-            <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
       ) : (
-        <header className="brandbar">
-          <span className="brand-name">Arcane Drift</span>
-          <span className="brand-sub">guess the card</span>
+        <header className="brandbar" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          {phase === 'gameover' && (
+            <button
+              type="button"
+              aria-label="Back to menu"
+              data-testid="gameover-home"
+              onClick={reset}
+              style={{
+                pointerEvents: 'auto',
+                flexShrink: 0,
+                width: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 10,
+                border: '1px solid var(--line-strong)',
+                background: 'rgba(13,11,19,0.6)',
+                color: 'var(--ink-0)',
+                cursor: 'pointer',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3 10.5 12 3l9 7.5" />
+                <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+              </svg>
+            </button>
+          )}
+          <span style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className="brand-name">Arcane Drift</span>
+            <span className="brand-sub">guess the card</span>
+          </span>
         </header>
       )}
 

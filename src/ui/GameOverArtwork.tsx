@@ -121,35 +121,23 @@ export function GameOverArtwork() {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: 40,
-            height: 40,
+            width: 34,
+            height: 34,
             borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.18)',
-            background: 'rgba(7,6,10,0.55)',
+            border: '1px solid rgba(255,255,255,0.22)',
+            background: 'rgba(7,6,10,0.45)',
             backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
-            color: 'var(--ink-1)',
+            color: 'rgba(255,255,255,0.5)',
             cursor: 'pointer',
+            fontFamily: "'Cormorant Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: 17,
+            fontWeight: 600,
+            lineHeight: 1,
           }}
         >
-          <span
-            aria-hidden
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              border: '1px solid currentColor',
-              fontSize: 11,
-              fontStyle: 'italic',
-              fontFamily: "'Cormorant Garamond', serif",
-              lineHeight: 1,
-            }}
-          >
-            i
-          </span>
+          i
         </button>
       </div>
 

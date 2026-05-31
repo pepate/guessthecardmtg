@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { CustomMode } from '../modes/types';
 import type { GlobalEntry } from '../leaderboard/types';
@@ -19,6 +19,10 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
   const [runs, setRuns] = useState<Run[]>([]);
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
   const [copied, setCopied] = useState<RevealMode | null>(null);
+  const [confirm, setConfirm] = useState<RevealMode | null>(null);
+  const [idleHint, setIdleHint] = useState<string | null>(null);
+
+  const touchDevice = () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
 
   async function share(reveal: RevealMode) {
     const url = buildDeeplink(mode.id, reveal);
@@ -62,6 +66,12 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
     void store.selectPool({ kind: 'custom', modeId: mode.id, filter: mode.filter, name: mode.name });
   }
 
+  // On touch, confirm with a big tap target first; on desktop start directly.
+  function choose(reveal: RevealMode) {
+    if (touchDevice()) setConfirm(reveal);
+    else play(reveal);
+  }
+
   // The most recent recorded runs in this mode (newest first), for quick replay.
   const now = Date.now();
   const recent = runs
@@ -73,6 +83,41 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
   const rankOf = (reveal: RevealMode, score: number): number =>
     comboBoard(runs, reveal).filter((e) => e.score > score).length + 1;
 
+  // Tappable rows the idle nudge can point at — recent games first, then modes.
+  // Join into a stable string so the idle effect doesn't re-arm every render
+  // (recent/enabled are fresh arrays each pass).
+  const idleKey = useMemo(
+    () => [...recent.map((r) => `recent:${r.id}`), ...(enabled ?? []).map((rv) => `reveal:${rv}`)].join('|'),
+    [recent, enabled],
+  );
+
+  // After 10s of no input, pulse a random row to show it's tappable; any
+  // interaction clears the hint and restarts the idle countdown.
+  useEffect(() => {
+    const candidates = idleKey ? idleKey.split('|') : [];
+    if (candidates.length === 0 || confirm) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const arm = () => {
+      clearTimeout(timer);
+      setIdleHint(null);
+      timer = setTimeout(() => {
+        setIdleHint(candidates[Math.floor(Math.random() * candidates.length)]);
+      }, 10000);
+    };
+    arm();
+    window.addEventListener('pointerdown', arm);
+    window.addEventListener('pointermove', arm);
+    window.addEventListener('keydown', arm);
+    window.addEventListener('wheel', arm);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('pointerdown', arm);
+      window.removeEventListener('pointermove', arm);
+      window.removeEventListener('keydown', arm);
+      window.removeEventListener('wheel', arm);
+    };
+  }, [idleKey, confirm]);
+
   return (
     <motion.div
       key="picker"
@@ -80,15 +125,15 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="bottom-sheet"
-      style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: '92%' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '92%' }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, paddingRight: 96 }}>
+      <div style={{ width: '100%', maxWidth: 700, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, paddingRight: 96 }}>
         <span style={{ flex: 1, color: 'var(--ink-0)', fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {mode.name}
         </span>
       </div>
 
-      <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ width: '100%', maxWidth: 700, margin: '0 auto', flex: '1 1 auto', minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <FilterChips filter={mode.filter} />
           <div style={{ textAlign: 'center', color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
@@ -104,7 +149,8 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
                 key={r.id}
                 type="button"
                 data-testid="recent-game"
-                onClick={() => r.gameMode && play(r.gameMode)}
+                className={idleHint === `recent:${r.id}` ? 'idle-hint' : undefined}
+                onClick={() => r.gameMode && choose(r.gameMode)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
                   padding: '8px 12px', borderRadius: 10, border: '1px solid var(--line)',
@@ -141,7 +187,8 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
                 data-testid="reveal-row"
                 data-reveal={reveal}
                 role="button"
-                onClick={() => play(reveal)}
+                className={idleHint === `reveal:${reveal}` ? 'idle-hint' : undefined}
+                onClick={() => choose(reveal)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -197,6 +244,35 @@ export function RevealPicker({ mode }: { mode: CustomMode }) {
         )}
         </div>
       </div>
+
+      {confirm && (
+        <div
+          data-testid="play-confirm"
+          onClick={() => setConfirm(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+            background: 'rgba(5,4,8,0.8)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+          }}
+        >
+          <button
+            type="button"
+            data-testid="play-confirm-btn"
+            className="ember-btn"
+            onClick={(e) => { e.stopPropagation(); play(confirm); }}
+            style={{ width: '100%', maxWidth: 420, minHeight: 76, fontSize: 24 }}
+          >
+            Play {REVEAL_MODE_LABELS[confirm]}
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

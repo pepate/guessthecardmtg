@@ -7,6 +7,7 @@ import { deviceModeStanding, type Run } from '../leaderboard/boards';
 import { getUserId } from '../leaderboard/identity';
 import { fetchEnabledRevealModes } from '../reveal/client';
 import { useGameStore } from '../state/gameStore';
+import { getGamesPlayed } from '../state/highscores';
 import type { RevealMode } from '../engine/timeAttack';
 import { windowCutoff, WINDOW_TABS, type TimeWindow } from '../leaderboard/window';
 import { ScoreValue } from './ScoreValue';
@@ -158,6 +159,9 @@ export function StartModes({
   const [fabOpen, setFabOpen] = useState(false);
   const [advanceOpen, setAdvanceOpen] = useState(false);
   const [nextTarget, setNextTarget] = useState<{ modeId: string; reveal: RevealMode } | null>(null);
+  const [createHint, setCreateHint] = useState(false);
+  const [gamesPlayed] = useState(() => getGamesPlayed());
+  const GAMES_TO_UNLOCK = 3;
 
   const touchDevice = () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
 
@@ -165,6 +169,12 @@ export function StartModes({
     // Touch devices have no hover: first tap reveals the label, the next creates.
     if (touchDevice() && !fabOpen) {
       setFabOpen(true);
+      return;
+    }
+    // Gate creation until the player has finished a few games.
+    if (gamesPlayed < GAMES_TO_UNLOCK) {
+      setFabOpen(false);
+      setCreateHint(true);
       return;
     }
     onCreate();
@@ -194,6 +204,11 @@ export function StartModes({
     const id = setTimeout(() => setAdvanceOpen(false), 3000);
     return () => clearTimeout(id);
   }, [advanceOpen]);
+  useEffect(() => {
+    if (!createHint) return;
+    const id = setTimeout(() => setCreateHint(false), 3800);
+    return () => clearTimeout(id);
+  }, [createHint]);
 
   // The next highscore worth chasing across all modes (none → no advance FAB).
   useEffect(() => {
@@ -240,7 +255,7 @@ export function StartModes({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="bottom-sheet"
-      style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: '92%' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '92%' }}
     >
       {/* Compact, horizontally-swipeable time-window pills. */}
       <div
@@ -291,7 +306,7 @@ export function StartModes({
           display: 'flex',
           flexDirection: 'column',
           gap: 10,
-          paddingBottom: 140,
+          paddingBottom: 160,
         }}
       >
         {views === null ? (
@@ -309,21 +324,50 @@ export function StartModes({
         )}
       </div>
 
+      {createHint && (
+        <div
+          data-testid="create-hint"
+          style={{
+            position: 'fixed',
+            right: 16,
+            bottom: 'calc(160px + env(safe-area-inset-bottom))',
+            zIndex: 7,
+            maxWidth: 250,
+            padding: '10px 14px',
+            borderRadius: 12,
+            border: '1px solid var(--line-strong)',
+            background: 'rgba(13,11,19,0.95)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            color: 'var(--ink-1)',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 12,
+            lineHeight: 1.45,
+            boxShadow: '0 8px 22px rgba(0,0,0,0.5)',
+          }}
+        >
+          Play {GAMES_TO_UNLOCK - gamesPlayed} more {GAMES_TO_UNLOCK - gamesPlayed === 1 ? 'game' : 'games'} before you create your own mode.
+        </div>
+      )}
+
       {nextTarget && (
         <button
           type="button"
           data-testid="advance-fab"
-          aria-label="Beat a highscore"
+          aria-label="Random game"
           className={`fab advance-fab${advanceOpen ? ' is-open' : ''}`}
           onClick={onAdvanceClick}
         >
           <span className="fab-plus" aria-hidden>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="8" />
-              <circle cx="12" cy="12" r="3" />
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="16 3 21 3 21 8" />
+              <line x1="4" y1="20" x2="21" y2="3" />
+              <polyline points="21 16 21 21 16 21" />
+              <line x1="15" y1="15" x2="21" y2="21" />
+              <line x1="4" y1="4" x2="9" y2="9" />
             </svg>
           </span>
-          <span className="fab-label">Beat a highscore</span>
+          <span className="fab-label">Random game</span>
         </button>
       )}
 

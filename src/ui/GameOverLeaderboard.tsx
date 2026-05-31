@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { GlobalEntry } from '../leaderboard/types';
 import type { RevealMode } from '../engine/timeAttack';
 import { sanitizeName, NAME_MAX, NAME_MIN } from '../leaderboard/validation';
@@ -21,17 +21,17 @@ export function GameOverLeaderboard({
   correct,
   cards,
   modeId,
-  modeName,
   modeFilter,
   gameMode,
+  shareButton,
 }: {
   score: number;
   correct: number;
   cards: number;
   modeId: string | null;
-  modeName?: string;
   modeFilter?: CustomFilter;
   gameMode: RevealMode;
+  shareButton?: ReactNode;
 }) {
   const enabled = isLeaderboardEnabled();
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? '');
@@ -205,14 +205,6 @@ export function GameOverLeaderboard({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 420 }}>
-      {modeName && (
-        <div
-          data-testid="mode-board-title"
-          style={{ textAlign: 'center', color: 'var(--ink-1)', fontSize: 14, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 0.5 }}
-        >
-          {modeName}
-        </div>
-      )}
       {projected && (
         <div
           data-testid="projected-rank"
@@ -234,15 +226,18 @@ export function GameOverLeaderboard({
       {status !== 'done' ? (
         <>
           {!showInlineInput && nameInput(false)}
-          <button
-            className="ember-btn"
-            data-testid="post-btn"
-            style={{ width: '100%' }}
-            disabled={status === 'sending'}
-            onClick={post}
-          >
-            {status === 'sending' ? 'Posting…' : 'Post to online board'}
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              className="ember-btn"
+              data-testid="post-btn"
+              style={{ flex: '1 1 80%', minWidth: 0 }}
+              disabled={status === 'sending'}
+              onClick={post}
+            >
+              {status === 'sending' ? 'Posting…' : 'Post to online board'}
+            </button>
+            {shareButton && <div style={{ flex: '0 0 20%', display: 'flex' }}>{shareButton}</div>}
+          </div>
           {nameError && (
             <p data-testid="name-hint" style={{ color: 'var(--ember-hot)', fontSize: 12, textAlign: 'center', margin: 0 }}>
               Please enter your name (at least {NAME_MIN} characters).
@@ -255,10 +250,11 @@ export function GameOverLeaderboard({
           )}
         </>
       ) : (
-        <div data-testid="post-confirm" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <p style={{ color: 'var(--ink-0)', fontSize: 13, textAlign: 'center', margin: 0 }}>
+        <div data-testid="post-confirm" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <p style={{ flex: '1 1 80%', color: 'var(--ink-0)', fontSize: 13, textAlign: 'center', margin: 0 }}>
             Posted! You're ranked <span style={{ color: 'var(--ember-hot)' }}>#{posted?.rank}</span>.
           </p>
+          {shareButton && <div style={{ flex: '0 0 20%', display: 'flex' }}>{shareButton}</div>}
         </div>
       )}
     </div>
