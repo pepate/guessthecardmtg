@@ -5,6 +5,9 @@ node_modules/
 dist/
 dist-ssr/
 
+# Claude Code runtime
+.claude/scheduled_tasks.lock
+
 # Playwright
 test-results/
 playwright-report/
