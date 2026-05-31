@@ -25,6 +25,7 @@ const label: React.CSSProperties = {
 export function HUD({ timeLeftMs }: { timeLeftMs: number }) {
   const totalScore = useGameStore((s) => s.totalScore);
   const correctCount = useGameStore((s) => s.correctCount);
+  const modeName = useGameStore((s) => s.currentModeName);
 
   const animatedScore = useCountUp(totalScore, 900);
   const seconds = Math.max(0, Math.ceil(timeLeftMs / 1000));
@@ -43,6 +44,26 @@ export function HUD({ timeLeftMs }: { timeLeftMs: number }) {
         paddingTop: 'calc(12px + env(safe-area-inset-top))',
       }}
     >
+      {modeName && (
+        <div
+          data-testid="hud-mode"
+          style={{
+            flex: 1,
+            minWidth: 0,
+            alignSelf: 'center',
+            paddingLeft: 84,
+            color: 'var(--ink-1)',
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: 17,
+            fontWeight: 700,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {modeName}
+        </div>
+      )}
       <div style={chip}>
         <span style={label}>TIME</span>
         <span
