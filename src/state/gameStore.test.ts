@@ -2,6 +2,14 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 vi.mock('../cards/client', () => ({ fetchCandidates: vi.fn() }));
 vi.mock('../reveal/client', () => ({ fetchEnabledRevealModes: vi.fn() }));
+// The legacy popular/all path resolves builtin modes from Supabase; mock it so
+// these tests stay offline and deterministic (no real network call).
+vi.mock('../modes/client', () => ({
+  getBuiltinModes: vi.fn().mockResolvedValue({
+    all: { id: 'all-id', name: 'All', filter: {}, card_count: 999 },
+    popular: { id: 'pop-id', name: 'Popular', filter: { popular: true }, card_count: 999 },
+  }),
+}));
 
 import { fetchCandidates } from '../cards/client';
 import { fetchEnabledRevealModes } from '../reveal/client';
