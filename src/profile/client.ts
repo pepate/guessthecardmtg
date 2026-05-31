@@ -33,5 +33,20 @@ export async function upsertDisplayName(
   const { error } = await c
     .from('profiles')
     .upsert({ user_id: uid, display_name: name }, { onConflict: 'user_id' });
-  return error ? { ok: false, error: error.message } : { ok: true };
+  if (!error) return { ok: true };
+  // Postgres unique_violation on the case-insensitive display-name index.
+  if (error.code === '23505') return { ok: false, error: 'name-taken' };
+  return { ok: false, error: error.message };
+}
+
+/** True if no other player already uses this display name (case-insensitive).
+ *  Runs through a SECURITY DEFINER RPC because RLS hides other users' profiles.
+ *  Returns true on any error so a transient failure never blocks the user — the
+ *  server-side unique constraint is the real guarantee. */
+export async function checkNameAvailable(name: string): Promise<boolean> {
+  const c = getSupabase();
+  if (!c) return true;
+  const { data, error } = await c.rpc('name_available', { p_name: name });
+  if (error) return true;
+  return data !== false;
 }

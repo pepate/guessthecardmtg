@@ -11,7 +11,7 @@ import {
   signOut,
 } from '../auth/actions';
 import { clearRecovery, refreshUser } from '../auth/session';
-import { getProfile, upsertDisplayName } from '../profile/client';
+import { getProfile, upsertDisplayName, checkNameAvailable } from '../profile/client';
 import type { Profile } from '../profile/client';
 import { fetchPlayerBests, type PlayerBest } from '../profile/stats';
 import { ProfileStats } from './ProfileStats';
@@ -281,8 +281,15 @@ export function ProfilePanel() {
       return;
     }
     if (!uid) return;
+    if (!(await checkNameAvailable(clean))) {
+      setError('That name is already taken — please pick another.');
+      return;
+    }
     const res = await upsertDisplayName(uid, clean);
-    if (!res.ok) { setError(res.error); return; }
+    if (!res.ok) {
+      setError(res.error === 'name-taken' ? 'That name is already taken — please pick another.' : res.error);
+      return;
+    }
     setProfile(prev => prev ? { ...prev, displayName: clean } : null);
     setNotice('Name saved.');
   }

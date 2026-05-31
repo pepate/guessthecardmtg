@@ -127,12 +127,21 @@ Deno.serve(async (req) => {
 
   const country = await lookupCountry(ip);
 
-  await supabase.rpc('bump_profile_stats', {
+  const bump = await supabase.rpc('bump_profile_stats', {
     p_user: deviceId,
     p_name: name,
     p_correct: correct,
     p_cards: cards as number,
   });
+  if (bump.error) {
+    // Another player already owns this display name (unique_violation). Reject
+    // before writing any leaderboard row so the board never carries a duplicate.
+    const code = (bump.error as { code?: string }).code;
+    if (code === '23505' || /display_name_taken|duplicate key/i.test(bump.error.message ?? '')) {
+      return json({ ok: false, reason: 'name-taken' }, 200);
+    }
+    return json({ ok: false, reason: 'profile' }, 200);
+  }
 
   // One row per (mode_id, game_mode, device_id): keep this device's best run in
   // each reveal mode. Boards are per (mode, reveal_mode); the display name is

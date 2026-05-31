@@ -42,6 +42,7 @@ export function GameOverLeaderboard({
   const [posted, setPosted] = useState<{ rank: number; id: string; name: string } | null>(null);
   const [top, setTop] = useState<GlobalEntry[]>([]);
   const [nameError, setNameError] = useState(false);
+  const [nameTaken, setNameTaken] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -102,6 +103,7 @@ export function GameOverLeaderboard({
       return;
     }
     setStatus('sending');
+    setNameTaken(false);
 
     // Resolve the mode id — may need lazy creation for unplayed sets.
     let resolvedModeId = modeId;
@@ -125,6 +127,13 @@ export function GameOverLeaderboard({
 
     const res = await submitScore({ name: clean, score, correct, cards, modeId: resolvedModeId, gameMode });
     if (!res.ok) {
+      // Name already owned by another player — let them pick a different one.
+      if (res.reason === 'name-taken') {
+        setStatus('idle');
+        setNameTaken(true);
+        nudgeName();
+        return;
+      }
       setStatus('error');
       return;
     }
@@ -173,6 +182,7 @@ export function GameOverLeaderboard({
         onChange={(ev) => {
           setName(ev.target.value);
           if (nameError) setNameError(false);
+          if (nameTaken) setNameTaken(false);
         }}
         onKeyDown={(ev) => {
           if (ev.key === 'Enter' && status !== 'sending') void post();
@@ -244,6 +254,11 @@ export function GameOverLeaderboard({
           {nameError && (
             <p data-testid="name-hint" style={{ color: 'var(--ember-hot)', fontSize: 12, textAlign: 'center', margin: 0 }}>
               Please enter your name (at least {NAME_MIN} characters).
+            </p>
+          )}
+          {nameTaken && (
+            <p data-testid="name-taken" style={{ color: 'var(--ember-hot)', fontSize: 12, textAlign: 'center', margin: 0 }}>
+              That name is taken — please choose another.
             </p>
           )}
           {status === 'error' && (

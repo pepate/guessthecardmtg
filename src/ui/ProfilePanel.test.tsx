@@ -42,6 +42,7 @@ const sampleProfile = {
 vi.mock('../profile/client', () => ({
   getProfile: vi.fn(),
   upsertDisplayName: vi.fn(),
+  checkNameAvailable: vi.fn(),
 }));
 
 vi.mock('../leaderboard/identity', () => ({
@@ -67,6 +68,7 @@ const mockLinkGoogle = actions.linkGoogle as ReturnType<typeof vi.fn>;
 const mockClearRecovery = session.clearRecovery as ReturnType<typeof vi.fn>;
 const mockGetProfile = profileClient.getProfile as ReturnType<typeof vi.fn>;
 const mockUpsertDisplayName = profileClient.upsertDisplayName as ReturnType<typeof vi.fn>;
+const mockCheckNameAvailable = profileClient.checkNameAvailable as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -79,6 +81,7 @@ beforeEach(() => {
   mockLinkGoogle.mockResolvedValue({ ok: true });
   mockGetProfile.mockResolvedValue(sampleProfile);
   mockUpsertDisplayName.mockResolvedValue({ ok: true });
+  mockCheckNameAvailable.mockResolvedValue(true);
   // Reset auth to defaults
   Object.assign(mockAuth, {
     user: null,
