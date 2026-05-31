@@ -39,14 +39,13 @@ function overallTop(runs: Run[]): ModeTop | null {
   return best ? { name: best.name, score: best.score, country: best.country } : null;
 }
 
-// "Zuerst keine Platzierung, zuletzt Platz 1": unplaced modes first, then ranked
-// worst-to-best so the modes the player has already conquered sink to the bottom.
+// Highest top score first; modes with no scores fall to the bottom (alphabetical).
 function sortModes(views: ModeView[]): ModeView[] {
   return [...views].sort((a, b) => {
-    if (a.standing === null && b.standing === null) return a.mode.name.localeCompare(b.mode.name);
-    if (a.standing === null) return -1;
-    if (b.standing === null) return 1;
-    return b.standing - a.standing;
+    const as = a.top?.score ?? -1;
+    const bs = b.top?.score ?? -1;
+    if (bs !== as) return bs - as;
+    return a.mode.name.localeCompare(b.mode.name);
   });
 }
 
@@ -99,9 +98,9 @@ function ModeRow({ name, standing, top, onSelect }: ModeRowProps) {
           flex: '1 1 auto',
           minWidth: 0,
           color: 'var(--ink-0)',
-          fontFamily: "'Cormorant Garamond', serif",
-          fontSize: 19,
-          fontWeight: 700,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 12,
+          fontWeight: 600,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -109,7 +108,7 @@ function ModeRow({ name, standing, top, onSelect }: ModeRowProps) {
       >
         {name}
       </span>
-      {top ? (
+      {top && (
         <>
           <span aria-hidden style={{ flex: '0 0 auto', fontSize: 14 }}>{countryToFlag(top.country)}</span>
           <span
@@ -131,10 +130,6 @@ function ModeRow({ name, standing, top, onSelect }: ModeRowProps) {
             <ScoreValue score={top.score} fontSize={14} />
           </span>
         </>
-      ) : (
-        <span style={{ flex: '0 0 auto', color: 'var(--ink-1)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
-          Be the first!
-        </span>
       )}
       <RankBadge standing={standing} />
     </button>
