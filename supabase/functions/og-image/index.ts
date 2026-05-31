@@ -10,7 +10,7 @@ import { ImageResponse } from 'https://deno.land/x/og_edge/mod.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 
 const SECRET = 'arcane-drift-v1';
-const BANNER_URL = 'https://pepate.github.io/guessthecardmtg/og-image.jpeg';
+const BANNER_URL = 'https://guessthecard.de/og-image.jpeg';
 
 function base64urlDecode(s: string): string {
   const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));

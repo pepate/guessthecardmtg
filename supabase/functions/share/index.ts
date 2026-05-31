@@ -9,8 +9,8 @@
 // FNV-1a checksum, SECRET = 'arcane-drift-v1'). Kept standalone — no imports.
 
 const SECRET = 'arcane-drift-v1';
-const GAME_URL = 'https://pepate.github.io/guessthecardmtg/';
-const OG_IMAGE = 'https://pepate.github.io/guessthecardmtg/og-image.jpeg';
+const GAME_URL = 'https://guessthecard.de/';
+const OG_IMAGE = 'https://guessthecard.de/og-image.jpeg';
 // This project's own Supabase host — used to build the dynamic og-image URL.
 const SELF_BASE = 'https://jgapiqpaeaslfpbgiptf.supabase.co';
 
