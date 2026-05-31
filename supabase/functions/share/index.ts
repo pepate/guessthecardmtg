@@ -78,22 +78,22 @@ function page(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Arcane Drift</title>
+<title>GuessTheCard</title>
 <meta property="og:type" content="website">
-<meta property="og:title" content="Arcane Drift">
+<meta property="og:title" content="GuessTheCard">
 <meta property="og:description" content="${d}">
 <meta property="og:url" content="${u}">
 <meta property="og:image" content="${img}">
 <meta property="og:image:width" content="${imageWidth}">
 <meta property="og:image:height" content="${imageHeight}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Arcane Drift">
+<meta name="twitter:title" content="GuessTheCard">
 <meta name="twitter:description" content="${d}">
 <meta name="twitter:image" content="${img}">
 <meta http-equiv="refresh" content="0; url=${u}">
 </head>
 <body>
-<p>Redirecting to Arcane Drift… <a href="${u}">Continue</a></p>
+<p>Redirecting to GuessTheCard… <a href="${u}">Continue</a></p>
 <script>location.replace(${JSON.stringify(redirectUrl)})</script>
 </body>
 </html>`;
@@ -121,7 +121,7 @@ Deno.serve((req: Request) => {
   let imageWidth: number;
   let imageHeight: number;
   if (result && rawToken) {
-    description = `I scored ${result.score} points (${result.correct} cards) in Arcane Drift — can you beat me?`;
+    description = `I scored ${result.score} points (${result.correct} cards) in GuessTheCard — can you beat me?`;
     redirectUrl = `${GAME_URL}?r=${encodeURIComponent(rawToken)}`;
     imageUrl = `${SELF_BASE}/functions/v1/og-image?r=${encodeURIComponent(rawToken)}`;
     imageWidth = 1200;

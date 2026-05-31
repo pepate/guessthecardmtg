@@ -48,7 +48,7 @@ export function WelcomeWizard({ onClose, onStart }: { onClose: () => void; onSta
     >
       <div style={{ maxWidth: 420, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
         <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 34, color: 'var(--ink-0)' }}>
-          Welcome to Arcane Drift
+          Welcome to GuessTheCard
         </h1>
         <p style={{ margin: 0, color: 'var(--ink-1)', fontSize: 15, lineHeight: 1.45 }}>
           Guess the <strong style={{ color: 'var(--ink-0)' }}>Magic: The Gathering</strong> card from its slowly-revealing

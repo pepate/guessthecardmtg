@@ -19,6 +19,7 @@ import { NameChoice } from './ui/NameChoice';
 import { Snackbar } from './ui/Snackbar';
 import { GameOver } from './ui/GameOver';
 import { GameOverArtwork } from './ui/GameOverArtwork';
+import { CardArtInfo } from './ui/CardArtInfo';
 import { BackButton } from './ui/BackButton';
 import { InstallButton } from './ui/InstallButton';
 import { useWideLayout } from './ui/useWideLayout';
@@ -36,7 +37,7 @@ const FALLBACK_ART = `${import.meta.env.BASE_URL}og-image.jpeg`;
 
 // A random card's artwork, shown faded behind the start screen for a splash of
 // colour. Best-effort: if the fetch fails we simply render nothing.
-function StartArtwork() {
+function StartArtwork({ showInfo = false }: { showInfo?: boolean }) {
   const [art, setArt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,28 +56,33 @@ function StartArtwork() {
   const bg = art ?? FALLBACK_ART;
 
   return (
-    <motion.div
-      key="start-art"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 1.2 }}
-      aria-hidden
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '58%',
-        backgroundImage: `url(${bg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)',
-        WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)',
-        pointerEvents: 'none',
-        zIndex: 0,
-      }}
-    />
+    <>
+      <motion.div
+        key="start-art"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 1.2 }}
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '58%',
+          backgroundImage: `url(${bg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+      {/* Left of the 40px profile icon (anchored at right:12) so the info pill
+          and the account button stand side by side. */}
+      {showInfo && <CardArtInfo art={bg} right={60} />}
+    </>
   );
 }
 
@@ -298,8 +304,7 @@ export function App() {
             </button>
           )}
           <span style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="brand-name">Arcane Drift</span>
-            <span className="brand-sub">guess the card</span>
+            <span className="brand-name">GuessTheCard</span>
           </span>
         </header>
       )}
@@ -338,7 +343,7 @@ export function App() {
       )}
       {phase === 'idle' && view.s !== 'list' && <BackButton onBack={() => setView({ s: 'list' })} />}
       {phase === 'gameover' && <InstallButton />}
-      {phase === 'idle' && <StartArtwork />}
+      {phase === 'idle' && <StartArtwork showInfo={view.s === 'list'} />}
       {phase === 'gameover' && <GameOverArtwork />}
       {round && !(wide && phase === 'playing') && (
         <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} />

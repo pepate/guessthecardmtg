@@ -157,9 +157,9 @@ export function ProfilePanel() {
 
   async function shareApp() {
     const url = `${location.origin}${import.meta.env.BASE_URL}`;
-    const text = `Play Arcane Drift — guess the Magic: The Gathering card before the clock runs out: ${url}`;
+    const text = `Play GuessTheCard — guess the Magic: The Gathering card before the clock runs out: ${url}`;
     try {
-      if (navigator.share) { await navigator.share({ title: 'Arcane Drift', text }); return; }
+      if (navigator.share) { await navigator.share({ title: 'GuessTheCard', text }); return; }
       await navigator.clipboard.writeText(text);
       setShared(true);
       setTimeout(() => setShared(false), 2000);
@@ -246,7 +246,7 @@ export function ProfilePanel() {
         style={{ fontSize: 12 }}
         onClick={() => void shareApp()}
       >
-        {shared ? 'Link copied' : 'Share Arcane Drift'}
+        {shared ? 'Link copied' : 'Share GuessTheCard'}
       </button>
     );
   }

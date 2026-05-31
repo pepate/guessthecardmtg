@@ -104,7 +104,9 @@ body::after {
 .install-btn {
   position: absolute;
   top: calc(10px + env(safe-area-inset-top));
-  right: 18px;
+  /* Sit left of the 34px card-info pill (anchored at right:16) so the two
+     top-right controls stand side by side instead of overlapping. */
+  right: 60px;
   z-index: 4;
   display: flex;
   align-items: center;

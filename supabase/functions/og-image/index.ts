@@ -132,7 +132,7 @@ function buildElement(result: DecodedResult | null): SatoriNode {
           textTransform: 'uppercase',
           color: '#b9b2c7',
         },
-        children: 'Arcane Drift',
+        children: 'GuessTheCard',
       },
     },
   ];
