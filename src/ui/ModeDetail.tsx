@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { PullToRefresh } from './PullToRefresh';
 import type { GlobalEntry } from '../leaderboard/types';
@@ -47,7 +47,6 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
   const [runs, setRuns] = useState<Run[]>([]);
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
   const [confirm, setConfirm] = useState<RevealMode | null>(null);
-  const [idleHint, setIdleHint] = useState<string | null>(null);
   const [tab, setTab] = useState<'leaderboard' | 'recent'>('leaderboard');
   const [expanded, setExpanded] = useState(false);
 
@@ -132,36 +131,6 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
     setTab(next);
     setExpanded(false);
   }
-
-  const idleKey = useMemo(
-    () => [...shown.map((r) => `row:${r.id}`), ...(enabled ?? []).map((rv) => `reveal:${rv}`)].join('|'),
-    [shown, enabled],
-  );
-
-  useEffect(() => {
-    const candidates = idleKey ? idleKey.split('|') : [];
-    if (candidates.length === 0 || confirm) return;
-    let timer: ReturnType<typeof setTimeout>;
-    const arm = () => {
-      clearTimeout(timer);
-      setIdleHint(null);
-      timer = setTimeout(() => {
-        setIdleHint(candidates[Math.floor(Math.random() * candidates.length)]);
-      }, 10000);
-    };
-    arm();
-    window.addEventListener('pointerdown', arm);
-    window.addEventListener('pointermove', arm);
-    window.addEventListener('keydown', arm);
-    window.addEventListener('wheel', arm);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('pointerdown', arm);
-      window.removeEventListener('pointermove', arm);
-      window.removeEventListener('keydown', arm);
-      window.removeEventListener('wheel', arm);
-    };
-  }, [idleKey, confirm]);
 
   const hasList = played.length > 0 || !!pendingSynthetic;
 
@@ -268,7 +237,6 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
                   key={r.id}
                   type="button"
                   data-testid="game-row"
-                  className={idleHint === `row:${r.id}` ? 'idle-hint' : undefined}
                   onClick={() => r.gameMode && choose(r.gameMode)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
@@ -332,7 +300,6 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
                   data-disabled={rowDisabled || undefined}
                   role="button"
                   aria-disabled={rowDisabled || undefined}
-                  className={!rowDisabled && idleHint === `reveal:${reveal}` ? 'idle-hint' : undefined}
                   onClick={rowDisabled ? undefined : () => choose(reveal)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
