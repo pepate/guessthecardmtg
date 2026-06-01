@@ -57,7 +57,13 @@ export function DailySetButton({ daily, onOpen }: { daily: DailyToday | null; on
               <ScoreValue score={daily.leader.score} fontSize={13} />
             </span>
           )}
-          <span data-testid="daily-timer" style={{ color: 'var(--ink-3)', fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>
+          <span
+            data-testid="daily-timer"
+            style={{
+              color: 'var(--ink-1)', fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
+              background: 'rgba(7,6,10,0.6)', padding: '1px 6px', borderRadius: 6, whiteSpace: 'nowrap',
+            }}
+          >
             {formatRemaining(remaining)}
           </span>
         </span>

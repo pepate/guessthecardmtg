@@ -12,14 +12,14 @@ const ICON_BTN: React.CSSProperties = {
   backdropFilter: 'blur(8px)',
 };
 
-/** Top-right back affordance, styled to match StartShare and sitting to its left. */
+/** Top-right back affordance, flush with the screen edge. */
 export function BackButton({ onBack }: { onBack: () => void }) {
   return (
     <div
       style={{
         position: 'absolute',
         top: 'calc(10px + env(safe-area-inset-top))',
-        right: 68,
+        right: 12,
         zIndex: 4,
         pointerEvents: 'auto',
       }}
