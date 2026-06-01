@@ -27,6 +27,8 @@ interface GameState {
   currentModeName: string | null;
   /** The filter used to deal cards for the current game; needed for lazy mode creation on submit. */
   currentModeFilter: CustomFilter | null;
+  /** Set when the current game is the Daily Set; the single allowed reveal mode. Null otherwise. */
+  dailyReveal: RevealMode | null;
   /** The selection that built the current game, so "play again" can re-fetch. */
   lastSelection: PoolSelection | null;
   /** The whole game pre-planned so no card or name repeats across rounds. */
@@ -122,6 +124,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentModeId: null,
   currentModeName: null,
   currentModeFilter: null,
+  dailyReveal: null,
   lastSelection: null,
   plan: [],
   round: null,
@@ -218,6 +221,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         currentModeId: modeId,
         currentModeName: modeName,
         currentModeFilter: filter,
+        dailyReveal: selection.kind === 'custom' ? (selection.daily ?? null) : null,
         lastSelection: selection,
         plan,
         round: startPlanned(plan[0], Date.now()),
@@ -292,6 +296,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       currentModeId: null,
       currentModeName: null,
       currentModeFilter: null,
+      dailyReveal: null,
       plan: [],
       round: null,
       roundIndex: 0,

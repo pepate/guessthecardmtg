@@ -19,6 +19,7 @@ import { NameChoice } from './ui/NameChoice';
 import { Snackbar } from './ui/Snackbar';
 import { ModeDetail } from './ui/ModeDetail';
 import { usePendingRun } from './leaderboard/usePendingRun';
+import { fetchDailyToday } from './daily/client';
 import { GameOverArtwork } from './ui/GameOverArtwork';
 import { CardArtInfo } from './ui/CardArtInfo';
 import { BackButton } from './ui/BackButton';
@@ -182,6 +183,7 @@ export function App() {
   const currentModeId = useGameStore((s) => s.currentModeId);
   const currentModeName = useGameStore((s) => s.currentModeName);
   const currentModeFilter = useGameStore((s) => s.currentModeFilter);
+  const dailyReveal = useGameStore((s) => s.dailyReveal);
   const loadRevealModes = useGameStore((s) => s.loadRevealModes);
   const revealSeed = useGameStore((s) => s.revealSeed);
   const config = useGameStore((s) => s.config);
@@ -227,6 +229,24 @@ export function App() {
           onLogin: () => setGameOverProfileOpen(true),
         }
       : null;
+
+  // Daily Set game-over: only the day's reveal is replayable, gated by plays left.
+  const [dailyPlaysLeft, setDailyPlaysLeft] = useState<number | null>(null);
+  useEffect(() => {
+    if (phase !== 'gameover' || !dailyReveal) { setDailyPlaysLeft(null); return; }
+    let cancelled = false;
+    fetchDailyToday()
+      .then((d) => { if (!cancelled) setDailyPlaysLeft(d ? Math.max(0, 3 - d.playsUsed) : 3); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [phase, dailyReveal, pending.postedRank, pending.status]);
+
+  function replayDaily() {
+    if (!dailyReveal || !currentModeId) return;
+    const s = useGameStore.getState();
+    s.setRevealChoice(dailyReveal);
+    void s.selectPool({ kind: 'custom', modeId: currentModeId, filter: currentModeFilter ?? {}, name: currentModeName ?? 'Daily Set', daily: dailyReveal });
+  }
 
   // First-ever open (and not arriving via a shared deeplink) → show the wizard once.
   const [showWizard, setShowWizard] = useState(
@@ -416,6 +436,9 @@ export function App() {
               modeName={currentModeName ?? ''}
               filter={currentModeFilter ?? {}}
               pendingRow={gameOverPendingRow}
+              lockedReveal={dailyReveal}
+              playsLeft={dailyReveal ? (dailyPlaysLeft ?? 0) : undefined}
+              onPlayAgain={dailyReveal ? replayDaily : undefined}
             />
           )}
 

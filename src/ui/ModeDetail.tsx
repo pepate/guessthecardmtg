@@ -31,11 +31,17 @@ interface ModeDetailProps {
   filter: CustomFilter;
   cardCount?: number;
   pendingRow?: PendingRowInfo | null;
+  /** Daily Set game-over: only this reveal is playable; the others are disabled. */
+  lockedReveal?: RevealMode | null;
+  /** Daily Set: remaining plays today. When 0, even the locked reveal is disabled. */
+  playsLeft?: number;
+  /** Daily Set: replay the locked reveal. Shown as a bottom "Play again" button. */
+  onPlayAgain?: () => void;
 }
 
 const PENDING_ID = '__pending__';
 
-export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow }: ModeDetailProps) {
+export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lockedReveal, playsLeft, onPlayAgain }: ModeDetailProps) {
   const [leaders, setLeaders] = useState<Record<RevealMode, GlobalEntry | null> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
@@ -319,7 +325,9 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow }: 
         )}
 
         <p style={{ margin: '2px 0 0', color: 'var(--ink-2)', fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>
-          Pick a reveal mode · beat the holder
+          {lockedReveal != null
+            ? `Daily Set · only ${REVEAL_MODE_LABELS[lockedReveal]} counts today`
+            : 'Pick a reveal mode · beat the holder'}
         </p>
 
         <div data-testid="reveal-list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -330,18 +338,23 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow }: 
           ) : (
             enabled.map((reveal) => {
               const leader = leaders?.[reveal] ?? null;
+              // Daily Set: only the locked reveal is playable, and only while plays remain.
+              const rowDisabled = lockedReveal != null && (reveal !== lockedReveal || (playsLeft ?? 0) <= 0);
               return (
                 <div
                   key={reveal}
                   data-testid="reveal-row"
                   data-reveal={reveal}
+                  data-disabled={rowDisabled || undefined}
                   role="button"
-                  className={idleHint === `reveal:${reveal}` ? 'idle-hint' : undefined}
-                  onClick={() => choose(reveal)}
+                  aria-disabled={rowDisabled || undefined}
+                  className={!rowDisabled && idleHint === `reveal:${reveal}` ? 'idle-hint' : undefined}
+                  onClick={rowDisabled ? undefined : () => choose(reveal)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
                     padding: '12px 14px', borderRadius: 12, border: '1px solid var(--line-strong)',
-                    background: 'rgba(20,17,28,0.6)', cursor: 'pointer',
+                    background: 'rgba(20,17,28,0.6)', cursor: rowDisabled ? 'default' : 'pointer',
+                    opacity: rowDisabled ? 0.4 : 1,
                   }}
                 >
                   <span style={{ width: 92, color: 'var(--ink-0)', fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 700 }}>
@@ -377,6 +390,18 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow }: 
             })
           )}
         </div>
+
+        {lockedReveal != null && onPlayAgain && (playsLeft ?? 0) > 0 && (
+          <button
+            type="button"
+            className="ember-btn"
+            data-testid="daily-play-again"
+            onClick={onPlayAgain}
+            style={{ width: '100%', padding: '13px 0', fontSize: 16, marginTop: 4 }}
+          >
+            Play again ({playsLeft} left)
+          </button>
+        )}
       </div>
 
       {confirm && (

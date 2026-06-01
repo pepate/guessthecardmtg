@@ -37,6 +37,7 @@ export function DailySet() {
       modeId: daily.modeId,
       filter: { sets: daily.setCode ? [daily.setCode] : [] },
       name: daily.setName ?? 'Daily Set',
+      daily: daily.reveal,
     });
   }
 
