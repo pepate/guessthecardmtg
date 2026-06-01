@@ -283,8 +283,9 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
                   <span aria-hidden>{countryToFlag(r.country)}</span>
                   <span style={{ flex: 1, minWidth: 0, color: 'var(--ink-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
                   <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', fontSize: 11 }}>
-                    {r.gameMode ? REVEAL_MODE_LABELS[r.gameMode] : ''}
-                    {tab === 'recent' ? ` · ${formatAge(r.createdAt, now)}` : ''}
+                    {[r.gameMode ? REVEAL_MODE_LABELS[r.gameMode] : null, formatAge(r.createdAt, now)]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </span>
                   <ScoreValue score={r.score} fontSize={12} />
                 </button>
