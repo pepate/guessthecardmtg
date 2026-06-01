@@ -11,6 +11,7 @@ import { getGamesPlayed } from '../state/highscores';
 import { windowCutoff, WINDOW_TABS, type TimeWindow } from '../leaderboard/window';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
+import { DailySet } from './DailySet';
 
 /** The mode's overall best run (any reveal), shown as the leader of the row. */
 interface ModeTop {
@@ -160,7 +161,7 @@ export function StartModes({
   /** Tapped Create without an account yet → route to the profile to claim a name. */
   onNeedAccount: () => void;
 }) {
-  const [win, setWin] = useState<TimeWindow>('week');
+  const [win, setWin] = useState<TimeWindow>('today');
   const [views, setViews] = useState<ModeView[] | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
   const [advanceOpen, setAdvanceOpen] = useState(false);
@@ -249,6 +250,10 @@ export function StartModes({
       className="bottom-sheet"
       style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '92%' }}
     >
+      <div style={{ ...centered, flexShrink: 0 }}>
+        <DailySet />
+      </div>
+
       {/* Compact, horizontally-swipeable time-window pills. */}
       <div
         style={{
