@@ -109,6 +109,54 @@ npm run build        # type-check + production build
 The end-to-end tests run fully offline: backend requests are mocked and the
 clock is driven by Playwright’s `page.clock`, so they’re deterministic.
 
+## Changelog
+
+### 2026-06-01
+
+- **Daily Set.** A shared daily challenge featured at the top of the start
+  screen: one random, never-before-played set each day (Europe/Berlin), played
+  under one fixed random reveal mode. The first player of the day creates it,
+  everyone else joins the same one. You may post at most **3 runs per day** so
+  the board can’t be ground out. The button shows the current leader and a
+  countdown to the next set; tapping it opens the day’s leaderboard with a
+  single **Play** button and your remaining plays. Yesterday’s sets graduate
+  into the normal mode list.
+- **One unified result screen.** The post-game screen is now the same mode
+  screen you see when picking a mode — your run is shown ranked in the board.
+  A compact popup reports your score and rank with **Replay / Share / Close**.
+- **Login-gated leaderboard.** A score is recorded only once you’ve claimed a
+  name; until then the row shows a **LOGIN** prompt that opens the profile.
+  Creating your own mode likewise requires a name (the button stays tappable
+  and routes you to claim one) — the old “play 3 games first” gate is gone.
+- **Mode screen polish.** Reveal modes are shown as compact icons, each row
+  carries the record’s age, your own rank is shown when you’ve placed, the
+  background is the pool’s most-popular (lowest-EDHREC) card art, and the list
+  no longer needs a scrollbar.
+- **Navigation & feel.** The device/browser **Back** button now steps back a
+  screen, **pull-to-refresh** updates the boards on every non-game screen, the
+  mosaic reveal’s tile seams (a faint “graphics glitch”) are gone, and the zoom
+  reveal lands cleanly on the full card.
+- **Profile decluttered.** Only the name field and Login show until you’ve
+  named yourself; securing the account, country and stats appear afterwards.
+  Saving now shows a clear banner, and **Share GuessTheCard** is a prominent
+  button.
+
+### 2026-05-31
+
+- **Real accounts & identity.** Scores are tied to a Supabase **anonymous
+  account** (un-spoofable) instead of a typed name. Profiles carry a unique,
+  case-insensitive **display name**; finished games **auto-save**. Secure an
+  account with **email + password** and/or **Google**, sign in on a new device,
+  and recover a forgotten password.
+- **Profile area** (account icon): change name, link accounts, and view
+  lifetime **stats** + **personal bests** per mode.
+- **Reveal picker tabs** — Leaderboard and Recent games — plus a game-over
+  onboarding overlay.
+- **45-second games** (replacing the older 90/30s timing), a first-run
+  **welcome wizard**, and a **Quick Game** button into the most-played mode.
+- Served from the custom domain **guessthecard.de** with dynamic OG previews;
+  released under the **PolyForm Noncommercial** license.
+
 ## License
 
 The source code is released under the **[PolyForm Noncommercial 1.0.0](LICENSE.md)**
