@@ -60,4 +60,13 @@ describe('usePendingRun', () => {
     await waitFor(() => expect(screen.getByTestId('posted').textContent).toBe('2'));
     expect(submitScore).toHaveBeenCalledOnce();
   });
+
+  it('does not submit twice when post-now is clicked after a completed post', async () => {
+    (getProfile as unknown as { mockResolvedValueOnce: (v: unknown) => void }).mockResolvedValueOnce({ displayName: 'Pete' });
+    render(<Harness modeId="m1" />);
+    await waitFor(() => expect(screen.getByTestId('posted').textContent).toBe('2'));
+    expect(submitScore).toHaveBeenCalledOnce();
+    await act(async () => { screen.getByTestId('post-now').click(); });
+    expect(submitScore).toHaveBeenCalledOnce();
+  });
 });

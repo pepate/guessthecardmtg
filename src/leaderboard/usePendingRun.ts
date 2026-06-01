@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RevealMode } from '../engine/timeAttack';
 import type { CustomFilter } from '../modes/filter';
 import { sanitizeName } from './validation';
@@ -39,19 +39,22 @@ export function usePendingRun(
   const [posted, setPosted] = useState<{ rank: number; id: string } | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [needsLogin, setNeedsLogin] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   async function doPost(clean: string): Promise<boolean> {
     if (!run) return false;
-    setStatus('sending');
+    if (mountedRef.current) setStatus('sending');
     let resolvedModeId = modeId;
     if (!resolvedModeId) {
-      if (!modeFilter) { setStatus('error'); return false; }
+      if (!modeFilter) { if (mountedRef.current) setStatus('error'); return false; }
       const existing = await findExistingMode(modeFilter).catch(() => null);
       if (existing) {
         resolvedModeId = existing.id;
       } else {
         const created = await createMode(modeFilter).catch(() => null);
-        if (!created || !created.ok) { setStatus('error'); return false; }
+        if (!created || !created.ok) { if (mountedRef.current) setStatus('error'); return false; }
         resolvedModeId = created.mode.id;
       }
     }
@@ -63,12 +66,14 @@ export function usePendingRun(
       modeId: resolvedModeId,
       gameMode: run.gameMode,
     });
-    if (!res.ok) { setStatus('error'); return false; }
+    if (!res.ok) { if (mountedRef.current) setStatus('error'); return false; }
     localStorage.setItem(NAME_KEY, clean);
-    setName(clean);
-    setNeedsLogin(false);
-    setPosted({ rank: res.rank, id: res.id });
-    setStatus('done');
+    if (mountedRef.current) {
+      setName(clean);
+      setNeedsLogin(false);
+      setPosted({ rank: res.rank, id: res.id });
+      setStatus('done');
+    }
     return true;
   }
 
@@ -92,10 +97,12 @@ export function usePendingRun(
       await doPost(known);
     })().catch(() => {});
     return () => { cancelled = true; };
+    // modeFilter intentionally omitted — it changes identity each render; it's only read inside doPost when posting.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, modeId, run?.score]);
 
   async function postNow(): Promise<boolean> {
+    if (status === 'sending' || status === 'done') return false;
     const uid = await getUserId();
     const profile = uid ? await getProfile(uid).catch(() => null) : null;
     const known = sanitizeName(profile?.displayName ?? localStorage.getItem(NAME_KEY) ?? '');
