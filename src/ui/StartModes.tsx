@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { PullToRefresh } from './PullToRefresh';
 import { listModes } from '../modes/client';
 import { startMostPlayedGame, startRandomGame } from '../modes/quickStart';
 import type { CustomMode, CustomModeListItem } from '../modes/types';
@@ -218,10 +219,8 @@ export function StartModes({
     return () => clearTimeout(id);
   }, [advanceOpen]);
 
-  useEffect(() => {
-    let cancelled = false;
-    setViews(null);
-    (async () => {
+  const loadViews = useCallback(async () => {
+    try {
       const [modes, daily] = await Promise.all([listModes(200), fetchDailyToday().catch(() => null)]);
       // Today's Daily Set is featured by its own button (with the reveal lock) — hide
       // it from the general list so it isn't played off-challenge. Past daily sets
@@ -237,14 +236,16 @@ export function StartModes({
           return { mode, standing: deviceModeStanding(runs, device), top: overallTop(runs) };
         }),
       );
-      if (!cancelled) setViews(sortModes(built));
-    })().catch(() => {
-      if (!cancelled) setViews([]);
-    });
-    return () => {
-      cancelled = true;
-    };
+      setViews(sortModes(built));
+    } catch {
+      setViews([]);
+    }
   }, [win]);
+
+  useEffect(() => {
+    setViews(null);
+    void loadViews();
+  }, [loadViews]);
 
   return (
     <motion.div
@@ -298,19 +299,17 @@ export function StartModes({
         ))}
       </div>
 
-      <div
-        data-testid="mode-list"
-        style={{
-          ...centered,
-          flex: '1 1 auto',
-          minHeight: 0,
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-          paddingBottom: 160,
-        }}
-      >
+      <div style={{ ...centered, flex: '1 1 auto', minHeight: 0 }}>
+       <PullToRefresh onRefresh={loadViews}>
+        <div
+          data-testid="mode-list"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            paddingBottom: 160,
+          }}
+        >
         {views === null ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
             <span className="spinner" />
@@ -324,6 +323,8 @@ export function StartModes({
             <ModeRow key={mode.id} name={mode.name} standing={standing} top={top} plays={mode.entry_count} onSelect={() => onPick(mode)} />
           ))
         )}
+        </div>
+       </PullToRefresh>
       </div>
 
       {gamesPlayed === 0 && views && views.length > 0 && (

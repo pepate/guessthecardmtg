@@ -20,6 +20,8 @@ import { Snackbar } from './ui/Snackbar';
 import { ModeDetail } from './ui/ModeDetail';
 import { usePendingRun } from './leaderboard/usePendingRun';
 import { fetchDailyToday } from './daily/client';
+import { fetchModeTopArt } from './cards/client';
+import { useScreenBack } from './ui/useScreenBack';
 import { GameOverArtwork } from './ui/GameOverArtwork';
 import { CardArtInfo } from './ui/CardArtInfo';
 import { BackButton } from './ui/BackButton';
@@ -39,10 +41,13 @@ const FALLBACK_ART = `${import.meta.env.BASE_URL}og-image.jpeg`;
 
 // A random card's artwork, shown faded behind the start screen for a splash of
 // colour. Best-effort: if the fetch fails we simply render nothing.
-function StartArtwork({ showInfo = false }: { showInfo?: boolean }) {
+function StartArtwork({ showInfo = false, artUrl }: { showInfo?: boolean; artUrl?: string | null }) {
   const [art, setArt] = useState<string | null>(null);
 
   useEffect(() => {
+    // When the caller supplies the artwork (e.g. the mode-detail screen's top
+    // EDHRec card), don't fetch a random one.
+    if (artUrl !== undefined) return;
     let cancelled = false;
     fetchRandomCard()
       .then((card) => {
@@ -53,9 +58,9 @@ function StartArtwork({ showInfo = false }: { showInfo?: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [artUrl]);
 
-  const bg = art ?? FALLBACK_ART;
+  const bg = (artUrl ?? art) ?? FALLBACK_ART;
 
   return (
     <>
@@ -265,6 +270,25 @@ export function App() {
     if (phase !== 'gameover') setGameOverProfileOpen(false);
   }, [phase]);
 
+  // Mode-detail background: the pool's most-popular (lowest-EDHRec) card art.
+  const [pickerArt, setPickerArt] = useState<string | null>(null);
+  const pickerFilter = phase === 'idle' && view.s === 'picker' ? view.mode.filter : null;
+  useEffect(() => {
+    if (!pickerFilter) { setPickerArt(null); return; }
+    let cancelled = false;
+    setPickerArt(null);
+    fetchModeTopArt(pickerFilter).then((a) => { if (!cancelled) setPickerArt(a); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [pickerFilter]);
+
+  // Device/browser Back → previous screen (except the root list). In a game or
+  // game-over, Back leaves to the menu (same as the on-screen home button).
+  const atRoot = phase === 'idle' && view.s === 'list';
+  useScreenBack(!atRoot, () => {
+    if (phase === 'idle' && view.s !== 'list') setView({ s: 'list' });
+    else reset();
+  });
+
   // Returning from a password-reset link drops the player into recovery mode —
   // open the profile panel so they can set a new password.
   useEffect(() => {
@@ -398,7 +422,7 @@ export function App() {
       )}
       {phase === 'idle' && view.s !== 'list' && <BackButton onBack={() => setView({ s: 'list' })} />}
       {phase === 'gameover' && <InstallButton />}
-      {phase === 'idle' && <StartArtwork showInfo={view.s === 'list'} />}
+      {phase === 'idle' && <StartArtwork showInfo={view.s === 'list'} artUrl={view.s === 'picker' ? pickerArt : undefined} />}
       {phase === 'gameover' && <GameOverArtwork />}
       {round && !(wide && phase === 'playing') && (
         <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} />

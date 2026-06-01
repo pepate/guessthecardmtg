@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { PullToRefresh } from './PullToRefresh';
 import type { GlobalEntry } from '../leaderboard/types';
 import type { RevealMode } from '../engine/timeAttack';
 import type { CustomFilter } from '../modes/filter';
@@ -70,11 +71,9 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
     }
   }
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  const load = useCallback(async () => {
+    try {
       const en = await fetchEnabledRevealModes();
-      if (cancelled) return;
       setEnabled(en);
       if (!modeId) {
         setLeaders({} as Record<RevealMode, GlobalEntry | null>);
@@ -82,14 +81,14 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
         return;
       }
       const [lead, modeRuns] = await Promise.all([fetchRevealLeaders(modeId), fetchModeRuns(modeId)]);
-      if (cancelled) return;
       setLeaders(lead);
       setRuns(modeRuns);
-    })().catch(() => {
-      if (!cancelled) setEnabled([]);
-    });
-    return () => { cancelled = true; };
+    } catch {
+      setEnabled([]);
+    }
   }, [modeId]);
+
+  useEffect(() => { void load(); }, [load]);
 
   // Replay this mode at `reveal`. The mode id is usually known; for a not-yet-created
   // mode (e.g. an unplayed set reached via game-over) resolve/create it by filter first.
@@ -199,7 +198,9 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
         </span>
       </div>
 
-      <div style={{ width: '100%', maxWidth: 700, margin: '0 auto', flex: '1 1 auto', minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ width: '100%', maxWidth: 700, margin: '0 auto', flex: '1 1 auto', minHeight: 0 }}>
+       <PullToRefresh onRefresh={load}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <FilterChips filter={filter} />
           {cardCount != null && (
@@ -402,6 +403,8 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
             Play again ({playsLeft} left)
           </button>
         )}
+        </div>
+       </PullToRefresh>
       </div>
 
       {confirm && (

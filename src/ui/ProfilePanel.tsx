@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { PullToRefresh } from './PullToRefresh';
 import { useAuth } from '../auth/useAuth';
 import {
   secureWithEmailPassword,
@@ -137,22 +138,20 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
     return () => clearInterval(id);
   }, [pendingEmail]);
 
-  useEffect(() => {
-    // When opened for account creation (game-over LOGIN), ensure an anonymous
-    // session exists so a brand-new player can actually save a name.
-    (ensureSession ? ensureUserId() : getUserId()).then(id => {
-      setUid(id);
-      if (id) {
-        getProfile(id).then(p => {
-          if (p) {
-            setProfile(p);
-            setNameInput(p.displayName ?? '');
-          }
-        }).catch(() => {});
-        fetchPlayerBests(id).then(setBests).catch(() => {});
-      }
-    }).catch(() => {});
-  }, [status, ensureSession]);
+  // Load (and pull-to-refresh) the player's profile + personal bests. When opened
+  // for account creation (game-over LOGIN), ensure an anonymous session exists so
+  // a brand-new player can actually save a name.
+  const load = useCallback(async () => {
+    const id = await (ensureSession ? ensureUserId() : getUserId()).catch(() => null);
+    setUid(id);
+    if (!id) return;
+    const p = await getProfile(id).catch(() => null);
+    if (p) { setProfile(p); setNameInput(p.displayName ?? ''); }
+    const b = await fetchPlayerBests(id).catch(() => null);
+    if (b) setBests(b);
+  }, [ensureSession]);
+
+  useEffect(() => { void load(); }, [load, status]);
 
   function clearMessages() {
     setError('');
@@ -193,16 +192,15 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
           position: 'absolute',
           inset: 0,
           pointerEvents: 'all',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          overflowY: 'auto',
           background: 'linear-gradient(180deg, rgba(7,6,10,0.86) 0%, rgba(7,6,10,0.96) 30%)',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
-          padding: 'calc(76px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom))',
         }}
       >
+        <PullToRefresh
+          onRefresh={load}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'calc(76px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom))' }}
+        >
         <div style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <h2
             style={{
@@ -261,6 +259,7 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
           )}
           {children}
         </div>
+        </PullToRefresh>
       </motion.div>
     );
   }
