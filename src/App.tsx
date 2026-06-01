@@ -17,7 +17,8 @@ import { HUD } from './ui/HUD';
 import { Timer } from './ui/Timer';
 import { NameChoice } from './ui/NameChoice';
 import { Snackbar } from './ui/Snackbar';
-import { GameOver } from './ui/GameOver';
+import { ModeDetail } from './ui/ModeDetail';
+import { usePendingRun } from './leaderboard/usePendingRun';
 import { GameOverArtwork } from './ui/GameOverArtwork';
 import { CardArtInfo } from './ui/CardArtInfo';
 import { BackButton } from './ui/BackButton';
@@ -176,6 +177,11 @@ export function App() {
   const round = useGameStore((s) => s.round);
   const roundIndex = useGameStore((s) => s.roundIndex);
   const gameMode = useGameStore((s) => s.gameMode);
+  const totalScore = useGameStore((s) => s.totalScore);
+  const correctCount = useGameStore((s) => s.correctCount);
+  const currentModeId = useGameStore((s) => s.currentModeId);
+  const currentModeName = useGameStore((s) => s.currentModeName);
+  const currentModeFilter = useGameStore((s) => s.currentModeFilter);
   const loadRevealModes = useGameStore((s) => s.loadRevealModes);
   const revealSeed = useGameStore((s) => s.revealSeed);
   const config = useGameStore((s) => s.config);
@@ -203,6 +209,25 @@ export function App() {
   const [view, setView] = useState<StartView>({ s: 'list' });
   const { recovery, authError } = useAuth();
 
+  // Game-over: the just-finished run is held here (posted only once a name exists).
+  const [gameOverProfileOpen, setGameOverProfileOpen] = useState(false);
+  const pendingRunInput =
+    phase === 'gameover' && totalScore > 0
+      ? { score: totalScore, correct: correctCount, cards: roundIndex + 1, gameMode }
+      : null;
+  const pending = usePendingRun(pendingRunInput, currentModeId, currentModeFilter);
+  const gameOverPendingRow =
+    pendingRunInput && pending.projectedRank != null
+      ? {
+          rank: pending.postedRank ?? pending.projectedRank,
+          name: pending.needsLogin ? null : pending.name,
+          score: pendingRunInput.score,
+          correct: pendingRunInput.correct,
+          gameMode: pendingRunInput.gameMode,
+          onLogin: () => setGameOverProfileOpen(true),
+        }
+      : null;
+
   // First-ever open (and not arriving via a shared deeplink) → show the wizard once.
   const [showWizard, setShowWizard] = useState(
     () => !localStorage.getItem('guessthecard.welcomed') && !parseDeeplink(window.location.search),
@@ -214,6 +239,10 @@ export function App() {
 
   useEffect(() => {
     if (phase !== 'idle') setView({ s: 'list' });
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'gameover') setGameOverProfileOpen(false);
   }, [phase]);
 
   // Returning from a password-reset link drops the player into recovery mode —
@@ -378,7 +407,13 @@ export function App() {
           {phase === 'loading' && <LoadingScreen />}
           {phase === 'error' && <ErrorScreen />}
           {phase === 'gameover' && (
-            <GameOver onOpenProfile={() => { reset(); setView({ s: 'profile' }); }} />
+            <ModeDetail
+              key="gameover"
+              modeId={currentModeId}
+              modeName={currentModeName ?? ''}
+              filter={currentModeFilter ?? {}}
+              pendingRow={gameOverPendingRow}
+            />
           )}
 
           {phase === 'playing' && round && (
@@ -417,6 +452,35 @@ export function App() {
 
         {phase === 'playing' && <Snackbar />}
       </div>
+
+      {phase === 'gameover' && gameOverProfileOpen && (
+        <div
+          data-testid="gameover-profile-overlay"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 40, overflowY: 'auto',
+            background: 'rgba(5,4,8,0.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            padding: 'calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))',
+          }}
+        >
+          <button
+            type="button"
+            data-testid="gameover-profile-close"
+            aria-label="Close"
+            onClick={() => setGameOverProfileOpen(false)}
+            style={{
+              position: 'absolute', top: 'calc(12px + env(safe-area-inset-top))', right: 12, zIndex: 1,
+              width: 40, height: 40, borderRadius: 10, border: '1px solid var(--line-strong)',
+              background: 'rgba(13,11,19,0.6)', color: 'var(--ink-0)', cursor: 'pointer',
+            }}
+          >
+            ✕
+          </button>
+          <ProfilePanel
+            ensureSession
+            onNameSaved={() => { void pending.postNow(); setGameOverProfileOpen(false); }}
+          />
+        </div>
+      )}
     </div>
   );
 }
