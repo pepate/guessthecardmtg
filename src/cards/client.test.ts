@@ -5,7 +5,7 @@ vi.mock('../supabase/client', () => ({
   getSupabase: () => ({ rpc }),
 }));
 
-import { rowToCard, fetchCandidates, fetchRandomCard, type GameCardRow } from './client';
+import { rowToCard, fetchCandidates, fetchRandomCard, fetchModeTopArt, type GameCardRow } from './client';
 
 function row(overrides: Partial<GameCardRow> = {}): GameCardRow {
   return {
@@ -87,5 +87,18 @@ describe('fetchRandomCard', () => {
   it('throws when no card comes back', async () => {
     rpc.mockResolvedValue({ data: [], error: null });
     await expect(fetchRandomCard()).rejects.toThrow();
+  });
+});
+
+describe('fetchModeTopArt', () => {
+  it('returns the art url from mode_top_card_art', async () => {
+    rpc.mockResolvedValue({ data: 'https://cards/art.jpg', error: null });
+    expect(await fetchModeTopArt({ edhrec: { max: 100 } })).toBe('https://cards/art.jpg');
+    expect(rpc).toHaveBeenCalledWith('mode_top_card_art', { p_filter: { edhrec: { max: 100 } } });
+  });
+
+  it('returns null on error or non-string data', async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: 'boom' } });
+    expect(await fetchModeTopArt({})).toBeNull();
   });
 });

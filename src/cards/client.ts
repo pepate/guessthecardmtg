@@ -59,3 +59,11 @@ export async function fetchRandomCard(): Promise<ScryfallCard> {
   if (cards.length === 0) throw new Error('No card returned.');
   return cards[0];
 }
+
+/** The art_crop of the pool's most-popular card (smallest edhrec_rank), or null. */
+export async function fetchModeTopArt(filter: CustomFilter): Promise<string | null> {
+  const c = getSupabase();
+  if (!c) return null;
+  const { data, error } = await c.rpc('mode_top_card_art', { p_filter: filter });
+  return !error && typeof data === 'string' ? data : null;
+}
