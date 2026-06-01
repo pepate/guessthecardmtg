@@ -21,7 +21,7 @@ export function WelcomeWizard({ onClose, onStart }: { onClose: () => void; onSta
     return () => { clearTimeout(t0); clearTimeout(t1); };
   }, []);
 
-  const caption = 'Name the card before it fully reveals.';
+  const caption = 'Name the card before it fully reveals — the faster you are, the more points you score.';
 
   return (
     <div
@@ -48,18 +48,14 @@ export function WelcomeWizard({ onClose, onStart }: { onClose: () => void; onSta
         <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 34, color: 'var(--ink-0)' }}>
           Welcome to GuessTheCard
         </h1>
-        <p style={{ margin: 0, color: 'var(--ink-1)', fontSize: 15, lineHeight: 1.45 }}>
-          Guess the <strong style={{ color: 'var(--ink-0)' }}>Magic: The Gathering</strong> card from its slowly-revealing
-          art. The faster you name it, the more points you score — then climb the online leaderboard.
-        </p>
       </div>
 
       {/* Demo card: blurred art that sharpens, like an in-game reveal. */}
       <div
         aria-hidden
         style={{
-          width: 196,
-          height: 273,
+          width: 248,
+          height: 346,
           borderRadius: 12,
           backgroundImage: `url(${SAMPLE_ART})`,
           backgroundSize: 'cover',

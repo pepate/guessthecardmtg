@@ -241,8 +241,10 @@ export function CardStage({
                         position: 'absolute',
                         top: `${(row / MOSAIC_ROWS) * 100}%`,
                         left: `${(col / MOSAIC_COLS) * 100}%`,
-                        width: `${100 / MOSAIC_COLS}%`,
-                        height: `${100 / MOSAIC_ROWS}%`,
+                        // +1px so neighbouring tiles overlap: sub-pixel rounding
+                        // otherwise leaves thin gaps that reveal strips of the card.
+                        width: `calc(${100 / MOSAIC_COLS}% + 1px)`,
+                        height: `calc(${100 / MOSAIC_ROWS}% + 1px)`,
                         backgroundColor: '#08060c',
                       }}
                       initial={{ opacity: 1 }}
