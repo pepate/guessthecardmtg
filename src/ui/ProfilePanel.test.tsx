@@ -158,8 +158,10 @@ describe('ProfilePanel — anonymous', () => {
     });
   });
 
-  it('reveals secure-submit only once both email and password are filled', () => {
+  it('reveals secure-submit only once both email and password are filled', async () => {
     render(<ProfilePanel />);
+    // Secure section appears once the profile (with a name) has loaded.
+    await screen.findByTestId('secure-email');
     expect(screen.queryByTestId('secure-submit')).not.toBeInTheDocument();
     fireEvent.change(screen.getByTestId('secure-email'), { target: { value: 'me@example.com' } });
     expect(screen.queryByTestId('secure-submit')).not.toBeInTheDocument(); // email only → still hidden
@@ -233,6 +235,7 @@ describe('ProfilePanel — anonymous', () => {
 
   it('calls secureWithEmailPassword on secure-submit', async () => {
     render(<ProfilePanel />);
+    await screen.findByTestId('secure-email');
     fireEvent.change(screen.getByTestId('secure-email'), { target: { value: 'me@example.com' } });
     fireEvent.change(screen.getByTestId('secure-password'), { target: { value: 'mypassword' } });
     fireEvent.click(screen.getByTestId('secure-submit'));
@@ -241,10 +244,9 @@ describe('ProfilePanel — anonymous', () => {
     });
   });
 
-  it('shows sign-in warning when toggle is clicked', async () => {
+  it('shows sign-in warning when the Login toggle is clicked', async () => {
     render(<ProfilePanel />);
-    const toggle = screen.getByText(/Sign in to another account/i);
-    fireEvent.click(toggle);
+    fireEvent.click(screen.getByTestId('login-toggle'));
     await waitFor(() => {
       expect(screen.getByTestId('profile-notice')).toHaveTextContent('unsaved scores');
     });

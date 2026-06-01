@@ -267,11 +267,18 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
   function shareButton() {
     return (
       <button
-        className="ghost-btn"
+        className="ember-btn"
         data-testid="profile-share"
-        style={{ fontSize: 12 }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 700 }}
         onClick={() => void shareApp()}
       >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+          <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+        </svg>
         {shared ? 'Link copied' : 'Share GuessTheCard'}
       </button>
     );
@@ -407,23 +414,29 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
       const res = await linkGoogle();
       if (!res.ok) setError(res.error);
     }
+    // Until the player has claimed a name, keep the profile minimal — only the
+    // name field and a Login option. Securing the account / country / stats only
+    // make sense once an account (name) exists, so they appear after naming.
+    const hasName = !!profile?.displayName;
     return shell(
       <>
         {nameEditor()}
-        {countryEditor()}
+        {hasName && countryEditor()}
+        {hasName && (
+          <div style={sectionStyle}>
+            <p style={labelStyle}>Secure your account</p>
+            <input data-testid="secure-email" type="email" placeholder="Email" value={secureEmail} onChange={e => setSecureEmail(e.target.value)} style={inputStyle} />
+            <input data-testid="secure-password" type="password" placeholder="Password" value={securePassword} onChange={e => setSecurePassword(e.target.value)} style={inputStyle} />
+            {secureReady && (
+              <button className="ember-btn" data-testid="secure-submit" onClick={handleSecure}>Save email &amp; password</button>
+            )}
+            <button className="ghost-btn" data-testid="link-google" onClick={handleLinkGoogle}>Link Google account</button>
+          </div>
+        )}
+        {hasName && <ProfileStats profile={profile} bests={bests} />}
         <div style={sectionStyle}>
-          <p style={labelStyle}>Secure your account</p>
-          <input data-testid="secure-email" type="email" placeholder="Email" value={secureEmail} onChange={e => setSecureEmail(e.target.value)} style={inputStyle} />
-          <input data-testid="secure-password" type="password" placeholder="Password" value={securePassword} onChange={e => setSecurePassword(e.target.value)} style={inputStyle} />
-          {secureReady && (
-            <button className="ember-btn" data-testid="secure-submit" onClick={handleSecure}>Save email &amp; password</button>
-          )}
-          <button className="ghost-btn" data-testid="link-google" onClick={handleLinkGoogle}>Link Google account</button>
-        </div>
-        <ProfileStats profile={profile} bests={bests} />
-        <div style={sectionStyle}>
-          <button className="ghost-btn" style={{ fontSize: 12 }} onClick={() => { clearMessages(); setShowSignIn(s => !s); }}>
-            {showSignIn ? 'Cancel' : 'Sign in to another account'}
+          <button className="ghost-btn" data-testid="login-toggle" style={{ fontSize: 12 }} onClick={() => { clearMessages(); setShowSignIn(s => !s); }}>
+            {showSignIn ? 'Cancel' : 'Login'}
           </button>
           {showSignIn && <SignInForm warning="Signing into another account abandons this device's unsaved scores." />}
         </div>

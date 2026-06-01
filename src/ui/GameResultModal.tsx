@@ -20,8 +20,8 @@ export function GameResultModal({
   onClose: () => void;
 }) {
   const btn: React.CSSProperties = {
-    flex: 1, padding: '11px 0', borderRadius: 10, cursor: 'pointer',
-    fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700,
+    width: '100%', padding: '13px 0', borderRadius: 10, cursor: 'pointer',
+    fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 700,
   };
   return (
     <div
@@ -55,7 +55,7 @@ export function GameResultModal({
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 4 }}>
           <button type="button" data-testid="result-replay" onClick={onReplay} className="ember-btn" style={btn}>
             Replay
           </button>
