@@ -15,7 +15,7 @@ export async function listModes(limit = 50): Promise<CustomModeListItem[]> {
   if (!c) return [];
   const { data, error } = await c.from('mode_list')
     .select('id,name,filter,card_count,entry_count,kind')
-    .eq('kind', 'custom')
+    .in('kind', ['custom', 'set'])
     .order('entry_count', { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);

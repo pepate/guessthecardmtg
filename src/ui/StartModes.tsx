@@ -12,6 +12,7 @@ import { windowCutoff, WINDOW_TABS, type TimeWindow } from '../leaderboard/windo
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
 import { DailySet } from './DailySet';
+import { fetchDailyToday } from '../daily/client';
 
 /** The mode's overall best run (any reveal), shown as the leader of the row. */
 interface ModeTop {
@@ -221,13 +222,17 @@ export function StartModes({
     let cancelled = false;
     setViews(null);
     (async () => {
-      const modes = await listModes(200);
+      const [modes, daily] = await Promise.all([listModes(200), fetchDailyToday().catch(() => null)]);
+      // Today's Daily Set is featured by its own button (with the reveal lock) — hide
+      // it from the general list so it isn't played off-challenge. Past daily sets
+      // (no longer today's) are normal set-modes and stay listed.
+      const listed = modes.filter((m) => m.id !== daily?.modeId);
       // No session yet → empty id matches no rows, so standings are simply absent
       // while the mode list still renders for everyone.
       const device = (await getUserId()) ?? '';
       const since = windowCutoff(win);
       const built = await Promise.all(
-        modes.map(async (mode) => {
+        listed.map(async (mode) => {
           const runs = await fetchModeRuns(mode.id, since);
           return { mode, standing: deviceModeStanding(runs, device), top: overallTop(runs) };
         }),

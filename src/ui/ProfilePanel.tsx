@@ -160,6 +160,13 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
     clearAuthError();
   }
 
+  // The success banner is a transient confirmation — clear it after a few seconds.
+  useEffect(() => {
+    if (!notice) return;
+    const id = setTimeout(() => setNotice(''), 4000);
+    return () => clearTimeout(id);
+  }, [notice]);
+
   async function shareApp() {
     const url = `${location.origin}${import.meta.env.BASE_URL}`;
     const text = `Play GuessTheCard — guess the Magic: The Gathering card before the clock runs out: ${url}`;
@@ -210,9 +217,24 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
             Profile
           </h2>
           {(error || notice || authError) && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(error || authError) && <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 13, margin: 0, textAlign: 'center', lineHeight: 1.5 }}>{error || authError}</p>}
-              {notice && <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 13, margin: 0, textAlign: 'center' }}>{notice}</p>}
+              {notice && (
+                <div
+                  data-testid="profile-notice"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    background: 'var(--ember)', color: '#1a1020', fontWeight: 700, fontSize: 15,
+                    padding: '12px 16px', borderRadius: 12, textAlign: 'center',
+                    boxShadow: '0 6px 18px rgba(255,122,44,0.35)',
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  {notice}
+                </div>
+              )}
             </div>
           )}
           {pendingEmail && (
