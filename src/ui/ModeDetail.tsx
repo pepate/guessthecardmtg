@@ -13,7 +13,6 @@ import { findExistingMode, createMode } from '../modes/client';
 import { useGameStore } from '../state/gameStore';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
-import { buildDeeplink } from '../share/deeplink';
 import { FilterChips } from './FilterChips';
 
 export interface PendingRowInfo {
@@ -38,38 +37,22 @@ interface ModeDetailProps {
   playsLeft?: number;
   /** Daily Set: replay the locked reveal. Shown as a bottom "Play again" button. */
   onPlayAgain?: () => void;
+  /** Game-over only: share the player's stats — a fixed button at the screen bottom. */
+  onShareStats?: () => void;
 }
 
 const PENDING_ID = '__pending__';
 
-export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lockedReveal, playsLeft, onPlayAgain }: ModeDetailProps) {
+export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lockedReveal, playsLeft, onPlayAgain, onShareStats }: ModeDetailProps) {
   const [leaders, setLeaders] = useState<Record<RevealMode, GlobalEntry | null> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
-  const [copied, setCopied] = useState<RevealMode | null>(null);
   const [confirm, setConfirm] = useState<RevealMode | null>(null);
   const [idleHint, setIdleHint] = useState<string | null>(null);
   const [tab, setTab] = useState<'leaderboard' | 'recent'>('leaderboard');
   const [expanded, setExpanded] = useState(false);
 
   const touchDevice = () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
-
-  async function share(reveal: RevealMode) {
-    if (!modeId) return;
-    const url = buildDeeplink(modeId, reveal);
-    const title = `${modeName} · ${REVEAL_MODE_LABELS[reveal]} — beat my score!`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ url, title });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setCopied(reveal);
-        setTimeout(() => setCopied((c) => (c === reveal ? null : c)), 1500);
-      }
-    } catch {
-      /* user dismissed the share sheet — ignore */
-    }
-  }
 
   const load = useCallback(async () => {
     try {
@@ -200,7 +183,7 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
 
       <div style={{ width: '100%', maxWidth: 700, margin: '0 auto', flex: '1 1 auto', minHeight: 0 }}>
        <PullToRefresh onRefresh={load}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: onShareStats ? 72 : 0 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <FilterChips filter={filter} />
           {cardCount != null && (
@@ -373,19 +356,21 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
                       <span style={{ flex: 1 }}>open · no scores</span>
                     )}
                   </span>
-                  <button
-                    type="button"
-                    data-testid="reveal-share"
-                    aria-label={`Share ${REVEAL_MODE_LABELS[reveal]} challenge`}
-                    onClick={(e) => { e.stopPropagation(); void share(reveal); }}
-                    style={{
-                      flexShrink: 0, background: 'transparent', border: '1px solid var(--line)',
-                      borderRadius: 8, color: copied === reveal ? 'var(--ember-hot)' : 'var(--ink-2)',
-                      fontFamily: "'JetBrains Mono', monospace", fontSize: 10, padding: '5px 8px', cursor: 'pointer',
-                    }}
-                  >
-                    {copied === reveal ? 'copied' : 'share'}
-                  </button>
+                  {!rowDisabled && (
+                    <button
+                      type="button"
+                      data-testid="reveal-play"
+                      aria-label={`Play ${REVEAL_MODE_LABELS[reveal]}`}
+                      onClick={(e) => { e.stopPropagation(); choose(reveal); }}
+                      style={{
+                        flexShrink: 0, background: 'rgba(255,122,44,0.18)', border: '1px solid var(--ember)',
+                        borderRadius: 8, color: 'var(--ember-hot)', fontWeight: 700,
+                        fontFamily: "'JetBrains Mono', monospace", fontSize: 11, padding: '6px 12px', cursor: 'pointer',
+                      }}
+                    >
+                      Play
+                    </button>
+                  )}
                 </div>
               );
             })
@@ -406,6 +391,24 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
         </div>
        </PullToRefresh>
       </div>
+
+      {onShareStats && (
+        <button
+          type="button"
+          data-testid="share-stats"
+          onClick={onShareStats}
+          style={{
+            position: 'fixed', left: 16, right: 16, bottom: 'calc(16px + env(safe-area-inset-bottom))',
+            zIndex: 15, maxWidth: 460, margin: '0 auto', padding: '13px 0', borderRadius: 12,
+            border: '1px solid var(--line-strong)', background: 'rgba(13,11,19,0.92)', color: 'var(--ink-0)',
+            fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            boxShadow: '0 8px 22px rgba(0,0,0,0.5)',
+          }}
+        >
+          Share my stats
+        </button>
+      )}
 
       {confirm && (
         <div

@@ -22,6 +22,7 @@ import { usePendingRun } from './leaderboard/usePendingRun';
 import { fetchDailyToday } from './daily/client';
 import { fetchModeTopArt } from './cards/client';
 import { useScreenBack } from './ui/useScreenBack';
+import { shareLink } from './share/score';
 import { GameOverArtwork } from './ui/GameOverArtwork';
 import { CardArtInfo } from './ui/CardArtInfo';
 import { BackButton } from './ui/BackButton';
@@ -188,6 +189,7 @@ export function App() {
   const currentModeId = useGameStore((s) => s.currentModeId);
   const currentModeName = useGameStore((s) => s.currentModeName);
   const currentModeFilter = useGameStore((s) => s.currentModeFilter);
+  const poolKind = useGameStore((s) => s.poolKind);
   const dailyReveal = useGameStore((s) => s.dailyReveal);
   const loadRevealModes = useGameStore((s) => s.loadRevealModes);
   const revealSeed = useGameStore((s) => s.revealSeed);
@@ -251,6 +253,17 @@ export function App() {
     const s = useGameStore.getState();
     s.setRevealChoice(dailyReveal);
     void s.selectPool({ kind: 'custom', modeId: currentModeId, filter: currentModeFilter ?? {}, name: currentModeName ?? 'Daily Set', daily: dailyReveal });
+  }
+
+  async function shareStats() {
+    const url = shareLink({ score: totalScore, correct: correctCount, pool: poolKind });
+    const text = `I scored ${totalScore} points in GuessTheCard — beat me: ${url}`;
+    try {
+      if (navigator.share) { await navigator.share({ title: 'GuessTheCard', text }); return; }
+      await navigator.clipboard.writeText(text);
+    } catch {
+      /* dismissed or blocked — no-op */
+    }
   }
 
   // First-ever open (and not arriving via a shared deeplink) → show the wizard once.
@@ -463,6 +476,7 @@ export function App() {
               lockedReveal={dailyReveal}
               playsLeft={dailyReveal ? (dailyPlaysLeft ?? 0) : undefined}
               onPlayAgain={dailyReveal ? replayDaily : undefined}
+              onShareStats={totalScore > 0 ? shareStats : undefined}
             />
           )}
 
