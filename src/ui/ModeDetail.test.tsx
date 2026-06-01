@@ -66,12 +66,12 @@ describe('ModeDetail', () => {
 
   it('daily lock: disables non-locked reveals and shows Play again with plays left', async () => {
     const onPlayAgain = vi.fn();
-    render(
+    const { container } = render(
       <ModeDetail modeId="m1" modeName="Daily" filter={filter} lockedReveal="blur" playsLeft={2} onPlayAgain={onPlayAgain} />,
     );
     await waitFor(() => expect(screen.getAllByTestId('reveal-row').length).toBe(2));
-    const blur = screen.getByText('Blur').closest('[data-testid="reveal-row"]') as HTMLElement;
-    const scanner = screen.getByText('Scanner').closest('[data-testid="reveal-row"]') as HTMLElement;
+    const blur = container.querySelector('[data-reveal="blur"]') as HTMLElement;
+    const scanner = container.querySelector('[data-reveal="scanner"]') as HTMLElement;
     expect(blur.getAttribute('data-disabled')).toBeNull();
     expect(scanner.getAttribute('data-disabled')).toBe('true');
     const again = screen.getByTestId('daily-play-again');
@@ -81,11 +81,11 @@ describe('ModeDetail', () => {
   });
 
   it('daily lock: at 0 plays left, no Play again and the locked reveal is disabled too', async () => {
-    render(
+    const { container } = render(
       <ModeDetail modeId="m1" modeName="Daily" filter={filter} lockedReveal="blur" playsLeft={0} onPlayAgain={() => {}} />,
     );
     await waitFor(() => expect(screen.getAllByTestId('reveal-row').length).toBe(2));
-    const blur = screen.getByText('Blur').closest('[data-testid="reveal-row"]') as HTMLElement;
+    const blur = container.querySelector('[data-reveal="blur"]') as HTMLElement;
     expect(blur.getAttribute('data-disabled')).toBe('true');
     expect(screen.queryByTestId('daily-play-again')).toBeNull();
   });

@@ -18,6 +18,7 @@ import { Timer } from './ui/Timer';
 import { NameChoice } from './ui/NameChoice';
 import { Snackbar } from './ui/Snackbar';
 import { ModeDetail } from './ui/ModeDetail';
+import { GameResultModal } from './ui/GameResultModal';
 import { usePendingRun } from './leaderboard/usePendingRun';
 import { fetchDailyToday } from './daily/client';
 import { fetchModeTopArt } from './cards/client';
@@ -220,6 +221,7 @@ export function App() {
 
   // Game-over: the just-finished run is held here (posted only once a name exists).
   const [gameOverProfileOpen, setGameOverProfileOpen] = useState(false);
+  const [resultOpen, setResultOpen] = useState(false);
   const pendingRunInput =
     phase === 'gameover' && totalScore > 0
       ? { score: totalScore, correct: correctCount, cards: roundIndex + 1, gameMode }
@@ -255,6 +257,14 @@ export function App() {
     void s.selectPool({ kind: 'custom', modeId: currentModeId, filter: currentModeFilter ?? {}, name: currentModeName ?? 'Daily Set', daily: dailyReveal });
   }
 
+  function replayGame() {
+    if (!currentModeId) return;
+    setResultOpen(false);
+    const s = useGameStore.getState();
+    s.setRevealChoice(gameMode);
+    void s.selectPool({ kind: 'custom', modeId: currentModeId, filter: currentModeFilter ?? {}, name: currentModeName ?? '', daily: dailyReveal ?? undefined });
+  }
+
   async function shareStats() {
     const url = shareLink({ score: totalScore, correct: correctCount, pool: poolKind });
     const text = `I scored ${totalScore} points in GuessTheCard — beat me: ${url}`;
@@ -281,6 +291,11 @@ export function App() {
 
   useEffect(() => {
     if (phase !== 'gameover') setGameOverProfileOpen(false);
+  }, [phase]);
+
+  // Show the result popup over the played mode each time a game ends.
+  useEffect(() => {
+    setResultOpen(phase === 'gameover');
   }, [phase]);
 
   // Mode-detail background: the pool's most-popular (lowest-EDHRec) card art.
@@ -476,7 +491,6 @@ export function App() {
               lockedReveal={dailyReveal}
               playsLeft={dailyReveal ? (dailyPlaysLeft ?? 0) : undefined}
               onPlayAgain={dailyReveal ? replayDaily : undefined}
-              onShareStats={totalScore > 0 ? shareStats : undefined}
             />
           )}
 
@@ -516,6 +530,17 @@ export function App() {
 
         {phase === 'playing' && <Snackbar />}
       </div>
+
+      {phase === 'gameover' && resultOpen && !gameOverProfileOpen && (
+        <GameResultModal
+          score={totalScore}
+          rank={pending.postedRank ?? pending.projectedRank}
+          modeName={currentModeName ?? undefined}
+          onReplay={replayGame}
+          onShare={() => void shareStats()}
+          onClose={() => setResultOpen(false)}
+        />
+      )}
 
       {phase === 'gameover' && gameOverProfileOpen && (
         <div

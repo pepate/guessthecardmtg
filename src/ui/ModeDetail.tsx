@@ -14,6 +14,7 @@ import { useGameStore } from '../state/gameStore';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
 import { FilterChips } from './FilterChips';
+import { RevealIcon } from './RevealIcon';
 
 export interface PendingRowInfo {
   rank: number;
@@ -37,13 +38,11 @@ interface ModeDetailProps {
   playsLeft?: number;
   /** Daily Set: replay the locked reveal. Shown as a bottom "Play again" button. */
   onPlayAgain?: () => void;
-  /** Game-over only: share the player's stats — a fixed button at the screen bottom. */
-  onShareStats?: () => void;
 }
 
 const PENDING_ID = '__pending__';
 
-export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lockedReveal, playsLeft, onPlayAgain, onShareStats }: ModeDetailProps) {
+export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lockedReveal, playsLeft, onPlayAgain }: ModeDetailProps) {
   const [leaders, setLeaders] = useState<Record<RevealMode, GlobalEntry | null> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
@@ -98,7 +97,7 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
   }
 
   const now = Date.now();
-  const PAGE = 8;
+  const PAGE = 3;
 
   const played = runs.filter((r) => r.gameMode);
   const byScore = [...played].sort((a, b) => b.score - a.score || a.createdAt - b.createdAt);
@@ -183,7 +182,7 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
 
       <div style={{ width: '100%', maxWidth: 700, margin: '0 auto', flex: '1 1 auto', minHeight: 0 }}>
        <PullToRefresh onRefresh={load}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: onShareStats ? 72 : 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <FilterChips filter={filter} />
           {cardCount != null && (
@@ -341,8 +340,8 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
                     opacity: rowDisabled ? 0.4 : 1,
                   }}
                 >
-                  <span style={{ width: 92, color: 'var(--ink-0)', fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 700 }}>
-                    {REVEAL_MODE_LABELS[reveal]}
+                  <span style={{ flex: '0 0 auto', width: 30, display: 'flex', justifyContent: 'center' }}>
+                    <RevealIcon reveal={reveal} />
                   </span>
                   <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--ink-2)', minWidth: 0 }}>
                     {leader ? (
@@ -391,24 +390,6 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
         </div>
        </PullToRefresh>
       </div>
-
-      {onShareStats && (
-        <button
-          type="button"
-          data-testid="share-stats"
-          onClick={onShareStats}
-          style={{
-            position: 'fixed', left: 16, right: 16, bottom: 'calc(16px + env(safe-area-inset-bottom))',
-            zIndex: 15, maxWidth: 460, margin: '0 auto', padding: '13px 0', borderRadius: 12,
-            border: '1px solid var(--line-strong)', background: 'rgba(13,11,19,0.92)', color: 'var(--ink-0)',
-            fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 700, cursor: 'pointer',
-            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-            boxShadow: '0 8px 22px rgba(0,0,0,0.5)',
-          }}
-        >
-          Share my stats
-        </button>
-      )}
 
       {confirm && (
         <div
