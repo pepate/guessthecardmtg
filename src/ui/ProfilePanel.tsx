@@ -15,7 +15,7 @@ import { getProfile, upsertDisplayName, checkNameAvailable, updateCountry } from
 import type { Profile } from '../profile/client';
 import { fetchPlayerBests, type PlayerBest } from '../profile/stats';
 import { ProfileStats } from './ProfileStats';
-import { getUserId } from '../leaderboard/identity';
+import { getUserId, ensureUserId } from '../leaderboard/identity';
 import { sanitizeName, NAME_MIN, NAME_MAX } from '../leaderboard/validation';
 import { COUNTRIES } from '../leaderboard/countries';
 import { countryToFlag } from '../leaderboard/flag';
@@ -104,7 +104,7 @@ function SignInForm({ onSuccess, warning }: SignInFormProps) {
   );
 }
 
-export function ProfilePanel() {
+export function ProfilePanel({ onNameSaved, ensureSession }: { onNameSaved?: () => void; ensureSession?: boolean } = {}) {
   const { user, status, recovery, authError } = useAuth();
   const [uid, setUid] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -138,7 +138,9 @@ export function ProfilePanel() {
   }, [pendingEmail]);
 
   useEffect(() => {
-    getUserId().then(id => {
+    // When opened for account creation (game-over LOGIN), ensure an anonymous
+    // session exists so a brand-new player can actually save a name.
+    (ensureSession ? ensureUserId() : getUserId()).then(id => {
       setUid(id);
       if (id) {
         getProfile(id).then(p => {
@@ -150,7 +152,7 @@ export function ProfilePanel() {
         fetchPlayerBests(id).then(setBests).catch(() => {});
       }
     }).catch(() => {});
-  }, [status]);
+  }, [status, ensureSession]);
 
   function clearMessages() {
     setError('');
@@ -295,6 +297,7 @@ export function ProfilePanel() {
     }
     setProfile(prev => prev ? { ...prev, displayName: clean } : null);
     setNotice('Name saved.');
+    onNameSaved?.();
   }
 
   // Home country — auto-detected on first game, freely changeable here. Only

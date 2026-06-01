@@ -49,6 +49,7 @@ vi.mock('../profile/client', () => ({
 
 vi.mock('../leaderboard/identity', () => ({
   getUserId: () => Promise.resolve('uid'),
+  ensureUserId: () => Promise.resolve('uid'),
 }));
 
 // Do NOT mock ../leaderboard/validation — use real implementation.
@@ -219,6 +220,15 @@ describe('ProfilePanel — anonymous', () => {
     await waitFor(() => {
       expect(screen.getByTestId('profile-notice')).toHaveTextContent('Name saved');
     });
+  });
+
+  it('calls onNameSaved after saving a name (game-over login flow)', async () => {
+    const onNameSaved = vi.fn();
+    render(<ProfilePanel onNameSaved={onNameSaved} ensureSession />);
+    await waitFor(() => screen.getByTestId('profile-name-input'));
+    fireEvent.change(screen.getByTestId('profile-name-input'), { target: { value: 'Newname' } });
+    fireEvent.click(screen.getByTestId('profile-name-save'));
+    await waitFor(() => expect(onNameSaved).toHaveBeenCalled());
   });
 
   it('calls secureWithEmailPassword on secure-submit', async () => {
