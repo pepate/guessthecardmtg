@@ -245,7 +245,7 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow }: 
                     }}
                   >
                     {tab === 'leaderboard' && (
-                      <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', width: 22 }}>#{i + 1}</span>
+                      <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', width: 22 }}>#{pendingRow.rank}</span>
                     )}
                     <span aria-hidden>{countryToFlag(null)}</span>
                     {pendingRow.name == null ? (

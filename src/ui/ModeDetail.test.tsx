@@ -51,6 +51,19 @@ describe('ModeDetail', () => {
     expect(screen.queryByTestId('pending-login')).toBeNull();
   });
 
+  it('shows the true projected rank on a sparse board (not the insertion index)', async () => {
+    render(
+      <ModeDetail
+        modeId="m1"
+        modeName="EDHRec 1000"
+        filter={filter}
+        pendingRow={{ rank: 5, name: null, score: 500, correct: 5, gameMode: 'blur', onLogin: () => {} }}
+      />,
+    );
+    const row = await screen.findByTestId('pending-run-row');
+    expect(row.textContent).toContain('#5');
+  });
+
   it('tolerates a null modeId (unplayed mode): still shows the pending row', async () => {
     render(
       <ModeDetail
