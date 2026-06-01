@@ -53,11 +53,15 @@ function sortModes(views: ModeView[]): ModeView[] {
   });
 }
 
+// The player's own rank in this mode for the selected time window. Shown only
+// when they actually have a placement (i.e. they're signed in with a name and
+// posted a run in this window) — otherwise nothing is shown (no "new" badge).
 function RankBadge({ standing }: { standing: number | null }) {
+  if (standing === null) return null;
   const first = standing === 1;
-  const ranked = standing !== null;
   return (
     <span
+      data-testid="own-rank"
       style={{
         flex: '0 0 auto',
         fontFamily: "'JetBrains Mono', monospace",
@@ -69,12 +73,12 @@ function RankBadge({ standing }: { standing: number | null }) {
         whiteSpace: 'nowrap',
         textAlign: 'center',
         minWidth: 34,
-        border: `1px solid ${first ? 'var(--ember)' : ranked ? 'var(--line-strong)' : 'var(--line)'}`,
-        background: first ? 'rgba(255,138,60,0.22)' : ranked ? 'rgba(255,186,120,0.10)' : 'rgba(255,255,255,0.04)',
-        color: first ? 'var(--ember-hot)' : ranked ? 'var(--ink-0)' : 'var(--ink-2)',
+        border: `1px solid ${first ? 'var(--ember)' : 'var(--line-strong)'}`,
+        background: first ? 'rgba(255,138,60,0.22)' : 'rgba(255,186,120,0.10)',
+        color: first ? 'var(--ember-hot)' : 'var(--ink-0)',
       }}
     >
-      {ranked ? `#${standing}` : 'new'}
+      #{standing}
     </span>
   );
 }
