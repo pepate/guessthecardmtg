@@ -104,7 +104,7 @@ function SignInForm({ onSuccess, warning }: SignInFormProps) {
   );
 }
 
-export function ProfilePanel({ onNameSaved, ensureSession }: { onNameSaved?: () => void; ensureSession?: boolean } = {}) {
+export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNameSaved?: () => void; ensureSession?: boolean; promptName?: boolean } = {}) {
   const { user, status, recovery, authError } = useAuth();
   const [uid, setUid] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -259,9 +259,15 @@ export function ProfilePanel({ onNameSaved, ensureSession }: { onNameSaved?: () 
   function nameEditor() {
     // Only show "Save name" once the text differs from the saved name.
     const nameDirty = nameInput.trim().length > 0 && nameInput.trim() !== (profile?.displayName ?? '').trim();
+    const needsName = !profile?.displayName;
     return (
       <div style={sectionStyle}>
         <p style={labelStyle}>Display name</p>
+        {promptName && needsName && (
+          <p data-testid="name-prompt" style={{ margin: '0 0 4px', color: 'var(--ember-hot)', fontSize: 13, lineHeight: 1.45 }}>
+            Pick a name to create your account — then you can build your own modes.
+          </p>
+        )}
         <input
           data-testid="profile-name-input"
           type="text"

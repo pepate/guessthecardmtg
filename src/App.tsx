@@ -205,7 +205,7 @@ export function App() {
   const spotlightOrigin = spotlightOriginFor(revealSeed, roundIndex);
   const wide = useWideLayout();
 
-  type StartView = { s: 'list' } | { s: 'picker'; mode: CustomMode } | { s: 'create' } | { s: 'profile' };
+  type StartView = { s: 'list' } | { s: 'picker'; mode: CustomMode } | { s: 'create' } | { s: 'profile'; promptName?: boolean };
   const [view, setView] = useState<StartView>({ s: 'list' });
   const { recovery, authError } = useAuth();
 
@@ -391,6 +391,7 @@ export function App() {
               key="modes"
               onPick={(mode) => setView({ s: 'picker', mode })}
               onCreate={() => setView({ s: 'create' })}
+              onNeedAccount={() => setView({ s: 'profile', promptName: true })}
             />
           )}
 
@@ -402,7 +403,9 @@ export function App() {
             <CustomModeBuilder key="create" onCreated={(mode) => setView({ s: 'picker', mode })} />
           )}
 
-          {phase === 'idle' && view.s === 'profile' && <ProfilePanel key="profile" />}
+          {phase === 'idle' && view.s === 'profile' && (
+            <ProfilePanel key="profile" promptName={view.promptName} ensureSession={view.promptName} />
+          )}
 
           {phase === 'loading' && <LoadingScreen />}
           {phase === 'error' && <ErrorScreen />}

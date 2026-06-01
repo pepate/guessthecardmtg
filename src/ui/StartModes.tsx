@@ -6,6 +6,7 @@ import type { CustomMode, CustomModeListItem } from '../modes/types';
 import { fetchModeRuns } from '../leaderboard/client';
 import { deviceModeStanding, type Run } from '../leaderboard/boards';
 import { getUserId } from '../leaderboard/identity';
+import { getProfile } from '../profile/client';
 import { getGamesPlayed } from '../state/highscores';
 import { windowCutoff, WINDOW_TABS, type TimeWindow } from '../leaderboard/window';
 import { ScoreValue } from './ScoreValue';
@@ -152,30 +153,44 @@ function ModeRow({ name, standing, top, plays, onSelect }: ModeRowProps) {
 export function StartModes({
   onPick,
   onCreate,
+  onNeedAccount,
 }: {
   onPick: (mode: CustomMode) => void;
   onCreate: () => void;
+  /** Tapped Create without an account yet → route to the profile to claim a name. */
+  onNeedAccount: () => void;
 }) {
   const [win, setWin] = useState<TimeWindow>('week');
   const [views, setViews] = useState<ModeView[] | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
   const [advanceOpen, setAdvanceOpen] = useState(false);
-  const [createHint, setCreateHint] = useState(false);
   const [gamesPlayed] = useState(() => getGamesPlayed());
-  const GAMES_TO_UNLOCK = 3;
+  // Creating modes requires an account (a claimed display name). The button stays
+  // tappable while greyed out so a nameless player is routed to the profile.
+  const [hasName, setHasName] = useState(false);
 
   const touchDevice = () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const uid = await getUserId();
+      const profile = uid ? await getProfile(uid).catch(() => null) : null;
+      if (!cancelled) setHasName(!!profile?.displayName);
+    })().catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   function onFabClick() {
-    // Touch devices have no hover: first tap reveals the label, the next creates.
+    // Touch devices have no hover: first tap reveals the label, the next acts.
     if (touchDevice() && !fabOpen) {
       setFabOpen(true);
       return;
     }
-    // Gate creation until the player has finished a few games.
-    if (gamesPlayed < GAMES_TO_UNLOCK) {
+    // No account yet → send them to the profile to claim a name first.
+    if (!hasName) {
       setFabOpen(false);
-      setCreateHint(true);
+      onNeedAccount();
       return;
     }
     onCreate();
@@ -200,11 +215,6 @@ export function StartModes({
     const id = setTimeout(() => setAdvanceOpen(false), 3000);
     return () => clearTimeout(id);
   }, [advanceOpen]);
-  useEffect(() => {
-    if (!createHint) return;
-    const id = setTimeout(() => setCreateHint(false), 3800);
-    return () => clearTimeout(id);
-  }, [createHint]);
 
   useEffect(() => {
     let cancelled = false;
@@ -318,32 +328,6 @@ export function StartModes({
         </button>
       )}
 
-      {createHint && (
-        <div
-          data-testid="create-hint"
-          style={{
-            position: 'fixed',
-            right: 16,
-            bottom: 'calc(160px + env(safe-area-inset-bottom))',
-            zIndex: 7,
-            maxWidth: 250,
-            padding: '10px 14px',
-            borderRadius: 12,
-            border: '1px solid var(--line-strong)',
-            background: 'rgba(13,11,19,0.95)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            color: 'var(--ink-1)',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 12,
-            lineHeight: 1.45,
-            boxShadow: '0 8px 22px rgba(0,0,0,0.5)',
-          }}
-        >
-          Play {GAMES_TO_UNLOCK - gamesPlayed} more {GAMES_TO_UNLOCK - gamesPlayed === 1 ? 'game' : 'games'} before you create your own mode.
-        </div>
-      )}
-
       {views && views.length > 0 && (
         <button
           type="button"
@@ -369,8 +353,10 @@ export function StartModes({
         type="button"
         data-testid="create-mode-btn"
         aria-label="Create Mode"
+        aria-disabled={!hasName}
         className={`fab create-fab${fabOpen ? ' is-open' : ''}`}
         onClick={onFabClick}
+        style={!hasName ? { opacity: 0.45 } : undefined}
       >
         <span className="fab-plus" aria-hidden>+</span>
         <span className="fab-label">Create Mode</span>
