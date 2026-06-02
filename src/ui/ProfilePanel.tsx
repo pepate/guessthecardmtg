@@ -104,13 +104,13 @@ export function SignInForm({ onSuccess, warning }: SignInFormProps) {
         </p>
       </div>
       {warning && (
-        <p data-testid="profile-notice" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0 }}>{warning}</p>
+        <p data-testid="profile-notice" style={{ color: 'var(--ember-hot)', fontSize: 14, margin: 0, lineHeight: 1.5 }}>{warning}</p>
       )}
       {notice && (
-        <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 12, margin: 0 }}>{notice}</p>
+        <p data-testid="profile-notice" style={{ color: 'var(--ink-1)', fontSize: 14, margin: 0, lineHeight: 1.5 }}>{notice}</p>
       )}
       {error && (
-        <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0 }}>{error}</p>
+        <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 15, fontWeight: 600, margin: 0, lineHeight: 1.5 }}>{error}</p>
       )}
       <button className="ghost-btn" data-testid="signin-google" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} onClick={handleGoogle}>
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
@@ -149,6 +149,11 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
   const [securePassword, setSecurePassword] = useState('');
   const [showSignIn, setShowSignIn] = useState(false);
   const [authTab, setAuthTab] = useState<'create' | 'login'>('create');
+  // After "Create account" succeeds we pop a modal offering an optional email /
+  // Google link. createdName is shown there; linkEmailOpen reveals the fields.
+  const [linkPrompt, setLinkPrompt] = useState(false);
+  const [linkEmailOpen, setLinkEmailOpen] = useState(false);
+  const [createdName, setCreatedName] = useState('');
   const [shared, setShared] = useState(false);
 
   // The secure-account button only appears once both fields have content.
@@ -248,7 +253,7 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
           </h2>
           {(error || notice || authError) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {(error || authError) && <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 13, margin: 0, textAlign: 'center', lineHeight: 1.5 }}>{error || authError}</p>}
+              {(error || authError) && <p data-testid="profile-error" style={{ color: 'var(--ember-hot)', fontSize: 16, fontWeight: 600, margin: 0, textAlign: 'center', lineHeight: 1.5 }}>{error || authError}</p>}
               {notice && (
                 <div
                   data-testid="profile-notice"
@@ -292,6 +297,7 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
           {children}
         </div>
         </PullToRefresh>
+        {linkPrompt && linkAccountModal()}
       </motion.div>
     );
   }
@@ -398,7 +404,8 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
   }
 
   // Register a brand-new player: claim a name (creating the anonymous session if
-  // there isn't one yet) and, when given, secure it with an email + password.
+  // there isn't one yet). Securing with an email / Google happens afterwards in
+  // an optional modal, so the form itself stays a single field.
   async function handleCreateAccount() {
     clearMessages();
     const clean = sanitizeName(nameInput);
@@ -413,30 +420,85 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
     }
     setUid(id);
     setProfile(prev => (prev ? { ...prev, displayName: clean } : prev));
-    if (secureEmail.trim() && securePassword) {
-      const sec = await secureWithEmailPassword(secureEmail, securePassword);
-      if (!sec.ok) { setError(sec.error); return; }
-      setNotice('Account created — check your email to confirm.');
-    } else {
-      setNotice('Account created.');
-    }
+    setCreatedName(clean);
+    setLinkEmailOpen(false);
+    setLinkPrompt(true);
     onNameSaved?.();
     void load();
   }
 
-  // Register / continue with Google: ensure a session, save the typed name if
-  // any, then hand off to Google (which redirects).
-  async function handleCreateGoogle() {
+  // Optional account-linking from the post-create modal.
+  async function handleModalLinkEmail() {
     clearMessages();
-    const id = await ensureUserId().catch(() => null);
-    if (id) {
-      const clean = sanitizeName(nameInput);
-      if (clean && (await checkNameAvailable(clean).catch(() => false))) {
-        await upsertDisplayName(id, clean).catch(() => {});
-      }
-    }
+    const res = await secureWithEmailPassword(secureEmail, securePassword);
+    if (!res.ok) { setError(res.error); return; }
+    setNotice('Check your email to confirm.');
+    setLinkPrompt(false);
+  }
+  async function handleModalLinkGoogle() {
+    clearMessages();
     const res = await linkGoogle();
-    if (!res.ok) setError(res.error);
+    if (!res.ok) setError(res.error); // success redirects away
+  }
+
+  // Post-create modal: confirms the account and offers an optional email / Google
+  // link. Skipping is a first-class choice — the account already exists.
+  function linkAccountModal() {
+    return (
+      <div
+        data-testid="link-account-modal"
+        onClick={() => setLinkPrompt(false)}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 18, background: 'rgba(5,4,8,0.82)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 12,
+            background: 'rgba(13,11,19,0.98)', border: '1px solid var(--line-strong)', borderRadius: 16, padding: '22px 20px',
+            boxShadow: '0 18px 48px rgba(0,0,0,0.6)',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <h3 style={{ margin: 0, fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 24, color: 'var(--ink-0)', textAlign: 'center', lineHeight: 1.2 }}>
+              You're in{createdName ? `, ${createdName}` : ''}!
+            </h3>
+            <p style={{ margin: 0, fontSize: 15, color: 'var(--ink-1)', textAlign: 'center', lineHeight: 1.5 }}>
+              Link an email or Google to play on other devices.
+            </p>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-2)', textAlign: 'center' }}>
+              Optional — you can always do this later.
+            </p>
+          </div>
+          {error && <p data-testid="link-error" style={{ color: 'var(--ember-hot)', fontSize: 15, fontWeight: 600, margin: 0, textAlign: 'center', lineHeight: 1.5 }}>{error}</p>}
+          {linkEmailOpen ? (
+            <>
+              <input data-testid="secure-email" type="email" placeholder="you@example.com" value={secureEmail} onChange={e => setSecureEmail(e.target.value)} style={inputStyle} />
+              <input data-testid="secure-password" type="password" placeholder="Password" value={securePassword} onChange={e => setSecurePassword(e.target.value)} style={inputStyle} />
+              {secureReady && (
+                <button className="ember-btn" data-testid="secure-submit" onClick={handleModalLinkEmail}>Save email &amp; password</button>
+              )}
+            </>
+          ) : (
+            <button className="ember-btn" data-testid="link-email-open" onClick={() => setLinkEmailOpen(true)}>Link an email</button>
+          )}
+          <button className="ghost-btn" data-testid="link-google" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} onClick={handleModalLinkGoogle}>
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.26 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z" />
+              <path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.46 14.97.5 12 .5A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 6.68 9.14 4.75 12 4.75z" />
+            </svg>
+            Continue with Google
+          </button>
+          <button className="ghost-btn" data-testid="link-skip" style={{ fontSize: 13, color: 'var(--ink-2)' }} onClick={() => setLinkPrompt(false)}>
+            Maybe later
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // Tabbed entry point for players without a claimed name (signed-out or a fresh
@@ -474,23 +536,10 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
             )}
             <p style={labelStyle}>Display name</p>
             <input data-testid="profile-name-input" type="text" placeholder="Your display name" value={nameInput} maxLength={NAME_MAX} onChange={e => setNameInput(e.target.value)} style={inputStyle} />
-            <p style={labelStyle}>Email <span style={{ textTransform: 'none', letterSpacing: 0 }}>(optional)</span></p>
-            <input data-testid="secure-email" type="email" placeholder="you@example.com" value={secureEmail} onChange={e => setSecureEmail(e.target.value)} style={inputStyle} />
-            <p style={labelStyle}>Password</p>
-            <input data-testid="secure-password" type="password" placeholder="Password" value={securePassword} onChange={e => setSecurePassword(e.target.value)} style={inputStyle} />
             <button className="ember-btn" data-testid="create-account" onClick={handleCreateAccount}>Create account</button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink-2)', fontSize: 11, letterSpacing: 0.5, margin: '2px 0' }}>
-              <span style={{ flex: 1, height: 1, background: 'var(--line-strong)' }} /> or <span style={{ flex: 1, height: 1, background: 'var(--line-strong)' }} />
-            </div>
-            <button className="ghost-btn" data-testid="create-google" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} onClick={handleCreateGoogle}>
-              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.26 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z" />
-                <path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.46 14.97.5 12 .5A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 6.68 9.14 4.75 12 4.75z" />
-              </svg>
-              Continue with Google
-            </button>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-2)', textAlign: 'center', lineHeight: 1.5 }}>
+              No email or password needed — you can link one next (optional).
+            </p>
           </div>
         ) : (
           <SignInForm onSuccess={onNameSaved} />

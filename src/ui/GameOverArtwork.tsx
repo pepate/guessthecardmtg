@@ -57,8 +57,8 @@ export function GameOverArtwork() {
         <div style={{ position: 'absolute', inset: 0, background: SCRIM }} />
       </motion.div>
 
-      {/* Left of the 40px account icon (anchored at right:12). */}
-      <CardArtInfo art={bg} right={60} />
+      {/* Centred at the top, clear of the account icon on the right. */}
+      <CardArtInfo art={bg} center />
     </>
   );
 }

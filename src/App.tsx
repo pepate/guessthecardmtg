@@ -91,9 +91,8 @@ function StartArtwork({ showInfo = false, artUrl }: { showInfo?: boolean; artUrl
           zIndex: 0,
         }}
       />
-      {/* Stacked just below the account chip (which has a variable width) so the
-          two never overlap, however long the player's name is. */}
-      {showInfo && <CardArtInfo art={bg} right={16} top="calc(env(safe-area-inset-top) + 66px)" />}
+      {/* Centred at the top so it clears the account chip on the right entirely. */}
+      {showInfo && <CardArtInfo art={bg} center />}
     </>
   );
 }

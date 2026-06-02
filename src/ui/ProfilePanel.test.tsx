@@ -120,12 +120,18 @@ describe('ProfilePanel — signed-out', () => {
     });
   });
 
-  it('secures the new account when email + password are given', async () => {
+  it('offers an optional email/Google link in a modal after creating the account', async () => {
     render(<ProfilePanel />);
     fireEvent.change(screen.getByTestId('profile-name-input'), { target: { value: 'Newcomer' } });
+    fireEvent.click(screen.getByTestId('create-account'));
+    // Post-create modal appears with the link options (skipping is allowed).
+    await screen.findByTestId('link-account-modal');
+    expect(screen.getByTestId('link-skip')).toBeInTheDocument();
+    // Reveal the email fields, fill them, and link.
+    fireEvent.click(screen.getByTestId('link-email-open'));
     fireEvent.change(screen.getByTestId('secure-email'), { target: { value: 'me@example.com' } });
     fireEvent.change(screen.getByTestId('secure-password'), { target: { value: 'pw123456' } });
-    fireEvent.click(screen.getByTestId('create-account'));
+    fireEvent.click(screen.getByTestId('secure-submit'));
     await waitFor(() => {
       expect(mockSecureWithEmailPassword).toHaveBeenCalledWith('me@example.com', 'pw123456');
     });
