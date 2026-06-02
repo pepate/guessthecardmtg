@@ -39,11 +39,22 @@ function hashStr(s: string): number {
  * closes the confirm overlay. The card name stays hidden throughout — same as
  * during an actual round — so it never spoils an answer.
  */
-export function RevealPreview({ reveal, filter }: { reveal: RevealMode; filter: CustomFilter }) {
+export function RevealPreview({
+  reveal,
+  filter,
+  variant = 'mobile',
+}: {
+  reveal: RevealMode;
+  filter: CustomFilter;
+  /** 'desktop' renders a smaller card so it fits inside the modal popup. */
+  variant?: 'mobile' | 'desktop';
+}) {
   const [cards, setCards] = useState<ScryfallCard[]>([]);
   const [index, setIndex] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const filterKey = JSON.stringify(filter);
+  const previewHeight = variant === 'desktop' ? 'min(46vh, 320px)' : 'min(42vh, 64vw)';
+  const previewMaxWidth = variant === 'desktop' ? '230px' : '78vw';
 
   useEffect(() => {
     let alive = true;
@@ -81,7 +92,7 @@ export function RevealPreview({ reveal, filter }: { reveal: RevealMode; filter: 
 
   if (!current) {
     return (
-      <div style={{ height: 'min(42vh, 64vw)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ height: previewHeight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <span className="spinner" />
       </div>
     );
@@ -102,6 +113,8 @@ export function RevealPreview({ reveal, filter }: { reveal: RevealMode; filter: 
     <div data-testid="reveal-preview" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
       <CardStage
         preview
+        previewHeight={previewHeight}
+        previewMaxWidth={previewMaxWidth}
         card={current}
         over={false}
         mode={reveal}

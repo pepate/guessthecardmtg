@@ -104,6 +104,8 @@ export function CardStage({
   stage,
   wide = false,
   preview = false,
+  previewHeight = 'min(42vh, 64vw)',
+  previewMaxWidth = '78vw',
   card,
   over: overProp,
   mode = 'blur',
@@ -119,6 +121,10 @@ export function CardStage({
   wide?: boolean;
   /** Render at a smaller size for a non-game preview (e.g. the pre-game reveal teaser). */
   preview?: boolean;
+  /** CSS height for the preview card (preview only). */
+  previewHeight?: string;
+  /** CSS max-width for the preview card (preview only). */
+  previewMaxWidth?: string;
   /** Card to render instead of the active game round — used by the reveal preview. */
   card?: ScryfallCard;
   /** Force the revealed/over state. Defaults to the active round's status. */
@@ -146,7 +152,7 @@ export function CardStage({
       ? { display: 'flex', alignItems: 'center', height: '100%', flex: 'none' }
       : wrapperStyle;
   const cardCss: CSSProperties = preview
-    ? { ...cardStyle, height: 'min(42vh, 64vw)', maxWidth: '78vw' }
+    ? { ...cardStyle, height: previewHeight, maxWidth: previewMaxWidth }
     : wide
       ? { ...cardStyle, height: 'min(78vh, calc(88vw * 680 / 488))', maxWidth: 'none' }
       : cardStyle;

@@ -91,10 +91,19 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
     void store.selectPool({ kind: 'custom', modeId: id, filter, name: modeName });
   }
 
+  // Both touch and desktop get a preview before playing — touch as a full-bleed
+  // sheet, desktop as a centered modal popup.
   function choose(reveal: RevealMode) {
-    if (touchDevice()) setConfirm(reveal);
-    else void play(reveal);
+    setConfirm(reveal);
   }
+
+  // Desktop modals close on Escape.
+  useEffect(() => {
+    if (!confirm) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setConfirm(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [confirm]);
 
   const now = Date.now();
   const PAGE = 3;
@@ -370,21 +379,45 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
             background: 'rgba(5,4,8,0.8)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
           }}
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, width: '100%', maxWidth: 420 }}
-          >
-            <RevealPreview reveal={confirm} filter={filter} />
-            <button
-              type="button"
-              data-testid="play-confirm-btn"
-              className="ember-btn"
-              onClick={(e) => { e.stopPropagation(); void play(confirm); }}
-              style={{ width: '100%', minHeight: 76, fontSize: 24 }}
+          {touchDevice() ? (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, width: '100%', maxWidth: 420 }}
             >
-              Play {REVEAL_MODE_LABELS[confirm]}
-            </button>
-          </div>
+              <RevealPreview reveal={confirm} filter={filter} />
+              <button
+                type="button"
+                data-testid="play-confirm-btn"
+                className="ember-btn"
+                onClick={(e) => { e.stopPropagation(); void play(confirm); }}
+                style={{ width: '100%', minHeight: 76, fontSize: 24 }}
+              >
+                Play {REVEAL_MODE_LABELS[confirm]}
+              </button>
+            </div>
+          ) : (
+            <div
+              data-testid="play-modal"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+                width: '100%', maxWidth: 320, padding: '20px 20px 22px',
+                background: 'rgba(18,15,26,0.98)', border: '1px solid var(--line-strong)',
+                borderRadius: 16, boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+              }}
+            >
+              <RevealPreview reveal={confirm} filter={filter} variant="desktop" />
+              <button
+                type="button"
+                data-testid="play-confirm-btn"
+                className="ember-btn"
+                onClick={(e) => { e.stopPropagation(); void play(confirm); }}
+                style={{ width: '100%', minHeight: 54, fontSize: 20 }}
+              >
+                Play {REVEAL_MODE_LABELS[confirm]}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </motion.div>
