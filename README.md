@@ -111,6 +111,28 @@ clock is driven by Playwright’s `page.clock`, so they’re deterministic.
 
 ## Changelog
 
+### 2026-06-02
+
+- **Gallery reveal mode.** A new mode that flips the format: the card’s **name**
+  is shown and you tap the matching artwork from a **2×2 grid**. Distractors are
+  drawn from the target’s primary type (creatures vs. lands…), with the same
+  per-card clock and time-based scoring as the other modes.
+- **Clearer accounts & onboarding.** The top-right account control is now a
+  labeled chip — your name, or **“Guest · Tap to set up”** — and stays visible
+  across the start, mode and game-over screens. The profile splits into
+  **Create account** and **Login** tabs; creating an account only needs a name,
+  then an optional popup offers to link an **email** or **Google** (skippable).
+- **Save-your-score sheet.** Game-over login is a focused sheet — *“Save your
+  score & claim your spot”* with your placement — and the sign-in screen is
+  reframed as **“Welcome back”** (Google first, email fallback).
+- **Recent filter.** The start screen gains a **Recent** window next to Today /
+  Weekly / All-time, ordering modes by their newest entry.
+- **Mode screen polish.** The reveal picker keeps the full account chip and gains
+  an always-visible **Back** button below the list; the card-info “i” sits
+  centered so it never crowds the account chip.
+- **Fix.** Claiming a name on the game-over sheet now reliably posts your run (it
+  could fail silently before), with errors surfaced instead of a quiet close.
+
 ### 2026-06-01
 
 - **Daily Set.** A shared daily challenge featured at the top of the start
