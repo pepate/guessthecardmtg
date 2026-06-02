@@ -60,6 +60,15 @@ export function RevealIcon({ reveal, size = 26 }: { reveal: RevealMode; size?: n
           <path d="M12 6 L19 21 H5 Z" opacity="0.5" />
         </svg>
       );
+    case 'gallery':
+      return (
+        <svg {...common} fill="currentColor" stroke="none">
+          <rect x="3" y="3" width="8" height="8" rx="1.2" />
+          <rect x="13" y="3" width="8" height="8" rx="1.2" opacity="0.5" />
+          <rect x="3" y="13" width="8" height="8" rx="1.2" opacity="0.5" />
+          <rect x="13" y="13" width="8" height="8" rx="1.2" />
+        </svg>
+      );
     default:
       return null;
   }

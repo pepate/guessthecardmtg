@@ -65,6 +65,9 @@ export interface Round {
   target: ScryfallCard;
   /** optionCount names including the target, shuffled. */
   options: string[];
+  /** Gallery mode only: the option cards (incl. target) whose art is shown as
+   *  tiles, in the same order as `options`. Undefined for name-guessing modes. */
+  optionCards?: ScryfallCard[];
   /** Date.now() at the moment the round started. */
   startedAt: number;
   status: RoundStatus;

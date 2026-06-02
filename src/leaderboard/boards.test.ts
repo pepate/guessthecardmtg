@@ -146,7 +146,7 @@ describe('revealLeaders', () => {
   it('returns all KNOWN_REVEAL_MODES as keys', () => {
     const result = revealLeaders([]);
     const keys = Object.keys(result).sort();
-    expect(keys).toEqual(['blur', 'mosaic', 'scanner', 'silhouette', 'spotlight', 'zoom']);
+    expect(keys).toEqual(['blur', 'gallery', 'mosaic', 'scanner', 'silhouette', 'spotlight', 'zoom']);
   });
 
   it('returns null for a reveal with no runs', () => {

@@ -98,6 +98,35 @@ export function RevealPreview({
     );
   }
 
+  // Gallery has no per-card reveal — show a 2×2 of artworks (name hidden so it
+  // never spoils), cycling the window like the other previews loop cards.
+  if (reveal === 'gallery') {
+    const tiles = Array.from({ length: 4 }, (_, k) => cards[(index * 4 + k) % cards.length]);
+    return (
+      <div data-testid="reveal-preview" style={{ width: '100%', maxWidth: 'min(48vh, 72vw)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ textAlign: 'center', fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 24, color: 'var(--ink-1)' }}>
+          ?
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {tiles.map((c, i) => {
+            const url = c?.image_uris?.art_crop ?? c?.card_faces?.[0]?.image_uris?.art_crop;
+            return (
+              <div
+                key={c?.id ?? i}
+                style={{
+                  aspectRatio: '1 / 1',
+                  borderRadius: 10,
+                  border: '1px solid var(--line-strong)',
+                  background: url ? `center / cover no-repeat url(${url})` : 'rgba(20,17,28,0.6)',
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   const seed = hashStr(current.id);
   const stage = stageAt(elapsed, CONFIG);
   const progress = scanProgressAt(elapsed, CONFIG);

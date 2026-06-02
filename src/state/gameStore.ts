@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Round, TimeAttackConfig } from '../engine/types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from '../engine/types';
-import { planGame, resolveGuess, expire as expireRound, resolveGameMode, type PlannedRound, type RevealMode } from '../engine/timeAttack';
+import { planGame, planGalleryGame, resolveGuess, expire as expireRound, resolveGameMode, type PlannedRound, type RevealMode } from '../engine/timeAttack';
 import { fetchEnabledRevealModes } from '../reveal/client';
 import { fetchCandidates } from '../cards/client';
 import type { PoolSelection, ScryfallCard } from '../scryfall/types';
@@ -84,6 +84,7 @@ function startPlanned(planned: PlannedRound, now: number): Round {
   return {
     target: planned.target,
     options: planned.options,
+    optionCards: planned.optionCards,
     startedAt: now,
     status: 'playing',
     guess: null,
@@ -200,7 +201,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         fetchEnabledRevealModes(),
       ]);
       const gameMode = resolveGameMode(get().pendingRevealChoice, enabledModes);
-      const pool = gameMode === 'zoom'
+      // Zoom and Gallery both need real artwork, so drop art-less cards first.
+      const pool = gameMode === 'zoom' || gameMode === 'gallery'
         ? rawPool.filter(
             (c) => !!(c.image_uris?.art_crop ?? c.card_faces?.[0]?.image_uris?.art_crop),
           )
@@ -209,7 +211,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (uniqueNameCount(pool) < config.optionCount) {
         throw new Error('Not enough cards in the selected pool.');
       }
-      const plan = planGame(pool, config);
+      const plan = gameMode === 'gallery' ? planGalleryGame(pool, config) : planGame(pool, config);
       const remaining = MIN_SUMMON_MS - (Date.now() - summonStart);
       if (remaining > 0) await sleep(remaining);
       // The player may have backed out of the loading screen while we were

@@ -27,6 +27,8 @@ interface ModeView {
   /** Device's best rank across this mode's reveal boards; null when unplaced. */
   standing: number | null;
   top: ModeTop | null;
+  /** The most recent run on this mode (for the "Recent" window). */
+  recent: (ModeTop & { at: number }) | null;
 }
 
 interface ModeRowProps {
@@ -47,12 +49,26 @@ function overallTop(runs: Run[]): ModeTop | null {
   return best ? { name: best.name, score: best.score, country: best.country } : null;
 }
 
-// Highest top score first; modes with no scores fall to the bottom (alphabetical).
-function sortModes(views: ModeView[]): ModeView[] {
+/** The most recently recorded run in the list, or null. */
+function newestRun(runs: Run[]): (ModeTop & { at: number }) | null {
+  let latest: Run | null = null;
+  for (const r of runs) if (!latest || r.createdAt > latest.createdAt) latest = r;
+  return latest ? { name: latest.name, score: latest.score, country: latest.country, at: latest.createdAt } : null;
+}
+
+// Default: highest top score first. "Recent": newest entry first. Modes with no
+// matching entry fall to the bottom (alphabetical).
+function sortModes(views: ModeView[], byRecent: boolean): ModeView[] {
   return [...views].sort((a, b) => {
-    const as = a.top?.score ?? -1;
-    const bs = b.top?.score ?? -1;
-    if (bs !== as) return bs - as;
+    if (byRecent) {
+      const at = a.recent?.at ?? -1;
+      const bt = b.recent?.at ?? -1;
+      if (bt !== at) return bt - at;
+    } else {
+      const as = a.top?.score ?? -1;
+      const bs = b.top?.score ?? -1;
+      if (bs !== as) return bs - as;
+    }
     return a.mode.name.localeCompare(b.mode.name);
   });
 }
@@ -233,10 +249,10 @@ export function StartModes({
       const built = await Promise.all(
         listed.map(async (mode) => {
           const runs = await fetchModeRuns(mode.id, since);
-          return { mode, standing: deviceModeStanding(runs, device), top: overallTop(runs) };
+          return { mode, standing: deviceModeStanding(runs, device), top: overallTop(runs), recent: newestRun(runs) };
         }),
       );
-      setViews(sortModes(built));
+      setViews(sortModes(built, win === 'recent'));
     } catch {
       setViews([]);
     }
@@ -333,8 +349,15 @@ export function StartModes({
             No modes yet — tap + to create one.
           </p>
         ) : (
-          views.map(({ mode, standing, top }) => (
-            <ModeRow key={mode.id} name={mode.name} standing={standing} top={top} plays={mode.entry_count} onSelect={() => onPick(mode)} />
+          views.map(({ mode, standing, top, recent }) => (
+            <ModeRow
+              key={mode.id}
+              name={mode.name}
+              standing={standing}
+              top={win === 'recent' ? (recent && { name: recent.name, score: recent.score, country: recent.country }) : top}
+              plays={mode.entry_count}
+              onSelect={() => onPick(mode)}
+            />
           ))
         )}
         </div>

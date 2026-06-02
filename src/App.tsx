@@ -18,6 +18,7 @@ import type { CustomMode } from './modes/types';
 import { HUD } from './ui/HUD';
 import { Timer } from './ui/Timer';
 import { NameChoice } from './ui/NameChoice';
+import { GalleryStage } from './ui/GalleryStage';
 import { Snackbar } from './ui/Snackbar';
 import { ModeDetail } from './ui/ModeDetail';
 import { GameResultModal } from './ui/GameResultModal';
@@ -544,16 +545,19 @@ export function App() {
       {((phase === 'idle' && view.s !== 'profile') || phase === 'gameover') && (
         <AccountButton
           onOpen={() => { if (phase === 'gameover') setGameOverProfileOpen(true); else setView({ s: 'profile' }); }}
-          compact={!(phase === 'idle' && view.s === 'list')}
+          compact={!(phase === 'idle' && (view.s === 'list' || view.s === 'picker'))}
         />
       )}
-      {phase === 'idle' && view.s !== 'list' && (
+      {/* The picker (mode detail) carries its own always-visible Back button at the
+          bottom of the list, so it keeps the full account chip top-right like the
+          start screen. Create / profile still use the top-right back affordance. */}
+      {phase === 'idle' && (view.s === 'create' || view.s === 'profile') && (
         <BackButton onBack={() => setView({ s: 'list' })} right={view.s === 'profile' ? 12 : 60} />
       )}
       {phase === 'gameover' && <InstallButton />}
       {phase === 'idle' && <StartArtwork showInfo={view.s === 'list'} artUrl={view.s === 'picker' ? pickerArt : undefined} />}
       {phase === 'gameover' && <GameOverArtwork />}
-      {round && !(wide && phase === 'playing') && (
+      {round && mode !== 'gallery' && !(wide && phase === 'playing') && (
         <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} />
       )}
 
@@ -569,7 +573,7 @@ export function App() {
           )}
 
           {phase === 'idle' && view.s === 'picker' && (
-            <RevealPicker key="picker" mode={view.mode} />
+            <RevealPicker key="picker" mode={view.mode} onBack={() => setView({ s: 'list' })} />
           )}
 
           {phase === 'idle' && view.s === 'create' && (
@@ -606,7 +610,9 @@ export function App() {
               <div style={{ pointerEvents: 'all' }}>
                 <HUD timeLeftMs={timeLeftMs} />
               </div>
-              {wide ? (
+              {mode === 'gallery' ? (
+                <GalleryStage />
+              ) : wide ? (
                 <div className="play-wide">
                   {round && (
                     <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} wide />
@@ -649,7 +655,7 @@ export function App() {
         <SaveScoreSheet
           rank={pending.postedRank ?? pending.projectedRank}
           modeName={currentModeName ?? undefined}
-          onSaved={() => { void pending.postNow(); setGameOverProfileOpen(false); }}
+          onSaved={(name) => pending.postNow(name)}
           onClose={() => setGameOverProfileOpen(false)}
         />
       )}

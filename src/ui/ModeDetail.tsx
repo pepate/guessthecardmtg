@@ -39,11 +39,13 @@ interface ModeDetailProps {
   playsLeft?: number;
   /** Daily Set: replay the locked reveal. Shown as a bottom "Play again" button. */
   onPlayAgain?: () => void;
+  /** When set, renders an always-visible Back button pinned below the list. */
+  onBack?: () => void;
 }
 
 const PENDING_ID = '__pending__';
 
-export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lockedReveal, playsLeft, onPlayAgain }: ModeDetailProps) {
+export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lockedReveal, playsLeft, onPlayAgain, onBack }: ModeDetailProps) {
   const [leaders, setLeaders] = useState<Record<RevealMode, GlobalEntry | null> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
@@ -368,6 +370,20 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
         </div>
        </PullToRefresh>
       </div>
+
+      {onBack && (
+        <div style={{ width: '100%', maxWidth: 700, margin: '0 auto', flexShrink: 0 }}>
+          <button
+            type="button"
+            className="ember-btn"
+            data-testid="mode-detail-back"
+            onClick={onBack}
+            style={{ width: '100%', padding: '13px 0', fontSize: 16 }}
+          >
+            Back
+          </button>
+        </div>
+      )}
 
       {confirm && (
         <div

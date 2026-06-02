@@ -7,4 +7,5 @@ export const REVEAL_MODE_LABELS: Record<RevealMode, string> = {
   zoom: 'Zoom',
   silhouette: 'Silhouette',
   spotlight: 'Spotlight',
+  gallery: 'Gallery',
 };

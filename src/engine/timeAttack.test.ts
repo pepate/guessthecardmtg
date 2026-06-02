@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildOptions, createRound, planGame, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, tilesRevealedAt, resolveGameMode, scanAngleFor, tileOrderFor, spotlightOriginFor, KNOWN_REVEAL_MODES } from './timeAttack';
+import { buildOptions, createRound, planGame, planGalleryGame, primaryType, GALLERY_TILES, stageAt, scoreAt, resolveGuess, expire, scanProgressAt, tilesRevealedAt, resolveGameMode, scanAngleFor, tileOrderFor, spotlightOriginFor, KNOWN_REVEAL_MODES } from './timeAttack';
 import { DEFAULT_TIME_ATTACK_CONFIG as CFG } from './types';
 import type { Round } from './types';
 import type { ScryfallCard } from '../scryfall/types';
@@ -297,8 +297,86 @@ describe('spotlightOriginFor', () => {
 });
 
 describe('KNOWN_REVEAL_MODES', () => {
-  it('lists the six known modes', () => {
-    expect(KNOWN_REVEAL_MODES).toEqual(['blur', 'scanner', 'mosaic', 'zoom', 'silhouette', 'spotlight']);
+  it('lists every known mode', () => {
+    expect(KNOWN_REVEAL_MODES).toEqual(['blur', 'scanner', 'mosaic', 'zoom', 'silhouette', 'spotlight', 'gallery']);
+  });
+});
+
+describe('primaryType', () => {
+  const t = (line: string) => primaryType({ id: 'x', name: 'x', cmc: 0, type_line: line });
+
+  it('returns the bare type for a simple line', () => {
+    expect(t('Instant')).toBe('Instant');
+  });
+
+  it('skips supertypes', () => {
+    expect(t('Legendary Creature — God')).toBe('Creature');
+    expect(t('Basic Land — Forest')).toBe('Land');
+  });
+
+  it('takes the first type for a multi-type card', () => {
+    expect(t('Artifact Creature — Golem')).toBe('Artifact');
+  });
+
+  it('falls back to the card face when the top-level line is empty', () => {
+    expect(primaryType({ id: 'x', name: 'x', cmc: 0, type_line: '', card_faces: [{ type_line: 'Sorcery' }] })).toBe('Sorcery');
+  });
+});
+
+describe('planGalleryGame', () => {
+  const artCard = (name: string, type = 'Creature'): ScryfallCard => ({
+    id: name.toLowerCase().replace(/\s+/g, '-'),
+    name,
+    cmc: 1,
+    type_line: type,
+    image_uris: { art_crop: `https://img/${encodeURIComponent(name)}.jpg` },
+  });
+
+  const creatures = Array.from({ length: 8 }, (_, i) => artCard(`Creature ${i}`, 'Creature'));
+  const lands = Array.from({ length: 4 }, (_, i) => artCard(`Land ${i}`, 'Land'));
+  const pool = [...creatures, ...lands];
+
+  it('gives every round GALLERY_TILES distinct option cards including the target', () => {
+    for (const round of planGalleryGame(pool, CFG)) {
+      expect(round.optionCards).toHaveLength(GALLERY_TILES);
+      const names = round.optionCards!.map((c) => c.name);
+      expect(names).toContain(round.target.name);
+      expect(new Set(names).size).toBe(GALLERY_TILES);
+      expect(round.options).toEqual(names); // options mirror the tile order
+    }
+  });
+
+  it('only ever uses cards that have artwork', () => {
+    const mixed = [...pool, { id: 'no-art', name: 'No Art', cmc: 1, type_line: 'Creature' } as ScryfallCard];
+    for (const round of planGalleryGame(mixed, CFG)) {
+      for (const c of round.optionCards!) {
+        expect(c.image_uris?.art_crop ?? c.card_faces?.[0]?.image_uris?.art_crop).toBeTruthy();
+      }
+    }
+  });
+
+  it('keeps distractors the same primary type when enough of that type exist', () => {
+    // 8 creatures + 4 lands → both types can fill 3 distractors of their own kind.
+    for (const round of planGalleryGame(pool, CFG)) {
+      const tp = primaryType(round.target);
+      for (const c of round.optionCards!) expect(primaryType(c)).toBe(tp);
+    }
+  });
+
+  it('falls back to other types when the target type is too small', () => {
+    const scarce = [artCard('Lone Land', 'Land'), ...creatures.slice(0, 5)];
+    const plan = planGalleryGame(scarce, CFG);
+    const landRound = plan.find((r) => r.target.name === 'Lone Land');
+    expect(landRound).toBeDefined();
+    expect(landRound!.optionCards).toHaveLength(GALLERY_TILES);
+    // Only one land exists, so the other three tiles are creatures.
+    const creatureTiles = landRound!.optionCards!.filter((c) => primaryType(c) === 'Creature');
+    expect(creatureTiles).toHaveLength(3);
+  });
+
+  it('uses a distinct target card in every round', () => {
+    const targets = planGalleryGame(pool, CFG).map((r) => r.target.name);
+    expect(new Set(targets).size).toBe(targets.length);
   });
 });
 

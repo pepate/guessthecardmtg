@@ -22,7 +22,7 @@ export interface PendingRunState {
   postedId: string | null;
   name: string | null;
   needsLogin: boolean;
-  postNow: () => Promise<boolean>;
+  postNow: (nameOverride?: string) => Promise<boolean>;
 }
 
 const NAME_KEY = 'guessthecard.playername';
@@ -101,11 +101,17 @@ export function usePendingRun(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, modeId, run?.score]);
 
-  async function postNow(): Promise<boolean> {
+  async function postNow(nameOverride?: string): Promise<boolean> {
     if (status === 'sending' || status === 'done') return false;
-    const uid = await getUserId();
-    const profile = uid ? await getProfile(uid).catch(() => null) : null;
-    const known = sanitizeName(profile?.displayName ?? localStorage.getItem(NAME_KEY) ?? '');
+    // A freshly-claimed name is passed in directly so we never depend on a
+    // read-after-write of the profile row. Fall back to the saved profile /
+    // local name for the sign-in path.
+    let known = sanitizeName(nameOverride ?? '');
+    if (!known) {
+      const uid = await getUserId();
+      const profile = uid ? await getProfile(uid).catch(() => null) : null;
+      known = sanitizeName(profile?.displayName ?? localStorage.getItem(NAME_KEY) ?? '');
+    }
     if (!known) return false;
     return doPost(known);
   }

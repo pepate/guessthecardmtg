@@ -2,10 +2,10 @@ import type { Round, RevealStage, TimeAttackConfig } from './types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from './types';
 import type { ScryfallCard } from '../scryfall/types';
 
-export type RevealMode = 'blur' | 'scanner' | 'mosaic' | 'zoom' | 'silhouette' | 'spotlight';
+export type RevealMode = 'blur' | 'scanner' | 'mosaic' | 'zoom' | 'silhouette' | 'spotlight' | 'gallery';
 
 /** Canonical list of every implemented reveal mode (used to validate DB toggles). */
-export const KNOWN_REVEAL_MODES: RevealMode[] = ['blur', 'scanner', 'mosaic', 'zoom', 'silhouette', 'spotlight'];
+export const KNOWN_REVEAL_MODES: RevealMode[] = ['blur', 'scanner', 'mosaic', 'zoom', 'silhouette', 'spotlight', 'gallery'];
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -47,6 +47,74 @@ export function createRound(
 export interface PlannedRound {
   target: ScryfallCard;
   options: string[];
+  /** Gallery mode: the option cards (incl. target), aligned with `options`. */
+  optionCards?: ScryfallCard[];
+}
+
+// Card supertypes that precede the actual card type in a type line, e.g. the
+// "Legendary" in "Legendary Creature — God". Skipped when picking the primary type.
+const SUPERTYPES = new Set(['Legendary', 'Basic', 'Snow', 'World', 'Ongoing', 'Host', 'Elite', 'Token']);
+
+/** The card's primary type (e.g. "Creature", "Land", "Instant"): the first real
+ *  type in the type line, skipping supertypes. Used to group gallery distractors. */
+export function primaryType(card: ScryfallCard): string {
+  const line = card.type_line || card.card_faces?.[0]?.type_line || '';
+  const front = line.split(/[—–]/)[0].trim();
+  const words = front.split(/\s+/).filter(Boolean);
+  for (const w of words) if (!SUPERTYPES.has(w)) return w;
+  return words[0] ?? '';
+}
+
+function galleryArt(card: ScryfallCard): string | undefined {
+  return card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop;
+}
+
+/** Number of artwork tiles shown in a gallery round (2×2 grid). */
+export const GALLERY_TILES = 4;
+
+/**
+ * Pre-plan a gallery game: each round shows one target name and GALLERY_TILES
+ * card artworks (the target + distractors), and the player taps the matching
+ * art. Only cards with artwork are used. Distractors prefer the target's primary
+ * type (creature vs. land …), falling back to other types when a type is scarce.
+ * Target cards are distinct across the game; each round's tiles are distinct.
+ */
+export function planGalleryGame(
+  pool: ScryfallCard[],
+  config: TimeAttackConfig = DEFAULT_TIME_ATTACK_CONFIG,
+): PlannedRound[] {
+  const withArt: ScryfallCard[] = [];
+  const seen = new Set<string>();
+  for (const c of pool) {
+    if (galleryArt(c) && !seen.has(c.name)) {
+      seen.add(c.name);
+      withArt.push(c);
+    }
+  }
+
+  const targets = shuffle(withArt).slice(0, Math.min(config.totalRounds, withArt.length));
+  const plan: PlannedRound[] = [];
+
+  for (const target of targets) {
+    const tp = primaryType(target);
+    const sameType = shuffle(withArt.filter((c) => c.name !== target.name && primaryType(c) === tp));
+    const otherType = shuffle(withArt.filter((c) => c.name !== target.name && primaryType(c) !== tp));
+
+    const distractors: ScryfallCard[] = [];
+    const used = new Set<string>([target.name]);
+    for (const c of [...sameType, ...otherType]) {
+      if (distractors.length >= GALLERY_TILES - 1) break;
+      if (!used.has(c.name)) {
+        used.add(c.name);
+        distractors.push(c);
+      }
+    }
+
+    const optionCards = shuffle([target, ...distractors]);
+    plan.push({ target, options: optionCards.map((c) => c.name), optionCards });
+  }
+
+  return plan;
 }
 
 /**

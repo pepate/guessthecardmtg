@@ -31,29 +31,41 @@ export function SaveScoreSheet({
 }: {
   rank: number | null;
   modeName?: string;
-  onSaved: () => void;
+  /** Posts the pending run under the given (or signed-in) name. Resolves true on
+   *  success. */
+  onSaved: (name?: string) => Promise<boolean>;
   onClose: () => void;
 }) {
   const [nameInput, setNameInput] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
 
   async function handleSave() {
     setError('');
     const clean = sanitizeName(nameInput);
     if (!clean) { setError(`Name must be at least ${NAME_MIN} characters`); return; }
-    const uid = await ensureUserId().catch(() => null);
-    if (!uid) { setError('Could not start a session — please try again.'); return; }
-    if (!(await checkNameAvailable(clean))) {
-      setError('That name is already taken — please pick another.');
-      return;
+    setBusy(true);
+    try {
+      const uid = await ensureUserId().catch(() => null);
+      if (!uid) { setError('Could not start a session — please try again.'); return; }
+      if (!(await checkNameAvailable(clean))) {
+        setError('That name is already taken — please pick another.');
+        return;
+      }
+      const res = await upsertDisplayName(uid, clean);
+      if (!res.ok) {
+        setError(res.error === 'name-taken' ? 'That name is already taken — please pick another.' : res.error);
+        return;
+      }
+      // Pass the just-claimed name straight through so the post never races the
+      // profile write. Only close once the score actually posted.
+      const posted = await onSaved(clean);
+      if (!posted) { setError('Could not save your score — please try again.'); return; }
+      onClose();
+    } finally {
+      setBusy(false);
     }
-    const res = await upsertDisplayName(uid, clean);
-    if (!res.ok) {
-      setError(res.error === 'name-taken' ? 'That name is already taken — please pick another.' : res.error);
-      return;
-    }
-    onSaved();
   }
 
   const placed =
@@ -116,7 +128,7 @@ export function SaveScoreSheet({
         </div>
 
         {error && (
-          <p data-testid="save-score-error" style={{ color: 'var(--ember-hot)', fontSize: 12, margin: 0, textAlign: 'center' }}>{error}</p>
+          <p data-testid="save-score-error" style={{ color: 'var(--ember-hot)', fontSize: 14, fontWeight: 600, margin: 0, textAlign: 'center', lineHeight: 1.5 }}>{error}</p>
         )}
 
         {!showSignIn && (
@@ -131,8 +143,8 @@ export function SaveScoreSheet({
               onChange={e => setNameInput(e.target.value)}
               style={inputStyle}
             />
-            <button className="ember-btn" data-testid="save-score-submit" onClick={() => void handleSave()} style={{ padding: '13px 0', fontWeight: 700 }}>
-              Save my score &amp; claim spot
+            <button className="ember-btn" data-testid="save-score-submit" disabled={busy} onClick={() => void handleSave()} style={{ padding: '13px 0', fontWeight: 700, opacity: busy ? 0.6 : 1 }}>
+              {busy ? 'Saving…' : 'Save my score & claim spot'}
             </button>
             <p style={{ margin: 0, textAlign: 'center', fontSize: 11, color: 'var(--ink-2)', lineHeight: 1.5 }}>
               No email or password needed.<br />Add one later to play across devices.
@@ -148,7 +160,7 @@ export function SaveScoreSheet({
         >
           {showSignIn ? 'Back to claiming a name' : 'Played before? Sign in'}
         </button>
-        {showSignIn && <SignInForm onSuccess={onSaved} />}
+        {showSignIn && <SignInForm onSuccess={() => { void (async () => { const ok = await onSaved(); if (ok) onClose(); })(); }} />}
       </motion.div>
     </div>
   );
