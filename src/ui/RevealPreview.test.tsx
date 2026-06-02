@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import type { ScryfallCard } from '../scryfall/types';
+import type { CustomFilter } from '../modes/filter';
 import { useGameStore } from '../state/gameStore';
 
 const card = (name: string): ScryfallCard => ({
@@ -50,7 +51,7 @@ describe('RevealPreview', () => {
 
   it('requests cards for the given filter', async () => {
     fetchCandidates.mockResolvedValue([card('Doom Blade')]);
-    const filter = { colors: { match: 'all', values: ['G', 'U'] } };
+    const filter: CustomFilter = { colors: { match: 'all', values: ['G', 'U'] } };
     render(<RevealPreview reveal="scanner" filter={filter} />);
     await waitFor(() => expect(fetchCandidates).toHaveBeenCalled());
     expect(fetchCandidates.mock.calls[0][0]).toEqual(filter);
