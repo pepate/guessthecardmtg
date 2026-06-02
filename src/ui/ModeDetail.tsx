@@ -15,6 +15,7 @@ import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
 import { FilterChips } from './FilterChips';
 import { RevealIcon } from './RevealIcon';
+import { RevealPreview } from './RevealPreview';
 
 export interface PendingRowInfo {
   rank: number;
@@ -364,20 +365,26 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
           data-testid="play-confirm"
           onClick={() => setConfirm(null)}
           style={{
-            position: 'fixed', inset: 0, zIndex: 20, display: 'flex', alignItems: 'center',
-            justifyContent: 'center', padding: 24, background: 'rgba(5,4,8,0.8)',
-            backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+            position: 'fixed', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 20, padding: 24,
+            background: 'rgba(5,4,8,0.8)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
           }}
         >
-          <button
-            type="button"
-            data-testid="play-confirm-btn"
-            className="ember-btn"
-            onClick={(e) => { e.stopPropagation(); void play(confirm); }}
-            style={{ width: '100%', maxWidth: 420, minHeight: 76, fontSize: 24 }}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, width: '100%', maxWidth: 420 }}
           >
-            Play {REVEAL_MODE_LABELS[confirm]}
-          </button>
+            <RevealPreview reveal={confirm} filter={filter} />
+            <button
+              type="button"
+              data-testid="play-confirm-btn"
+              className="ember-btn"
+              onClick={(e) => { e.stopPropagation(); void play(confirm); }}
+              style={{ width: '100%', minHeight: 76, fontSize: 24 }}
+            >
+              Play {REVEAL_MODE_LABELS[confirm]}
+            </button>
+          </div>
         </div>
       )}
     </motion.div>

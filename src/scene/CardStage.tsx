@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGameStore } from '../state/gameStore';
 import type { RevealStage } from '../engine/types';
+import type { ScryfallCard } from '../scryfall/types';
 
 const RARITY_GLOW: Record<string, string> = {
   common: 'rgba(200,200,200,0.20)',
@@ -102,6 +103,9 @@ function Mask({ style }: { style: CSSProperties }) {
 export function CardStage({
   stage,
   wide = false,
+  preview = false,
+  card,
+  over: overProp,
   mode = 'blur',
   progress = 0,
   angle = 0,
@@ -113,6 +117,12 @@ export function CardStage({
 }: {
   stage: RevealStage;
   wide?: boolean;
+  /** Render at a smaller size for a non-game preview (e.g. the pre-game reveal teaser). */
+  preview?: boolean;
+  /** Card to render instead of the active game round — used by the reveal preview. */
+  card?: ScryfallCard;
+  /** Force the revealed/over state. Defaults to the active round's status. */
+  over?: boolean;
   mode?: 'blur' | 'scanner' | 'mosaic' | 'zoom' | 'silhouette' | 'spotlight';
   progress?: number;
   angle?: number;
@@ -123,31 +133,36 @@ export function CardStage({
   spotlightOrigin?: { xPct: number; yPct: number };
 }) {
   const round = useGameStore((s) => s.round);
-  if (!round) return null;
+  const target = card ?? round?.target;
+  if (!target) return null;
 
   // Portrait: card centered, sized to leave room for the bottom-sheet.
   // Wide: card anchored left, width-capped so it never overlaps the side panel.
   // Wide mode: render inline (sized to the card) so it can sit in a centered
   // row directly beside the options column. Portrait: full-bleed centered.
-  const wrapper: CSSProperties = wide
-    ? { display: 'flex', alignItems: 'center', height: '100%', flex: 'none' }
-    : wrapperStyle;
-  const card: CSSProperties = wide
-    ? { ...cardStyle, height: 'min(78vh, calc(88vw * 680 / 488))', maxWidth: 'none' }
-    : cardStyle;
+  const wrapper: CSSProperties = preview
+    ? { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }
+    : wide
+      ? { display: 'flex', alignItems: 'center', height: '100%', flex: 'none' }
+      : wrapperStyle;
+  const cardCss: CSSProperties = preview
+    ? { ...cardStyle, height: 'min(42vh, 64vw)', maxWidth: '78vw' }
+    : wide
+      ? { ...cardStyle, height: 'min(78vh, calc(88vw * 680 / 488))', maxWidth: 'none' }
+      : cardStyle;
 
   const cardUrl =
-    round.target.image_uris?.normal ??
-    round.target.card_faces?.[0]?.image_uris?.normal ??
+    target.image_uris?.normal ??
+    target.card_faces?.[0]?.image_uris?.normal ??
     '';
   if (!cardUrl) return <div style={wrapper} />;
 
-  const over = round.status !== 'playing';
-  const hasPower = !!round.target.power;
+  const over = overProp ?? (round?.status !== 'playing');
+  const hasPower = !!target.power;
 
   const artUrl =
-    round.target.image_uris?.art_crop ??
-    round.target.card_faces?.[0]?.image_uris?.art_crop ??
+    target.image_uris?.art_crop ??
+    target.card_faces?.[0]?.image_uris?.art_crop ??
     cardUrl;
   const zoomPa = Math.min(1, progress / ZOOM_CROSSFADE);
   const zoomPb = Math.max(0, (progress - ZOOM_CROSSFADE) / (1 - ZOOM_CROSSFADE));
@@ -165,13 +180,13 @@ export function CardStage({
   const blurText = !over && stage < 4;
   const blurPower = hasPower && !over && stage < 4;
 
-  const glow = RARITY_GLOW[round.target.rarity ?? 'common'] ?? RARITY_GLOW.common;
+  const glow = RARITY_GLOW[target.rarity ?? 'common'] ?? RARITY_GLOW.common;
 
   return (
     <div style={wrapper}>
       <div
         style={{
-          ...card,
+          ...cardCss,
           boxShadow: `0 18px 40px rgba(0,0,0,0.6), 0 0 ${over ? 48 : 26}px ${glow}`,
           transition: 'box-shadow 0.6s ease',
         }}
@@ -181,7 +196,7 @@ export function CardStage({
           alt=""
           data-testid="card-image"
           data-stage={stage}
-          data-status={round.status}
+          data-status={round?.status ?? (over ? 'over' : 'playing')}
           style={{ ...fillImg, opacity: mode === 'zoom' && !over ? 0 : 1 }}
         />
 
