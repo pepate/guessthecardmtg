@@ -91,9 +91,9 @@ function StartArtwork({ showInfo = false, artUrl }: { showInfo?: boolean; artUrl
           zIndex: 0,
         }}
       />
-      {/* Left of the 40px profile icon (anchored at right:12) so the info pill
-          and the account button stand side by side. */}
-      {showInfo && <CardArtInfo art={bg} right={60} />}
+      {/* Stacked just below the account chip (which has a variable width) so the
+          two never overlap, however long the player's name is. */}
+      {showInfo && <CardArtInfo art={bg} right={16} top="calc(env(safe-area-inset-top) + 66px)" />}
     </>
   );
 }
@@ -183,10 +183,12 @@ function ErrorScreen() {
   );
 }
 
-// Top-right account chip on the start screen. Shows the player's claimed name
-// once they have one, otherwise a "Guest / Tap to set up" prompt. Tapping opens
-// the profile.
-function AccountButton({ onOpen }: { onOpen: () => void }) {
+// Top-right account control. On the start screen it's a full chip showing the
+// player's claimed name (or a "Guest / Tap to set up" prompt). On tighter
+// screens (mode detail, game over) it collapses to an icon-only circle so it
+// can sit alongside the back / info / install controls. Tapping opens the
+// profile (or, at game over, the save-your-score sheet).
+function AccountButton({ onOpen, compact = false }: { onOpen: () => void; compact?: boolean }) {
   const { status } = useAuth();
   const [name, setName] = useState<string | null>(null);
 
@@ -200,6 +202,50 @@ function AccountButton({ onOpen }: { onOpen: () => void }) {
     return () => { cancelled = true; };
   }, [status]);
 
+  const personIcon = (size: number) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+
+  const baseChrome: React.CSSProperties = {
+    position: 'absolute',
+    top: 'calc(12px + env(safe-area-inset-top))',
+    right: 12,
+    zIndex: 6,
+    border: '1px solid var(--line-strong)',
+    background: 'rgba(13,11,19,0.6)',
+    color: 'var(--ink-0)',
+    cursor: 'pointer',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    pointerEvents: 'auto',
+  };
+
+  if (compact) {
+    return (
+      <button
+        type="button"
+        aria-label={name ? `Profile: ${name}` : 'Set up your profile'}
+        data-testid="account-btn"
+        onClick={onOpen}
+        style={{
+          ...baseChrome,
+          width: 40,
+          height: 40,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 10,
+          color: name ? 'var(--ink-0)' : 'var(--ink-1)',
+        }}
+      >
+        {personIcon(20)}
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -207,32 +253,22 @@ function AccountButton({ onOpen }: { onOpen: () => void }) {
       data-testid="account-btn"
       onClick={onOpen}
       style={{
-        position: 'absolute',
-        top: 'calc(12px + env(safe-area-inset-top))',
-        right: 12,
-        zIndex: 5,
-        maxWidth: 'min(60vw, 220px)',
-        height: 44,
+        ...baseChrome,
+        maxWidth: 'min(62vw, 230px)',
+        height: 46,
         display: 'flex',
         alignItems: 'center',
-        gap: 9,
-        padding: '0 14px 0 9px',
+        gap: 10,
+        padding: '0 16px 0 10px',
         borderRadius: 999,
-        border: '1px solid var(--line-strong)',
-        background: 'rgba(13,11,19,0.6)',
-        color: 'var(--ink-0)',
-        cursor: 'pointer',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        pointerEvents: 'auto',
       }}
     >
       <span
         aria-hidden
         style={{
           flexShrink: 0,
-          width: 26,
-          height: 26,
+          width: 28,
+          height: 28,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -241,17 +277,14 @@ function AccountButton({ onOpen }: { onOpen: () => void }) {
           color: 'var(--ink-1)',
         }}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
+        {personIcon(17)}
       </span>
-      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, textAlign: 'left', lineHeight: 1.15 }}>
+      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, textAlign: 'left', lineHeight: 1.2 }}>
         <span
           data-testid="account-name"
           style={{
             fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 700,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -261,7 +294,7 @@ function AccountButton({ onOpen }: { onOpen: () => void }) {
           {name ?? 'Guest'}
         </span>
         {!name && (
-          <span style={{ fontSize: 10, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 12, color: 'var(--ink-1)', whiteSpace: 'nowrap' }}>
             Tap to set up
           </span>
         )}
@@ -506,10 +539,18 @@ export function App() {
         </header>
       )}
 
-      {phase === 'idle' && view.s === 'list' && (
-        <AccountButton onOpen={() => setView({ s: 'profile' })} />
+      {/* Account control stays top-right across screens (except the profile
+          itself): a full chip on the start list, an icon elsewhere so the player
+          can always reach / recognise their profile. */}
+      {((phase === 'idle' && view.s !== 'profile') || phase === 'gameover') && (
+        <AccountButton
+          onOpen={() => { if (phase === 'gameover') setGameOverProfileOpen(true); else setView({ s: 'profile' }); }}
+          compact={!(phase === 'idle' && view.s === 'list')}
+        />
       )}
-      {phase === 'idle' && view.s !== 'list' && <BackButton onBack={() => setView({ s: 'list' })} />}
+      {phase === 'idle' && view.s !== 'list' && (
+        <BackButton onBack={() => setView({ s: 'list' })} right={view.s === 'profile' ? 12 : 60} />
+      )}
       {phase === 'gameover' && <InstallButton />}
       {phase === 'idle' && <StartArtwork showInfo={view.s === 'list'} artUrl={view.s === 'picker' ? pickerArt : undefined} />}
       {phase === 'gameover' && <GameOverArtwork />}
@@ -597,6 +638,8 @@ export function App() {
           score={totalScore}
           rank={pending.postedRank ?? pending.projectedRank}
           modeName={currentModeName ?? undefined}
+          needsSave={pending.needsLogin}
+          onSaveRank={() => { setResultOpen(false); setGameOverProfileOpen(true); }}
           onReplay={replayGame}
           onShare={() => void shareStats()}
           onClose={() => setResultOpen(false)}

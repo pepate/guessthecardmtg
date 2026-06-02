@@ -148,7 +148,7 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
   const [secureEmail, setSecureEmail] = useState('');
   const [securePassword, setSecurePassword] = useState('');
   const [showSignIn, setShowSignIn] = useState(false);
-  const [claiming, setClaiming] = useState(!!promptName);
+  const [authTab, setAuthTab] = useState<'create' | 'login'>('create');
   const [shared, setShared] = useState(false);
 
   // The secure-account button only appears once both fields have content.
@@ -397,6 +397,109 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
     setNotice('Home country saved.');
   }
 
+  // Register a brand-new player: claim a name (creating the anonymous session if
+  // there isn't one yet) and, when given, secure it with an email + password.
+  async function handleCreateAccount() {
+    clearMessages();
+    const clean = sanitizeName(nameInput);
+    if (!clean) { setError(`Name must be at least ${NAME_MIN} characters`); return; }
+    const id = await ensureUserId().catch(() => null);
+    if (!id) { setError('Could not start a session — please try again.'); return; }
+    if (!(await checkNameAvailable(clean))) { setError('That name is already taken — please pick another.'); return; }
+    const res = await upsertDisplayName(id, clean);
+    if (!res.ok) {
+      setError(res.error === 'name-taken' ? 'That name is already taken — please pick another.' : res.error);
+      return;
+    }
+    setUid(id);
+    setProfile(prev => (prev ? { ...prev, displayName: clean } : prev));
+    if (secureEmail.trim() && securePassword) {
+      const sec = await secureWithEmailPassword(secureEmail, securePassword);
+      if (!sec.ok) { setError(sec.error); return; }
+      setNotice('Account created — check your email to confirm.');
+    } else {
+      setNotice('Account created.');
+    }
+    onNameSaved?.();
+    void load();
+  }
+
+  // Register / continue with Google: ensure a session, save the typed name if
+  // any, then hand off to Google (which redirects).
+  async function handleCreateGoogle() {
+    clearMessages();
+    const id = await ensureUserId().catch(() => null);
+    if (id) {
+      const clean = sanitizeName(nameInput);
+      if (clean && (await checkNameAvailable(clean).catch(() => false))) {
+        await upsertDisplayName(id, clean).catch(() => {});
+      }
+    }
+    const res = await linkGoogle();
+    if (!res.ok) setError(res.error);
+  }
+
+  // Tabbed entry point for players without a claimed name (signed-out or a fresh
+  // guest): "Create account" (name + optional email/password/Google) vs "Login".
+  function namelessAuth() {
+    const tabButton = (key: 'create' | 'login', label: string) => (
+      <button
+        type="button"
+        data-testid={`auth-tab-${key}`}
+        aria-pressed={authTab === key}
+        onClick={() => { clearMessages(); setAuthTab(key); }}
+        style={{
+          flex: 1, padding: '11px 0', borderRadius: 10, cursor: 'pointer',
+          fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700,
+          border: `1px solid ${authTab === key ? 'var(--ember)' : 'var(--line-strong)'}`,
+          background: authTab === key ? 'var(--ember)' : 'transparent',
+          color: authTab === key ? '#1a1020' : 'var(--ink-1)',
+        }}
+      >
+        {label}
+      </button>
+    );
+    return (
+      <>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {tabButton('create', 'Create account')}
+          {tabButton('login', 'Login')}
+        </div>
+        {authTab === 'create' ? (
+          <div style={sectionStyle}>
+            {promptName && (
+              <p data-testid="name-prompt" style={{ margin: 0, color: 'var(--ember-hot)', fontSize: 14, lineHeight: 1.45 }}>
+                Pick a name to create your account — then you can build your own modes.
+              </p>
+            )}
+            <p style={labelStyle}>Display name</p>
+            <input data-testid="profile-name-input" type="text" placeholder="Your display name" value={nameInput} maxLength={NAME_MAX} onChange={e => setNameInput(e.target.value)} style={inputStyle} />
+            <p style={labelStyle}>Email <span style={{ textTransform: 'none', letterSpacing: 0 }}>(optional)</span></p>
+            <input data-testid="secure-email" type="email" placeholder="you@example.com" value={secureEmail} onChange={e => setSecureEmail(e.target.value)} style={inputStyle} />
+            <p style={labelStyle}>Password</p>
+            <input data-testid="secure-password" type="password" placeholder="Password" value={securePassword} onChange={e => setSecurePassword(e.target.value)} style={inputStyle} />
+            <button className="ember-btn" data-testid="create-account" onClick={handleCreateAccount}>Create account</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink-2)', fontSize: 11, letterSpacing: 0.5, margin: '2px 0' }}>
+              <span style={{ flex: 1, height: 1, background: 'var(--line-strong)' }} /> or <span style={{ flex: 1, height: 1, background: 'var(--line-strong)' }} />
+            </div>
+            <button className="ghost-btn" data-testid="create-google" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} onClick={handleCreateGoogle}>
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.26 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z" />
+                <path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.46 14.97.5 12 .5A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 6.68 9.14 4.75 12 4.75z" />
+              </svg>
+              Continue with Google
+            </button>
+          </div>
+        ) : (
+          <SignInForm onSuccess={onNameSaved} />
+        )}
+        {shareButton()}
+      </>
+    );
+  }
+
   // ── 1. Recovery mode ─────────────────────────────────────────────────────────
   if (recovery) {
     async function handleRecovery() {
@@ -424,12 +527,7 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
 
   // ── 2. Signed out ────────────────────────────────────────────────────────────
   if (status === 'signed-out') {
-    return shell(
-      <>
-        <SignInForm />
-        {shareButton()}
-      </>,
-    );
+    return shell(namelessAuth());
   }
 
   // ── 3. Anonymous ─────────────────────────────────────────────────────────────
@@ -445,81 +543,11 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
       const res = await linkGoogle();
       if (!res.ok) setError(res.error);
     }
-    // Until the player has claimed a name, keep the profile minimal and clear:
-    // a single "claim your name" action plus a sign-in escape hatch. Securing the
-    // account / country / stats only make sense once a name exists.
+    // Until the player has claimed a name, show the Create-account / Login tabs.
+    // Securing the account / country / stats only make sense once a name exists.
     const hasName = !!profile?.displayName;
     if (!hasName) {
-      return shell(
-        <>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 22, color: 'var(--ink-0)' }}>
-              Guest
-            </span>
-            <span
-              data-testid="guest-status"
-              style={{
-                fontSize: 11, letterSpacing: 0.6, color: 'var(--ink-2)',
-                border: '1px solid var(--line-strong)', borderRadius: 999, padding: '3px 12px',
-              }}
-            >
-              Not saved yet
-            </span>
-          </div>
-          <div style={sectionStyle}>
-            <p style={{ margin: 0, color: 'var(--ink-1)', fontSize: 14, textAlign: 'center', lineHeight: 1.5 }}>
-              {promptName
-                ? 'Pick a name to create your account — then you can build your own modes.'
-                : 'Claim a name to put your scores on the leaderboards.'}
-            </p>
-            {claiming ? (
-              <>
-                <input
-                  data-testid="profile-name-input"
-                  type="text"
-                  placeholder="Your display name"
-                  value={nameInput}
-                  maxLength={NAME_MAX}
-                  autoFocus
-                  onChange={e => setNameInput(e.target.value)}
-                  style={inputStyle}
-                />
-                <button className="ember-btn" data-testid="profile-name-save" onClick={handleNameSave}>Save my name</button>
-              </>
-            ) : (
-              <button
-                className="ember-btn"
-                data-testid="claim-name"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                onClick={() => { clearMessages(); setClaiming(true); }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                  <path d="M4 22h16" />
-                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-                </svg>
-                Claim your name
-              </button>
-            )}
-          </div>
-          <button
-            className="ghost-btn"
-            data-testid="login-toggle"
-            style={{ fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-            onClick={() => { clearMessages(); setShowSignIn(s => !s); }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <rect x="5" y="2" width="14" height="20" rx="2" />
-              <path d="M12 18h.01" />
-            </svg>
-            {showSignIn ? 'Cancel' : 'Played before? Sign in'}
-          </button>
-          {showSignIn && <SignInForm warning="Signing into another account abandons this device's unsaved scores." />}
-        </>,
-      );
+      return shell(namelessAuth());
     }
     return shell(
       <>

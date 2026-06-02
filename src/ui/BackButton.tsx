@@ -12,14 +12,14 @@ const ICON_BTN: React.CSSProperties = {
   backdropFilter: 'blur(8px)',
 };
 
-/** Top-right back affordance, flush with the screen edge. */
-export function BackButton({ onBack }: { onBack: () => void }) {
+/** Top-right back affordance. `right` lets it shift left of the account icon. */
+export function BackButton({ onBack, right = 12 }: { onBack: () => void; right?: number }) {
   return (
     <div
       style={{
         position: 'absolute',
         top: 'calc(10px + env(safe-area-inset-top))',
-        right: 12,
+        right,
         zIndex: 4,
         pointerEvents: 'auto',
       }}

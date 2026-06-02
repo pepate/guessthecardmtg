@@ -10,7 +10,7 @@ import { useIsMobile } from './useIsMobile';
  * wallpaper. Metadata is lazy-loaded on first open; a missing id just leaves it
  * blank — the art still shows.
  */
-export function CardArtInfo({ art, right = 16 }: { art: string; right?: number }) {
+export function CardArtInfo({ art, right = 16, top = 'calc(env(safe-area-inset-top) + 12px)' }: { art: string; right?: number; top?: string }) {
   const mobile = useIsMobile();
   const [inspect, setInspect] = useState(false);
   const [info, setInfo] = useState<ArtworkInfo | null>(null);
@@ -40,7 +40,7 @@ export function CardArtInfo({ art, right = 16 }: { art: string; right?: number }
       <div
         style={{
           position: 'absolute',
-          top: 'calc(env(safe-area-inset-top) + 12px)',
+          top,
           right,
           zIndex: 6,
           pointerEvents: 'auto',

@@ -101,14 +101,39 @@ describe('ProfilePanel — signed-out', () => {
     setAuth({ status: 'signed-out', user: null, isAnonymous: false, recovery: false });
   });
 
-  it('renders signin-submit and does NOT render sign-out', () => {
+  it('defaults to the Create-account tab and reveals sign-in under the Login tab', () => {
     render(<ProfilePanel />);
+    // Create-account tab is the default: name + create button visible, no sign-in yet.
+    expect(screen.getByTestId('create-account')).toBeInTheDocument();
+    expect(screen.queryByTestId('signin-submit')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('auth-tab-login'));
     expect(screen.getByTestId('signin-submit')).toBeInTheDocument();
     expect(screen.queryByTestId('sign-out')).not.toBeInTheDocument();
   });
 
+  it('creates an account from a typed name (ensures session + saves name)', async () => {
+    render(<ProfilePanel />);
+    fireEvent.change(screen.getByTestId('profile-name-input'), { target: { value: 'Newcomer' } });
+    fireEvent.click(screen.getByTestId('create-account'));
+    await waitFor(() => {
+      expect(mockUpsertDisplayName).toHaveBeenCalledWith('uid', 'Newcomer');
+    });
+  });
+
+  it('secures the new account when email + password are given', async () => {
+    render(<ProfilePanel />);
+    fireEvent.change(screen.getByTestId('profile-name-input'), { target: { value: 'Newcomer' } });
+    fireEvent.change(screen.getByTestId('secure-email'), { target: { value: 'me@example.com' } });
+    fireEvent.change(screen.getByTestId('secure-password'), { target: { value: 'pw123456' } });
+    fireEvent.click(screen.getByTestId('create-account'));
+    await waitFor(() => {
+      expect(mockSecureWithEmailPassword).toHaveBeenCalledWith('me@example.com', 'pw123456');
+    });
+  });
+
   it('calls signInWithPassword with email + password when submitted', async () => {
     render(<ProfilePanel />);
+    fireEvent.click(screen.getByTestId('auth-tab-login'));
     fireEvent.change(screen.getByTestId('signin-email'), { target: { value: 'a@b.com' } });
     fireEvent.change(screen.getByTestId('signin-password'), { target: { value: 'secret123' } });
     fireEvent.click(screen.getByTestId('signin-submit'));
@@ -120,6 +145,7 @@ describe('ProfilePanel — signed-out', () => {
   it('shows error when signInWithPassword fails', async () => {
     mockSignInWithPassword.mockResolvedValue({ ok: false, error: 'Invalid credentials' });
     render(<ProfilePanel />);
+    fireEvent.click(screen.getByTestId('auth-tab-login'));
     fireEvent.change(screen.getByTestId('signin-email'), { target: { value: 'a@b.com' } });
     fireEvent.change(screen.getByTestId('signin-password'), { target: { value: 'wrong' } });
     fireEvent.click(screen.getByTestId('signin-submit'));
@@ -130,6 +156,7 @@ describe('ProfilePanel — signed-out', () => {
 
   it('shows error when forgot-password clicked without email', async () => {
     render(<ProfilePanel />);
+    fireEvent.click(screen.getByTestId('auth-tab-login'));
     fireEvent.click(screen.getByTestId('forgot-password'));
     await waitFor(() => {
       expect(screen.getByTestId('profile-error')).toBeInTheDocument();
@@ -139,6 +166,7 @@ describe('ProfilePanel — signed-out', () => {
 
   it('calls sendPasswordReset and shows notice when email is present', async () => {
     render(<ProfilePanel />);
+    fireEvent.click(screen.getByTestId('auth-tab-login'));
     fireEvent.change(screen.getByTestId('signin-email'), { target: { value: 'reset@test.com' } });
     fireEvent.click(screen.getByTestId('forgot-password'));
     await waitFor(() => {
@@ -246,7 +274,8 @@ describe('ProfilePanel — anonymous', () => {
 
   it('shows sign-in warning when the Login toggle is clicked', async () => {
     render(<ProfilePanel />);
-    fireEvent.click(screen.getByTestId('login-toggle'));
+    // Wait for the named profile to load (the Login toggle lives in that view).
+    fireEvent.click(await screen.findByTestId('login-toggle'));
     await waitFor(() => {
       expect(screen.getByTestId('profile-notice')).toHaveTextContent('unsaved scores');
     });

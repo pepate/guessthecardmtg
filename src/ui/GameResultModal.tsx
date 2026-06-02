@@ -8,6 +8,8 @@ export function GameResultModal({
   score,
   rank,
   modeName,
+  needsSave = false,
+  onSaveRank,
   onReplay,
   onShare,
   onClose,
@@ -15,6 +17,9 @@ export function GameResultModal({
   score: number;
   rank: number | null;
   modeName?: string;
+  /** Player has no claimed name yet — surface a "save your rank" prompt. */
+  needsSave?: boolean;
+  onSaveRank?: () => void;
   onReplay: () => void;
   onShare: () => void;
   onClose: () => void;
@@ -23,6 +28,12 @@ export function GameResultModal({
     width: '100%', padding: '13px 0', borderRadius: 10, cursor: 'pointer',
     fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 700,
   };
+  const outlineBtn: React.CSSProperties = {
+    ...btn, background: 'transparent', border: '1px solid var(--line-strong)', color: 'var(--ink-0)',
+  };
+  // When the player still needs to claim a name, the save prompt becomes the
+  // primary action and Replay steps down to a secondary outline button.
+  const showSave = needsSave && onSaveRank != null;
   return (
     <div
       data-testid="result-modal"
@@ -55,15 +66,33 @@ export function GameResultModal({
           </div>
         )}
 
+        {showSave && (
+          <p data-testid="result-save-hint" style={{ color: 'var(--ink-1)', fontFamily: "'JetBrains Mono', monospace", fontSize: 13, textAlign: 'center', lineHeight: 1.5, margin: 0 }}>
+            You're playing as a guest.{' '}
+            {rank != null ? <>Claim a name to keep <span style={{ color: 'var(--ember-hot)', fontWeight: 700 }}>#{rank}</span> on the board.</> : 'Claim a name to save your score.'}
+          </p>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 4 }}>
-          <button type="button" data-testid="result-replay" onClick={onReplay} className="ember-btn" style={btn}>
+          {showSave && (
+            <button type="button" data-testid="result-save" onClick={onSaveRank} className="ember-btn" style={btn}>
+              Save my rank
+            </button>
+          )}
+          <button
+            type="button"
+            data-testid="result-replay"
+            onClick={onReplay}
+            className={showSave ? undefined : 'ember-btn'}
+            style={showSave ? outlineBtn : btn}
+          >
             Replay
           </button>
           <button
             type="button"
             data-testid="result-share"
             onClick={onShare}
-            style={{ ...btn, background: 'transparent', border: '1px solid var(--line-strong)', color: 'var(--ink-0)' }}
+            style={outlineBtn}
           >
             Share
           </button>
