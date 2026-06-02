@@ -12,6 +12,8 @@ import { ProfilePanel } from './ui/ProfilePanel';
 import { WelcomeWizard } from './ui/WelcomeWizard';
 import { startMostPlayedGame } from './modes/quickStart';
 import { useAuth } from './auth/useAuth';
+import { getUserId } from './leaderboard/identity';
+import { getProfile } from './profile/client';
 import type { CustomMode } from './modes/types';
 import { HUD } from './ui/HUD';
 import { Timer } from './ui/Timer';
@@ -19,6 +21,7 @@ import { NameChoice } from './ui/NameChoice';
 import { Snackbar } from './ui/Snackbar';
 import { ModeDetail } from './ui/ModeDetail';
 import { GameResultModal } from './ui/GameResultModal';
+import { SaveScoreSheet } from './ui/SaveScoreSheet';
 import { usePendingRun } from './leaderboard/usePendingRun';
 import { fetchDailyToday } from './daily/client';
 import { fetchModeTopArt } from './cards/client';
@@ -177,6 +180,93 @@ function ErrorScreen() {
         Back to menu
       </button>
     </motion.div>
+  );
+}
+
+// Top-right account chip on the start screen. Shows the player's claimed name
+// once they have one, otherwise a "Guest / Tap to set up" prompt. Tapping opens
+// the profile.
+function AccountButton({ onOpen }: { onOpen: () => void }) {
+  const { status } = useAuth();
+  const [name, setName] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const uid = await getUserId().catch(() => null);
+      const profile = uid ? await getProfile(uid).catch(() => null) : null;
+      if (!cancelled) setName(profile?.displayName ?? null);
+    })().catch(() => {});
+    return () => { cancelled = true; };
+  }, [status]);
+
+  return (
+    <button
+      type="button"
+      aria-label={name ? `Profile: ${name}` : 'Set up your profile'}
+      data-testid="account-btn"
+      onClick={onOpen}
+      style={{
+        position: 'absolute',
+        top: 'calc(12px + env(safe-area-inset-top))',
+        right: 12,
+        zIndex: 5,
+        maxWidth: 'min(60vw, 220px)',
+        height: 44,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 9,
+        padding: '0 14px 0 9px',
+        borderRadius: 999,
+        border: '1px solid var(--line-strong)',
+        background: 'rgba(13,11,19,0.6)',
+        color: 'var(--ink-0)',
+        cursor: 'pointer',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        pointerEvents: 'auto',
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          flexShrink: 0,
+          width: 26,
+          height: 26,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: '50%',
+          border: '1px solid var(--line-strong)',
+          color: 'var(--ink-1)',
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, textAlign: 'left', lineHeight: 1.15 }}>
+        <span
+          data-testid="account-name"
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 13,
+            fontWeight: 700,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {name ?? 'Guest'}
+        </span>
+        {!name && (
+          <span style={{ fontSize: 10, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>
+            Tap to set up
+          </span>
+        )}
+      </span>
+    </button>
   );
 }
 
@@ -417,36 +507,7 @@ export function App() {
       )}
 
       {phase === 'idle' && view.s === 'list' && (
-        <button
-          type="button"
-          aria-label="Profile"
-          data-testid="account-btn"
-          onClick={() => setView({ s: 'profile' })}
-          style={{
-            position: 'absolute',
-            top: 'calc(12px + env(safe-area-inset-top))',
-            right: 12,
-            zIndex: 5,
-            width: 40,
-            height: 40,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 10,
-            border: '1px solid var(--line-strong)',
-            background: 'rgba(13,11,19,0.6)',
-            color: 'var(--ink-0)',
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            pointerEvents: 'auto',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        </button>
+        <AccountButton onOpen={() => setView({ s: 'profile' })} />
       )}
       {phase === 'idle' && view.s !== 'list' && <BackButton onBack={() => setView({ s: 'list' })} />}
       {phase === 'gameover' && <InstallButton />}
@@ -543,32 +604,12 @@ export function App() {
       )}
 
       {phase === 'gameover' && gameOverProfileOpen && (
-        <div
-          data-testid="gameover-profile-overlay"
-          style={{
-            position: 'fixed', inset: 0, zIndex: 40, overflowY: 'auto',
-            background: 'rgba(5,4,8,0.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-            padding: 'calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))',
-          }}
-        >
-          <button
-            type="button"
-            data-testid="gameover-profile-close"
-            aria-label="Close"
-            onClick={() => setGameOverProfileOpen(false)}
-            style={{
-              position: 'absolute', top: 'calc(12px + env(safe-area-inset-top))', right: 12, zIndex: 1,
-              width: 40, height: 40, borderRadius: 10, border: '1px solid var(--line-strong)',
-              background: 'rgba(13,11,19,0.6)', color: 'var(--ink-0)', cursor: 'pointer',
-            }}
-          >
-            ✕
-          </button>
-          <ProfilePanel
-            ensureSession
-            onNameSaved={() => { void pending.postNow(); setGameOverProfileOpen(false); }}
-          />
-        </div>
+        <SaveScoreSheet
+          rank={pending.postedRank ?? pending.projectedRank}
+          modeName={currentModeName ?? undefined}
+          onSaved={() => { void pending.postNow(); setGameOverProfileOpen(false); }}
+          onClose={() => setGameOverProfileOpen(false)}
+        />
       )}
     </div>
   );

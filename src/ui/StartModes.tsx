@@ -256,8 +256,22 @@ export function StartModes({
       className="bottom-sheet"
       style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '92%' }}
     >
-      <div style={{ ...centered, flexShrink: 0 }}>
+      <div style={{ ...centered, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <DailySet />
+        {gamesPlayed === 0 && views && views.length > 0 && (
+          <button
+            type="button"
+            className="ember-btn"
+            data-testid="quick-game"
+            onClick={() => void startMostPlayedGame()}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 0', fontSize: 15 }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />
+            </svg>
+            Quick Game
+          </button>
+        )}
       </div>
 
       {/* Compact, horizontally-swipeable time-window pills. */}
@@ -326,18 +340,6 @@ export function StartModes({
         </div>
        </PullToRefresh>
       </div>
-
-      {gamesPlayed === 0 && views && views.length > 0 && (
-        <button
-          type="button"
-          className="ember-btn"
-          data-testid="quick-game"
-          onClick={() => void startMostPlayedGame()}
-          style={{ alignSelf: 'center', flexShrink: 0, padding: '11px 32px', fontSize: 15 }}
-        >
-          Quick Game
-        </button>
-      )}
 
       {views && views.length > 0 && (
         <button
