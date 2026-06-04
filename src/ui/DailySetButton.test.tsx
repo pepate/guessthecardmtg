@@ -19,4 +19,21 @@ describe('DailySetButton', () => {
     expect(screen.getByText('Final Fantasy')).toBeTruthy();
     expect(screen.getByText('Pete')).toBeTruthy();
   });
+
+  it('shows the set artwork strip while the board is empty (no leader)', () => {
+    render(<DailySetButton daily={base} onOpen={() => {}} topArts={['a.jpg', 'b.jpg', 'c.jpg', 'd.jpg']} />);
+    const strip = screen.getByTestId('daily-arts');
+    expect(strip.children).toHaveLength(4);
+  });
+
+  it('hides the artwork strip once a leader exists', () => {
+    render(
+      <DailySetButton
+        daily={{ ...base, leader: { name: 'Pete', score: 4200, country: 'DE' } }}
+        onOpen={() => {}}
+        topArts={['a.jpg', 'b.jpg', 'c.jpg', 'd.jpg']}
+      />,
+    );
+    expect(screen.queryByTestId('daily-arts')).toBeNull();
+  });
 });

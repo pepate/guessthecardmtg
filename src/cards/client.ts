@@ -67,3 +67,24 @@ export async function fetchModeTopArt(filter: CustomFilter): Promise<string | nu
   const { data, error } = await c.rpc('mode_top_card_art', { p_filter: filter });
   return !error && typeof data === 'string' ? data : null;
 }
+
+/** The art_crop of the `count` most-popular cards (smallest edhrec_rank) printed
+ *  in a set — one per card. Used to add colour to the Daily Set banner. Reads the
+ *  public-read card tables directly (no RPC). Best-effort: returns [] on any error. */
+export async function fetchSetTopArts(setCode: string, count = 4): Promise<string[]> {
+  const c = getSupabase();
+  if (!c || !setCode) return [];
+  const { data, error } = await c
+    .from('card')
+    .select('edhrec_rank,card_art!inner(image_art_crop,set_code)')
+    .eq('card_art.set_code', setCode)
+    .order('edhrec_rank', { ascending: true, nullsFirst: false })
+    .limit(count);
+  if (error || !data) return [];
+  const arts: string[] = [];
+  for (const r of data as { card_art: { image_art_crop: string }[] }[]) {
+    const art = r.card_art?.[0]?.image_art_crop;
+    if (art) arts.push(art);
+  }
+  return arts;
+}

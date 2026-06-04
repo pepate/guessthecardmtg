@@ -1,11 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const rpc = vi.fn();
+const from = vi.fn();
 vi.mock('../supabase/client', () => ({
-  getSupabase: () => ({ rpc }),
+  getSupabase: () => ({ rpc, from }),
 }));
 
-import { rowToCard, fetchCandidates, fetchRandomCard, fetchModeTopArt, type GameCardRow } from './client';
+import { rowToCard, fetchCandidates, fetchRandomCard, fetchModeTopArt, fetchSetTopArts, type GameCardRow } from './client';
+
+/** A chainable query stub that resolves (when awaited) to `result`. */
+function query(result: unknown) {
+  const q: Record<string, unknown> = {};
+  for (const m of ['select', 'eq', 'order', 'limit']) q[m] = vi.fn(() => q);
+  (q as { then: unknown }).then = (f: (v: unknown) => unknown) => Promise.resolve(result).then(f);
+  return q;
+}
 
 function row(overrides: Partial<GameCardRow> = {}): GameCardRow {
   return {
@@ -26,7 +35,7 @@ function row(overrides: Partial<GameCardRow> = {}): GameCardRow {
   };
 }
 
-beforeEach(() => rpc.mockReset());
+beforeEach(() => { rpc.mockReset(); from.mockReset(); });
 
 describe('rowToCard', () => {
   it('maps an RPC row onto the ScryfallCard shape', () => {
@@ -100,5 +109,29 @@ describe('fetchModeTopArt', () => {
   it('returns null on error or non-string data', async () => {
     rpc.mockResolvedValue({ data: null, error: { message: 'boom' } });
     expect(await fetchModeTopArt({})).toBeNull();
+  });
+});
+
+describe('fetchSetTopArts', () => {
+  it('returns one art per top-EDHRec card in the set', async () => {
+    from.mockReturnValueOnce(query({
+      data: [
+        { edhrec_rank: 1, card_art: [{ image_art_crop: 'a1.jpg', set_code: 'fin' }] },
+        { edhrec_rank: 2, card_art: [{ image_art_crop: 'a2.jpg', set_code: 'fin' }] },
+        { edhrec_rank: 5, card_art: [{ image_art_crop: 'a3.jpg', set_code: 'fin' }] },
+      ],
+      error: null,
+    }));
+    expect(await fetchSetTopArts('fin', 4)).toEqual(['a1.jpg', 'a2.jpg', 'a3.jpg']);
+  });
+
+  it('returns [] for a blank set code without querying', async () => {
+    expect(await fetchSetTopArts('', 4)).toEqual([]);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it('returns [] on a query error', async () => {
+    from.mockReturnValueOnce(query({ data: null, error: { message: 'boom' } }));
+    expect(await fetchSetTopArts('fin', 4)).toEqual([]);
   });
 });

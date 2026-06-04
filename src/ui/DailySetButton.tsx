@@ -18,7 +18,7 @@ function formatRemaining(ms: number): string {
   return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
 }
 
-export function DailySetButton({ daily, onOpen }: { daily: DailyToday | null; onOpen: () => void }) {
+export function DailySetButton({ daily, onOpen, topArts = [] }: { daily: DailyToday | null; onOpen: () => void; topArts?: string[] }) {
   const [remaining, setRemaining] = useState(msUntilBerlinMidnight);
   useEffect(() => {
     const id = setInterval(() => setRemaining(msUntilBerlinMidnight()), 30000);
@@ -47,16 +47,31 @@ export function DailySetButton({ daily, onOpen }: { daily: DailyToday | null; on
           </span>
         )}
       </span>
-      {/* Right column: leader name + points, with the time left beneath. */}
+      {/* Right column: the leader (once someone has posted) or — while the board
+          is still empty — a strip of the set's top-EDHRec artworks for colour,
+          with the time left beneath either way. */}
       {daily && (
-        <span style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-          {daily.leader && (
+        <span style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          {daily.leader ? (
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
               <span aria-hidden>{countryToFlag(daily.leader.country)}</span>
               <span style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{daily.leader.name}</span>
               <ScoreValue score={daily.leader.score} fontSize={13} />
             </span>
-          )}
+          ) : topArts.length > 0 ? (
+            <span data-testid="daily-arts" aria-hidden style={{ display: 'flex', gap: 4 }}>
+              {topArts.map((art, i) => (
+                <span
+                  key={i}
+                  style={{
+                    width: 34, height: 34, borderRadius: 7, flexShrink: 0,
+                    border: '1px solid var(--ember-deep)',
+                    background: `center / cover no-repeat url(${art})`,
+                  }}
+                />
+              ))}
+            </span>
+          ) : null}
           <span
             data-testid="daily-timer"
             style={{
