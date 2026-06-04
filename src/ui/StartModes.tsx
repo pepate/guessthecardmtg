@@ -13,6 +13,7 @@ import { windowCutoff, WINDOW_TABS, type TimeWindow } from '../leaderboard/windo
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
 import { DailySet } from './DailySet';
+import { RecentGames } from './RecentGames';
 import { fetchDailyToday } from '../daily/client';
 
 /** The mode's overall best run (any reveal), shown as the leader of the row. */
@@ -180,6 +181,7 @@ export function StartModes({
   onNeedAccount: () => void;
 }) {
   const [win, setWin] = useState<TimeWindow>('today');
+  const [tab, setTab] = useState<'games' | 'leaderboard'>('games');
   const [views, setViews] = useState<ModeView[] | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
   const [advanceOpen, setAdvanceOpen] = useState(false);
@@ -290,79 +292,110 @@ export function StartModes({
         )}
       </div>
 
-      {/* Compact, horizontally-swipeable time-window pills. */}
-      <div
-        style={{
-          ...centered,
-          display: 'flex',
-          gap: 6,
-          flexShrink: 0,
-          overflowX: 'auto',
-          flexWrap: 'nowrap',
-          scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
-        {WINDOW_TABS.map((t) => (
+      {/* Tab switch: Games (recent cards) vs Leaderboard (ranked list). */}
+      <div style={{ ...centered, display: 'flex', gap: 8, flexShrink: 0 }}>
+        {(['games', 'leaderboard'] as const).map((t) => (
           <button
-            key={t.key}
+            key={t}
             type="button"
-            onClick={() => setWin(t.key)}
-            aria-pressed={win === t.key}
+            data-testid={`tab-${t}`}
+            aria-pressed={tab === t}
+            onClick={() => setTab(t)}
             style={{
-              flex: '0 0 auto',
-              minHeight: 0,
-              padding: '7px 16px',
-              fontSize: 12,
-              fontWeight: 600,
+              flex: 1,
+              padding: '9px 0',
+              borderRadius: 10,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 13,
+              fontWeight: 700,
               letterSpacing: 0.4,
-              borderRadius: 999,
-              whiteSpace: 'nowrap',
               cursor: 'pointer',
-              border: `1px solid ${win === t.key ? 'var(--ember)' : 'var(--line-strong)'}`,
-              background: win === t.key ? 'var(--ember)' : 'transparent',
-              color: win === t.key ? '#1a1020' : 'var(--ink-1)',
+              border: `1px solid ${tab === t ? 'var(--ember)' : 'var(--line-strong)'}`,
+              background: tab === t ? 'var(--ember)' : 'transparent',
+              color: tab === t ? '#1a1020' : 'var(--ink-1)',
             }}
           >
-            {t.label}
+            {t === 'games' ? 'Games' : 'Leaderboard'}
           </button>
         ))}
       </div>
 
-      <div style={{ ...centered, flex: '1 1 auto', minHeight: 0 }}>
-       <PullToRefresh onRefresh={loadViews}>
-        <div
-          data-testid="mode-list"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            paddingBottom: 160,
-          }}
-        >
-        {views === null ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-            <span className="spinner" />
-          </div>
-        ) : views.length === 0 ? (
-          <p data-testid="modes-empty" style={{ color: 'var(--ink-1)', fontSize: 14, textAlign: 'center', margin: 0 }}>
-            No modes yet — tap + to create one.
-          </p>
-        ) : (
-          views.map(({ mode, standing, top, recent }) => (
-            <ModeRow
-              key={mode.id}
-              name={mode.name}
-              standing={standing}
-              top={win === 'recent' ? (recent && { name: recent.name, score: recent.score, country: recent.country }) : top}
-              plays={mode.entry_count}
-              onSelect={() => onPick(mode)}
-            />
-          ))
-        )}
+      {tab === 'games' ? (
+        <div style={{ ...centered, flex: '1 1 auto', minHeight: 0, overflowY: 'auto', paddingBottom: 160 }}>
+          <RecentGames onPick={onPick} />
         </div>
-       </PullToRefresh>
-      </div>
+      ) : (
+        <>
+          {/* Compact, horizontally-swipeable time-window pills. */}
+          <div
+            style={{
+              ...centered,
+              display: 'flex',
+              gap: 6,
+              flexShrink: 0,
+              overflowX: 'auto',
+              flexWrap: 'nowrap',
+              scrollbarWidth: 'none',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {WINDOW_TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setWin(t.key)}
+                aria-pressed={win === t.key}
+                style={{
+                  flex: '0 0 auto',
+                  minHeight: 0,
+                  padding: '7px 16px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: 0.4,
+                  borderRadius: 999,
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  border: `1px solid ${win === t.key ? 'var(--ember)' : 'var(--line-strong)'}`,
+                  background: win === t.key ? 'var(--ember)' : 'transparent',
+                  color: win === t.key ? '#1a1020' : 'var(--ink-1)',
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ ...centered, flex: '1 1 auto', minHeight: 0 }}>
+           <PullToRefresh onRefresh={loadViews}>
+            <div
+              data-testid="mode-list"
+              style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 160 }}
+            >
+            {views === null ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
+                <span className="spinner" />
+              </div>
+            ) : views.length === 0 ? (
+              <p data-testid="modes-empty" style={{ color: 'var(--ink-1)', fontSize: 14, textAlign: 'center', margin: 0 }}>
+                No modes yet — tap + to create one.
+              </p>
+            ) : (
+              views.map(({ mode, standing, top, recent }) => (
+                <ModeRow
+                  key={mode.id}
+                  name={mode.name}
+                  standing={standing}
+                  top={win === 'recent' ? (recent && { name: recent.name, score: recent.score, country: recent.country }) : top}
+                  plays={mode.entry_count}
+                  onSelect={() => onPick(mode)}
+                />
+              ))
+            )}
+            </div>
+           </PullToRefresh>
+          </div>
+        </>
+      )}
 
       {views && views.length > 0 && (
         <button
