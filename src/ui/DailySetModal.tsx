@@ -3,8 +3,6 @@ import type { DailyToday } from '../daily/client';
 import { REVEAL_MODE_LABELS } from '../reveal/labels';
 import { GlobalScoreList } from './GlobalScoreList';
 
-const DAILY_MAX = 3;
-
 export function DailySetModal({
   daily,
   board,
@@ -16,7 +14,6 @@ export function DailySetModal({
   onPlay: () => void;
   onClose: () => void;
 }) {
-  const playsLeft = Math.max(0, DAILY_MAX - daily.playsUsed);
   return (
     <div
       data-testid="daily-modal"
@@ -57,15 +54,11 @@ export function DailySetModal({
           type="button"
           className="ember-btn"
           data-testid="daily-play"
-          disabled={playsLeft === 0}
           onClick={onPlay}
-          style={{ width: '100%', padding: '13px 0', fontSize: 17, opacity: playsLeft === 0 ? 0.5 : 1 }}
+          style={{ width: '100%', padding: '13px 0', fontSize: 17 }}
         >
-          {playsLeft === 0 ? 'No plays left today' : 'Play'}
+          Play
         </button>
-        <p data-testid="daily-plays-left" style={{ margin: 0, textAlign: 'center', color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
-          {playsLeft}/{DAILY_MAX} plays left today
-        </p>
 
         {board.length > 0 ? (
           <GlobalScoreList entries={board} />

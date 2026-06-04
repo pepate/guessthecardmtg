@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { DailySetButton } from './DailySetButton';
 import type { DailyToday } from '../daily/client';
 
-const base: DailyToday = { day: '2026-06-01', modeId: 'm1', reveal: 'blur', setCode: 'fin', setName: 'Final Fantasy', leader: null, playsUsed: 0 };
+const base: DailyToday = { day: '2026-06-01', modeId: 'm1', reveal: 'blur', setCode: 'fin', setName: 'Final Fantasy', leader: null };
 
 describe('DailySetButton', () => {
   it('shows just the title before a set exists, and calls onOpen', () => {

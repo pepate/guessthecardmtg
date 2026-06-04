@@ -39,8 +39,6 @@ interface ModeDetailProps {
   pendingRow?: PendingRowInfo | null;
   /** Daily Set game-over: only this reveal is playable; the others are disabled. */
   lockedReveal?: RevealMode | null;
-  /** Daily Set: remaining plays today. When 0, even the locked reveal is disabled. */
-  playsLeft?: number;
   /** Daily Set: replay the locked reveal. Shown as a bottom "Play again" button. */
   onPlayAgain?: () => void;
   /** When set, renders an always-visible Back button pinned below the list. */

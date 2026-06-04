@@ -119,22 +119,6 @@ Deno.serve(async (req) => {
   const m = await supabase.from('mode').select('id', { head: true, count: 'exact' }).eq('id', modeId);
   if ((m.count ?? 0) === 0) return json({ ok: false, reason: 'mode-not-found' }, 400);
 
-  // Daily Set cap: at most 3 scoring runs per player per Berlin day on the day's set.
-  const berlinDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date());
-  const todayDaily = await supabase.from('daily_set').select('mode_id').eq('day', berlinDay).maybeSingle();
-  if (todayDaily.data?.mode_id === modeId) {
-    const berlinNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
-    berlinNow.setHours(0, 0, 0, 0);
-    const sinceIso = new Date(berlinNow.getTime() - berlinNow.getTimezoneOffset() * 60000).toISOString();
-    const played = await supabase
-      .from('leaderboard')
-      .select('id', { count: 'exact', head: true })
-      .eq('mode_id', modeId)
-      .eq('device_id', deviceId)
-      .gte('created_at', sinceIso);
-    if ((played.count ?? 0) >= 3) return json({ ok: false, reason: 'daily-limit' }, 200);
-  }
-
   const country = await lookupCountry(ip);
 
   const bump = await supabase.rpc('bump_profile_stats', {

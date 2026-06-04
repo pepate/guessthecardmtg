@@ -1,5 +1,4 @@
 import { getSupabase } from '../supabase/client';
-import { getUserId } from '../leaderboard/identity';
 import { fetchComboBoard } from '../leaderboard/client';
 import type { RevealMode } from '../engine/timeAttack';
 
@@ -11,19 +10,11 @@ export interface DailyToday {
   setCode: string | null;
   setName: string | null;
   leader: DailyLeader | null;
-  playsUsed: number;
 }
 
 /** Today's Berlin calendar day as YYYY-MM-DD. */
 export function berlinToday(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date());
-}
-
-/** UTC ISO string for the start of today's Berlin day. */
-function berlinMidnightIso(): string {
-  const berlinNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
-  berlinNow.setHours(0, 0, 0, 0);
-  return new Date(berlinNow.getTime() - berlinNow.getTimezoneOffset() * 60000).toISOString();
 }
 
 interface DailyRow {
@@ -40,19 +31,6 @@ async function compose(row: DailyRow): Promise<DailyToday> {
   const board = await fetchComboBoard(row.mode_id, reveal, null, 1).catch(() => []);
   const leader = board[0] ? { name: board[0].name, score: board[0].score, country: board[0].country } : null;
 
-  let playsUsed = 0;
-  const c = getSupabase();
-  const uid = await getUserId();
-  if (c && uid) {
-    const { count } = await c
-      .from('leaderboard_top')
-      .select('id', { count: 'exact', head: true })
-      .eq('mode_id', row.mode_id)
-      .eq('device_id', uid)
-      .gte('created_at', berlinMidnightIso());
-    playsUsed = count ?? 0;
-  }
-
   return {
     day: row.day,
     modeId: row.mode_id,
@@ -60,7 +38,6 @@ async function compose(row: DailyRow): Promise<DailyToday> {
     setCode: mode?.filter?.sets?.[0] ?? null,
     setName: mode?.name ?? null,
     leader,
-    playsUsed,
   };
 }
 

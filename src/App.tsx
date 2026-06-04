@@ -25,7 +25,6 @@ import { ModeDetail } from './ui/ModeDetail';
 import { GameResultModal } from './ui/GameResultModal';
 import { SaveScoreSheet } from './ui/SaveScoreSheet';
 import { usePendingRun } from './leaderboard/usePendingRun';
-import { fetchDailyToday } from './daily/client';
 import { fetchModeTopArt } from './cards/client';
 import { useScreenBack } from './ui/useScreenBack';
 import { shareLink } from './share/score';
@@ -338,17 +337,6 @@ export function App() {
         }
       : null;
 
-  // Daily Set game-over: only the day's reveal is replayable, gated by plays left.
-  const [dailyPlaysLeft, setDailyPlaysLeft] = useState<number | null>(null);
-  useEffect(() => {
-    if (phase !== 'gameover' || !dailyReveal) { setDailyPlaysLeft(null); return; }
-    let cancelled = false;
-    fetchDailyToday()
-      .then((d) => { if (!cancelled) setDailyPlaysLeft(d ? Math.max(0, 3 - d.playsUsed) : 3); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [phase, dailyReveal, pending.postedRank, pending.status]);
-
   function replayDaily() {
     if (!dailyReveal || !currentModeId) return;
     const s = useGameStore.getState();
@@ -579,7 +567,6 @@ export function App() {
               filter={currentModeFilter ?? {}}
               pendingRow={gameOverPendingRow}
               lockedReveal={dailyReveal}
-              playsLeft={dailyReveal ? (dailyPlaysLeft ?? 0) : undefined}
               onPlayAgain={dailyReveal ? replayDaily : undefined}
             />
           )}
