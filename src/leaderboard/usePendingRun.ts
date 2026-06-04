@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { RevealMode } from '../engine/timeAttack';
 import type { CustomFilter } from '../modes/filter';
 import { sanitizeName } from './validation';
-import { isLeaderboardEnabled, fetchModeProjectedRank, submitScore } from './client';
+import { isLeaderboardEnabled, fetchModeRuns, submitScore } from './client';
+import { ownBestPerReveal, projectedSummedRank, nextZeroReveal } from './boards';
+import { fetchEnabledRevealModes } from '../reveal/client';
 import { getUserId } from './identity';
 import { getProfile } from '../profile/client';
 import { findExistingMode, createMode } from '../modes/client';
@@ -22,6 +24,8 @@ export interface PendingRunState {
   postedId: string | null;
   name: string | null;
   needsLogin: boolean;
+  /** The next enabled reveal in this pool the device has 0 points in, or null. */
+  nextMode: RevealMode | null;
   postNow: (nameOverride?: string) => Promise<boolean>;
 }
 
@@ -39,6 +43,7 @@ export function usePendingRun(
   const [posted, setPosted] = useState<{ rank: number; id: string } | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [needsLogin, setNeedsLogin] = useState(false);
+  const [nextMode, setNextMode] = useState<RevealMode | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -68,10 +73,16 @@ export function usePendingRun(
     });
     if (!res.ok) { if (mountedRef.current) setStatus('error'); return false; }
     localStorage.setItem(NAME_KEY, clean);
+    // Recompute the pool total/rank from fresh runs (now including this row), so the
+    // headline reflects the summed standing, not the edge function's single-best rank.
+    const fresh = await fetchModeRuns(resolvedModeId).catch(() => []);
+    const freshUid = await getUserId().catch(() => null);
+    const proj = projectedSummedRank(fresh, freshUid ?? '', run.gameMode, run.score);
     if (mountedRef.current) {
       setName(clean);
       setNeedsLogin(false);
-      setPosted({ rank: res.rank, id: res.id });
+      setProjected(proj);
+      setPosted({ rank: proj.rank, id: res.id });
       setStatus('done');
     }
     return true;
@@ -81,15 +92,21 @@ export function usePendingRun(
     if (!active) return;
     let cancelled = false;
     (async () => {
-      if (modeId) {
-        fetchModeProjectedRank(modeId, run!.score)
-          .then((r) => { if (!cancelled) setProjected(r); })
-          .catch(() => {});
-      } else {
-        setProjected({ rank: 1, total: 0 });
-      }
-      const uid = await getUserId();
+      const uid = await getUserId().catch(() => null);
       if (cancelled) return;
+      if (modeId) {
+        const [runs, enabled] = await Promise.all([
+          fetchModeRuns(modeId).catch(() => []),
+          fetchEnabledRevealModes().catch(() => [] as RevealMode[]),
+        ]);
+        if (cancelled) return;
+        setProjected(projectedSummedRank(runs, uid ?? '', run!.gameMode, run!.score));
+        const own = ownBestPerReveal(runs, uid ?? '');
+        setNextMode(nextZeroReveal(own, enabled.filter((m) => m !== run!.gameMode)));
+      } else {
+        setProjected({ rank: 1, total: run!.score });
+        setNextMode(null);
+      }
       const profile = uid ? await getProfile(uid).catch(() => null) : null;
       if (cancelled) return;
       const known = sanitizeName(profile?.displayName ?? localStorage.getItem(NAME_KEY) ?? '');
@@ -97,7 +114,7 @@ export function usePendingRun(
       await doPost(known);
     })().catch(() => {});
     return () => { cancelled = true; };
-    // modeFilter intentionally omitted — it changes identity each render; it's only read inside doPost when posting.
+    // modeFilter intentionally omitted — only read inside doPost when posting.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, modeId, run?.score]);
 
@@ -124,6 +141,7 @@ export function usePendingRun(
     postedId: posted?.id ?? null,
     name,
     needsLogin,
+    nextMode,
     postNow,
   };
 }

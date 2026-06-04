@@ -4,9 +4,10 @@ import { usePendingRun, type PendingRun } from './usePendingRun';
 
 vi.mock('./client', () => ({
   isLeaderboardEnabled: () => true,
-  fetchModeProjectedRank: vi.fn(async () => ({ rank: 3, total: 9 })),
+  fetchModeRuns: vi.fn(async () => []),
   submitScore: vi.fn(async () => ({ ok: true, id: 'row1', rank: 2 })),
 }));
+vi.mock('../reveal/client', () => ({ fetchEnabledRevealModes: vi.fn().mockResolvedValue([]) }));
 vi.mock('./identity', () => ({ getUserId: vi.fn(async () => 'uid1') }));
 vi.mock('../profile/client', () => ({ getProfile: vi.fn(async () => null) }));
 vi.mock('../modes/client', () => ({
@@ -39,7 +40,7 @@ beforeEach(() => {
 describe('usePendingRun', () => {
   it('shows LOGIN and does NOT post when the player has no name', async () => {
     render(<Harness modeId="m1" />);
-    await waitFor(() => expect(screen.getByTestId('projected').textContent).toBe('3'));
+    await waitFor(() => expect(screen.getByTestId('projected').textContent).toBe('1'));
     expect(screen.getByTestId('needs-login').textContent).toBe('true');
     expect(submitScore).not.toHaveBeenCalled();
   });
@@ -47,7 +48,7 @@ describe('usePendingRun', () => {
   it('auto-posts when the player already has a name', async () => {
     (getProfile as unknown as { mockResolvedValueOnce: (v: unknown) => void }).mockResolvedValueOnce({ displayName: 'Pete' });
     render(<Harness modeId="m1" />);
-    await waitFor(() => expect(screen.getByTestId('posted').textContent).toBe('2'));
+    await waitFor(() => expect(screen.getByTestId('posted').textContent).toBe('1'));
     expect(submitScore).toHaveBeenCalledOnce();
     expect(screen.getByTestId('needs-login').textContent).toBe('false');
   });
@@ -57,14 +58,14 @@ describe('usePendingRun', () => {
     await waitFor(() => expect(screen.getByTestId('needs-login').textContent).toBe('true'));
     (getProfile as unknown as { mockResolvedValueOnce: (v: unknown) => void }).mockResolvedValueOnce({ displayName: 'Pete' });
     await act(async () => { screen.getByTestId('post-now').click(); });
-    await waitFor(() => expect(screen.getByTestId('posted').textContent).toBe('2'));
+    await waitFor(() => expect(screen.getByTestId('posted').textContent).toBe('1'));
     expect(submitScore).toHaveBeenCalledOnce();
   });
 
   it('does not submit twice when post-now is clicked after a completed post', async () => {
     (getProfile as unknown as { mockResolvedValueOnce: (v: unknown) => void }).mockResolvedValueOnce({ displayName: 'Pete' });
     render(<Harness modeId="m1" />);
-    await waitFor(() => expect(screen.getByTestId('posted').textContent).toBe('2'));
+    await waitFor(() => expect(screen.getByTestId('posted').textContent).toBe('1'));
     expect(submitScore).toHaveBeenCalledOnce();
     await act(async () => { screen.getByTestId('post-now').click(); });
     expect(submitScore).toHaveBeenCalledOnce();
