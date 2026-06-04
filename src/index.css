@@ -103,9 +103,9 @@ body::after {
 
 .install-btn {
   position: absolute;
-  top: calc(10px + env(safe-area-inset-top));
-  /* Sit left of the account icon (right:12); the card-info pill is centred. */
-  right: 60px;
+  /* Stacked just below the account chip (top:12, ~46px tall) on the right edge. */
+  top: calc(66px + env(safe-area-inset-top));
+  right: 12px;
   z-index: 4;
   display: flex;
   align-items: center;

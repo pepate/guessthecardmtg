@@ -183,12 +183,10 @@ function ErrorScreen() {
   );
 }
 
-// Top-right account control. On the start screen it's a full chip showing the
-// player's claimed name (or a "Guest / Tap to set up" prompt). On tighter
-// screens (mode detail, game over) it collapses to an icon-only circle so it
-// can sit alongside the back / info / install controls. Tapping opens the
-// profile (or, at game over, the save-your-score sheet).
-function AccountButton({ onOpen, compact = false }: { onOpen: () => void; compact?: boolean }) {
+// Top-right account chip, identical on every screen it appears on: the player's
+// claimed name, or a "Guest / Tap to set up" prompt. Tapping opens the profile
+// (or, at game over, the save-your-score sheet).
+function AccountButton({ onOpen }: { onOpen: () => void }) {
   const { status } = useAuth();
   const [name, setName] = useState<string | null>(null);
 
@@ -209,43 +207,6 @@ function AccountButton({ onOpen, compact = false }: { onOpen: () => void; compac
     </svg>
   );
 
-  const baseChrome: React.CSSProperties = {
-    position: 'absolute',
-    top: 'calc(12px + env(safe-area-inset-top))',
-    right: 12,
-    zIndex: 6,
-    border: '1px solid var(--line-strong)',
-    background: 'rgba(13,11,19,0.6)',
-    color: 'var(--ink-0)',
-    cursor: 'pointer',
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
-    pointerEvents: 'auto',
-  };
-
-  if (compact) {
-    return (
-      <button
-        type="button"
-        aria-label={name ? `Profile: ${name}` : 'Set up your profile'}
-        data-testid="account-btn"
-        onClick={onOpen}
-        style={{
-          ...baseChrome,
-          width: 40,
-          height: 40,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 10,
-          color: name ? 'var(--ink-0)' : 'var(--ink-1)',
-        }}
-      >
-        {personIcon(20)}
-      </button>
-    );
-  }
-
   return (
     <button
       type="button"
@@ -253,7 +214,17 @@ function AccountButton({ onOpen, compact = false }: { onOpen: () => void; compac
       data-testid="account-btn"
       onClick={onOpen}
       style={{
-        ...baseChrome,
+        position: 'absolute',
+        top: 'calc(12px + env(safe-area-inset-top))',
+        right: 12,
+        zIndex: 6,
+        border: '1px solid var(--line-strong)',
+        background: 'rgba(13,11,19,0.6)',
+        color: 'var(--ink-0)',
+        cursor: 'pointer',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        pointerEvents: 'auto',
         maxWidth: 'min(62vw, 230px)',
         height: 46,
         display: 'flex',
@@ -542,20 +513,21 @@ export function App() {
       {/* Account control stays top-right across screens (except the profile
           itself): a full chip on the start list, an icon elsewhere so the player
           can always reach / recognise their profile. */}
-      {((phase === 'idle' && view.s !== 'profile') || phase === 'gameover') && (
+      {/* Same account chip on every primary screen (start list, mode detail,
+          game over). The picker carries its own bottom Back button; create /
+          profile are focused sub-screens with a top-right Back instead. */}
+      {((phase === 'idle' && (view.s === 'list' || view.s === 'picker')) || phase === 'gameover') && (
         <AccountButton
           onOpen={() => { if (phase === 'gameover') setGameOverProfileOpen(true); else setView({ s: 'profile' }); }}
-          compact={!(phase === 'idle' && (view.s === 'list' || view.s === 'picker'))}
         />
       )}
-      {/* The picker (mode detail) carries its own always-visible Back button at the
-          bottom of the list, so it keeps the full account chip top-right like the
-          start screen. Create / profile still use the top-right back affordance. */}
       {phase === 'idle' && (view.s === 'create' || view.s === 'profile') && (
-        <BackButton onBack={() => setView({ s: 'list' })} right={view.s === 'profile' ? 12 : 60} />
+        <BackButton onBack={() => setView({ s: 'list' })} />
       )}
       {phase === 'gameover' && <InstallButton />}
-      {phase === 'idle' && <StartArtwork showInfo={view.s === 'list'} artUrl={view.s === 'picker' ? pickerArt : undefined} />}
+      {/* Start screens use our standard wallpaper (og-image); only the mode-detail
+          picker shows the pool's own top-card art. */}
+      {phase === 'idle' && <StartArtwork artUrl={view.s === 'picker' ? pickerArt : FALLBACK_ART} />}
       {phase === 'gameover' && <GameOverArtwork />}
       {round && mode !== 'gallery' && !(wide && phase === 'playing') && (
         <CardStage stage={playingNow ? stage : 5} mode={mode} progress={scanProgress} angle={scanAngle} manaHidden={scanManaHidden} textHidden={scanTextHidden} spotlightOrigin={spotlightOrigin} tileOrder={tileOrder} tilesRevealed={tilesRevealed} />
