@@ -3,10 +3,16 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { GameResultModal } from './GameResultModal';
 
 describe('GameResultModal', () => {
-  it('shows the rank and wires Replay/Share/Close', () => {
+  it('shows the run score, pool total and total rank, and wires actions', () => {
     const onReplay = vi.fn(), onShare = vi.fn(), onClose = vi.fn();
-    render(<GameResultModal score={2144} rank={5} modeName="EDHRec 100" onReplay={onReplay} onShare={onShare} onClose={onClose} />);
-    expect(screen.getByTestId('result-rank').textContent).toContain('#5');
+    render(
+      <GameResultModal
+        score={2144} total={5300} totalRank={3} modeName="EDHRec 100"
+        onReplay={onReplay} onShare={onShare} onClose={onClose}
+      />,
+    );
+    expect(screen.getByTestId('result-total').textContent).toContain('5300');
+    expect(screen.getByTestId('result-rank').textContent).toContain('#3');
     fireEvent.click(screen.getByTestId('result-replay'));
     fireEvent.click(screen.getByTestId('result-share'));
     fireEvent.click(screen.getByTestId('result-close'));
@@ -15,8 +21,17 @@ describe('GameResultModal', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('omits the rank line when rank is null', () => {
-    render(<GameResultModal score={0} rank={null} onReplay={() => {}} onShare={() => {}} onClose={() => {}} />);
-    expect(screen.queryByTestId('result-rank')).toBeNull();
+  it('shows Next mode only when a next mode is available', () => {
+    const onNextMode = vi.fn();
+    const { rerender } = render(
+      <GameResultModal score={0} total={0} totalRank={null} onReplay={() => {}} onShare={() => {}} onClose={() => {}} />,
+    );
+    expect(screen.queryByTestId('result-next-mode')).toBeNull();
+    rerender(
+      <GameResultModal score={0} total={0} totalRank={null} hasNextMode onNextMode={onNextMode}
+        onReplay={() => {}} onShare={() => {}} onClose={() => {}} />,
+    );
+    fireEvent.click(screen.getByTestId('result-next-mode'));
+    expect(onNextMode).toHaveBeenCalledOnce();
   });
 });

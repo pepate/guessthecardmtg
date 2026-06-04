@@ -6,20 +6,26 @@ import { ScoreValue } from './ScoreValue';
  */
 export function GameResultModal({
   score,
-  rank,
+  total,
+  totalRank,
   modeName,
   needsSave = false,
+  hasNextMode = false,
   onSaveRank,
+  onNextMode,
   onReplay,
   onShare,
   onClose,
 }: {
   score: number;
-  rank: number | null;
+  total: number;
+  totalRank: number | null;
   modeName?: string;
   /** Player has no claimed name yet — surface a "save your rank" prompt. */
   needsSave?: boolean;
+  hasNextMode?: boolean;
   onSaveRank?: () => void;
+  onNextMode?: () => void;
   onReplay: () => void;
   onShare: () => void;
   onClose: () => void;
@@ -60,20 +66,26 @@ export function GameResultModal({
           <ScoreValue score={score} fontSize={34} />
           <span style={{ color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>pts</span>
         </div>
-        {rank != null && (
-          <div data-testid="result-rank" style={{ color: 'var(--ink-1)', fontFamily: "'JetBrains Mono', monospace", fontSize: 15 }}>
-            Rank <span style={{ color: 'var(--ember-hot)', fontWeight: 700 }}>#{rank}</span>
-          </div>
-        )}
+        <div data-testid="result-total" style={{ color: 'var(--ink-1)', fontFamily: "'JetBrains Mono', monospace", fontSize: 14, textAlign: 'center', display: 'flex', alignItems: 'center', gap: 6 }}>
+          Total <ScoreValue score={total} fontSize={16} /> pts
+          {totalRank != null && (
+            <> · <span data-testid="result-rank" style={{ color: 'var(--ember-hot)', fontWeight: 700 }}>#{totalRank}</span></>
+          )}
+        </div>
 
         {showSave && (
           <p data-testid="result-save-hint" style={{ color: 'var(--ink-1)', fontFamily: "'JetBrains Mono', monospace", fontSize: 13, textAlign: 'center', lineHeight: 1.5, margin: 0 }}>
             You're playing as a guest.{' '}
-            {rank != null ? <>Claim a name to keep <span style={{ color: 'var(--ember-hot)', fontWeight: 700 }}>#{rank}</span> on the board.</> : 'Claim a name to save your score.'}
+            {totalRank != null ? <>Claim a name to keep <span style={{ color: 'var(--ember-hot)', fontWeight: 700 }}>#{totalRank}</span> on the board.</> : 'Claim a name to save your score.'}
           </p>
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 4 }}>
+          {hasNextMode && onNextMode && (
+            <button type="button" data-testid="result-next-mode" onClick={onNextMode} className="ember-btn" style={btn}>
+              Next mode
+            </button>
+          )}
           {showSave && (
             <button type="button" data-testid="result-save" onClick={onSaveRank} className="ember-btn" style={btn}>
               Save my rank
@@ -83,8 +95,8 @@ export function GameResultModal({
             type="button"
             data-testid="result-replay"
             onClick={onReplay}
-            className={showSave ? undefined : 'ember-btn'}
-            style={showSave ? outlineBtn : btn}
+            className={showSave || hasNextMode ? undefined : 'ember-btn'}
+            style={showSave || hasNextMode ? outlineBtn : btn}
           >
             Replay
           </button>
