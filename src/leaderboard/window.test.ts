@@ -14,13 +14,10 @@ describe('windowCutoff', () => {
   it('all = null (no time filter)', () => {
     expect(windowCutoff('all', NOW)).toBeNull();
   });
-  it('recent = null (all-time, ordered by recency)', () => {
-    expect(windowCutoff('recent', NOW)).toBeNull();
-  });
 });
 
 describe('WINDOW_TABS', () => {
-  it('lists today, week, all, recent in order', () => {
-    expect(WINDOW_TABS.map((t) => t.key)).toEqual(['today', 'week', 'all', 'recent']);
+  it('lists today, week, all in order', () => {
+    expect(WINDOW_TABS.map((t) => t.key)).toEqual(['today', 'week', 'all']);
   });
 });

@@ -11,7 +11,7 @@ vi.mock('../modes/recent', async (orig) => ({
 }));
 vi.mock('../modes/client', () => ({ listModes: vi.fn().mockResolvedValue([]) }));
 vi.mock('../cards/client', () => ({ fetchModeTopArt: vi.fn().mockResolvedValue(null) }));
-vi.mock('../leaderboard/client', () => ({ fetchModeTopScores: vi.fn().mockResolvedValue([]) }));
+vi.mock('../leaderboard/client', () => ({ fetchModeRuns: vi.fn().mockResolvedValue([]) }));
 
 import { fetchRecentGames } from '../modes/recent';
 import { listModes } from '../modes/client';

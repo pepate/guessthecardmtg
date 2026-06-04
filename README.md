@@ -126,7 +126,8 @@ clock is driven by Playwright’s `page.clock`, so they’re deterministic.
   **3-plays-per-day cap is gone** — play it as often as you like.
 - **Start page tabs.** The start screen splits into **Games** (your recently
   played games as artwork cards) and **Leaderboard**, under an always-visible
-  Daily Set.
+  Daily Set. Both show each pool's leader by **summed total** (best per reveal);
+  the leaderboard's time windows are Today / Weekly / All-time.
 - **Daily Set banner.** Until the day's board has a score, the banner shows the
   set's four most-popular card artworks for a splash of colour.
 

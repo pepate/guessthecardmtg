@@ -5,7 +5,7 @@ import { listModes } from '../modes/client';
 import { startMostPlayedGame, startRandomGame } from '../modes/quickStart';
 import type { CustomMode, CustomModeListItem } from '../modes/types';
 import { fetchModeRuns } from '../leaderboard/client';
-import { deviceModeStanding, type Run } from '../leaderboard/boards';
+import { summedBoard, summedRank } from '../leaderboard/boards';
 import { getUserId } from '../leaderboard/identity';
 import { getProfile } from '../profile/client';
 import { getGamesPlayed } from '../state/highscores';
@@ -16,7 +16,7 @@ import { DailySet } from './DailySet';
 import { RecentGames } from './RecentGames';
 import { fetchDailyToday } from '../daily/client';
 
-/** The mode's overall best run (any reveal), shown as the leader of the row. */
+/** The mode's leader by summed total (sum of best score per reveal mode). */
 interface ModeTop {
   name: string;
   score: number;
@@ -25,11 +25,9 @@ interface ModeTop {
 
 interface ModeView {
   mode: CustomModeListItem;
-  /** Device's best rank across this mode's reveal boards; null when unplaced. */
+  /** Device's rank in this mode's summed board; null when unplaced. */
   standing: number | null;
   top: ModeTop | null;
-  /** The most recent run on this mode (for the "Recent" window). */
-  recent: (ModeTop & { at: number }) | null;
 }
 
 interface ModeRowProps {
@@ -44,32 +42,12 @@ interface ModeRowProps {
 const MAX_W = 700;
 const centered: React.CSSProperties = { width: '100%', maxWidth: MAX_W, margin: '0 auto' };
 
-function overallTop(runs: Run[]): ModeTop | null {
-  let best: Run | null = null;
-  for (const r of runs) if (!best || r.score > best.score) best = r;
-  return best ? { name: best.name, score: best.score, country: best.country } : null;
-}
-
-/** The most recently recorded run in the list, or null. */
-function newestRun(runs: Run[]): (ModeTop & { at: number }) | null {
-  let latest: Run | null = null;
-  for (const r of runs) if (!latest || r.createdAt > latest.createdAt) latest = r;
-  return latest ? { name: latest.name, score: latest.score, country: latest.country, at: latest.createdAt } : null;
-}
-
-// Default: highest top score first. "Recent": newest entry first. Modes with no
-// matching entry fall to the bottom (alphabetical).
-function sortModes(views: ModeView[], byRecent: boolean): ModeView[] {
+// Highest leader total first; modes with no scores fall to the bottom (alphabetical).
+function sortModes(views: ModeView[]): ModeView[] {
   return [...views].sort((a, b) => {
-    if (byRecent) {
-      const at = a.recent?.at ?? -1;
-      const bt = b.recent?.at ?? -1;
-      if (bt !== at) return bt - at;
-    } else {
-      const as = a.top?.score ?? -1;
-      const bs = b.top?.score ?? -1;
-      if (bs !== as) return bs - as;
-    }
+    const as = a.top?.score ?? -1;
+    const bs = b.top?.score ?? -1;
+    if (bs !== as) return bs - as;
     return a.mode.name.localeCompare(b.mode.name);
   });
 }
@@ -251,10 +229,16 @@ export function StartModes({
       const built = await Promise.all(
         listed.map(async (mode) => {
           const runs = await fetchModeRuns(mode.id, since);
-          return { mode, standing: deviceModeStanding(runs, device), top: overallTop(runs), recent: newestRun(runs) };
+          const board = summedBoard(runs);
+          const leader = board[0];
+          return {
+            mode,
+            standing: summedRank(board, device),
+            top: leader ? { name: leader.name, score: leader.score, country: leader.country } : null,
+          };
         }),
       );
-      setViews(sortModes(built, win === 'recent'));
+      setViews(sortModes(built));
     } catch {
       setViews([]);
     }
@@ -380,12 +364,12 @@ export function StartModes({
                 No modes yet — tap + to create one.
               </p>
             ) : (
-              views.map(({ mode, standing, top, recent }) => (
+              views.map(({ mode, standing, top }) => (
                 <ModeRow
                   key={mode.id}
                   name={mode.name}
                   standing={standing}
-                  top={win === 'recent' ? (recent && { name: recent.name, score: recent.score, country: recent.country }) : top}
+                  top={top}
                   plays={mode.entry_count}
                   onSelect={() => onPick(mode)}
                 />

@@ -4,7 +4,8 @@ import type { CustomMode } from '../modes/types';
 import { fetchRecentGames, fillToLimit } from '../modes/recent';
 import { listModes } from '../modes/client';
 import { fetchModeTopArt } from '../cards/client';
-import { fetchModeTopScores } from '../leaderboard/client';
+import { fetchModeRuns } from '../leaderboard/client';
+import { summedBoard } from '../leaderboard/boards';
 import type { GlobalEntry } from '../leaderboard/types';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
@@ -30,11 +31,13 @@ export function RecentGames({ onPick }: { onPick: (mode: CustomMode) => void }) 
         games = fillToLimit(recent, popular, 4);
       }
       const built = await Promise.all(
-        games.map(async (mode) => ({
-          mode,
-          art: await fetchModeTopArt(mode.filter).catch(() => null),
-          leader: (await fetchModeTopScores(mode.id, 1).catch(() => []))[0] ?? null,
-        })),
+        games.map(async (mode) => {
+          const [art, runs] = await Promise.all([
+            fetchModeTopArt(mode.filter).catch(() => null),
+            fetchModeRuns(mode.id).catch(() => []),
+          ]);
+          return { mode, art, leader: summedBoard(runs)[0] ?? null };
+        }),
       );
       if (!cancelled) setCards(built);
     })().catch(() => { if (!cancelled) setCards([]); });
