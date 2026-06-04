@@ -111,6 +111,25 @@ clock is driven by Playwright’s `page.clock`, so they’re deterministic.
 
 ## Changelog
 
+### 2026-06-04
+
+- **Summed leaderboard.** A pool's leaderboard now ranks you by the **sum of your
+  best score in each reveal mode**, not a single best run — so climbing means
+  playing every reveal. Leaderboard rows show the player's total (no per-reveal
+  tag); a **Your standing** row shows your rank + total; and the reveal list now
+  shows **your own** best per mode, labelled by the mode and sorted highest-first
+  so you can see where points are still on the table.
+- **Game-over: Next mode.** The result popup shows your run score plus your new
+  pool **total** and **total rank**, and a **Next mode** button jumps straight
+  into the next reveal you have zero points in.
+- **Daily Set: unlimited.** The Daily Set adopts the summed scheme and the
+  **3-plays-per-day cap is gone** — play it as often as you like.
+- **Start page tabs.** The start screen splits into **Games** (your recently
+  played games as artwork cards) and **Leaderboard**, under an always-visible
+  Daily Set.
+- **Daily Set banner.** Until the day's board has a score, the banner shows the
+  set's four most-popular card artworks for a splash of colour.
+
 ### 2026-06-02
 
 - **Gallery reveal mode.** A new mode that flips the format: the card’s **name**
