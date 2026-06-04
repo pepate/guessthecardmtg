@@ -4,8 +4,9 @@ import { PullToRefresh } from './PullToRefresh';
 import type { GlobalEntry } from '../leaderboard/types';
 import type { RevealMode } from '../engine/timeAttack';
 import type { CustomFilter } from '../modes/filter';
-import type { Run } from '../leaderboard/boards';
-import { fetchRevealLeaders, fetchModeRuns } from '../leaderboard/client';
+import { summedBoard, ownBestPerReveal, summedRank, type Run } from '../leaderboard/boards';
+import { getUserId } from '../leaderboard/identity';
+import { fetchModeRuns } from '../leaderboard/client';
 import { fetchEnabledRevealModes } from '../reveal/client';
 import { REVEAL_MODE_LABELS } from '../reveal/labels';
 import { formatAge } from '../leaderboard/age';
@@ -45,9 +46,9 @@ interface ModeDetailProps {
 
 const PENDING_ID = '__pending__';
 
-export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lockedReveal, playsLeft, onPlayAgain, onBack }: ModeDetailProps) {
-  const [leaders, setLeaders] = useState<Record<RevealMode, GlobalEntry | null> | null>(null);
+export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lockedReveal, onPlayAgain, onBack }: ModeDetailProps) {
   const [runs, setRuns] = useState<Run[]>([]);
+  const [deviceId, setDeviceId] = useState('');
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
   const [confirm, setConfirm] = useState<RevealMode | null>(null);
   const [tab, setTab] = useState<'leaderboard' | 'recent'>('leaderboard');
@@ -59,14 +60,10 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
     try {
       const en = await fetchEnabledRevealModes();
       setEnabled(en);
-      if (!modeId) {
-        setLeaders({} as Record<RevealMode, GlobalEntry | null>);
-        setRuns([]);
-        return;
-      }
-      const [lead, modeRuns] = await Promise.all([fetchRevealLeaders(modeId), fetchModeRuns(modeId)]);
-      setLeaders(lead);
-      setRuns(modeRuns);
+      const uid = await getUserId().catch(() => null);
+      setDeviceId(uid ?? '');
+      if (!modeId) { setRuns([]); return; }
+      setRuns(await fetchModeRuns(modeId));
     } catch {
       setEnabled([]);
     }
@@ -111,10 +108,18 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
   const PAGE = 3;
 
   const played = runs.filter((r) => r.gameMode);
-  const byScore = [...played].sort((a, b) => b.score - a.score || a.createdAt - b.createdAt);
   const byRecent = [...played].sort((a, b) => b.createdAt - a.createdAt);
 
-  const pendingSynthetic: Run | null = pendingRow
+  const board = summedBoard(runs);
+  const myRank = summedRank(board, deviceId);
+  const myTotal = board.find((e) => e.deviceId === deviceId)?.score ?? 0;
+  const own = ownBestPerReveal(runs, deviceId);
+  const revealsSorted = [...(enabled ?? [])].sort(
+    (a, b) => (own.get(b) ?? 0) - (own.get(a) ?? 0) || REVEAL_MODE_LABELS[a].localeCompare(REVEAL_MODE_LABELS[b]),
+  );
+
+  // Recent tab still shows individual runs; a synthetic pending Run is prepended.
+  const pendingRun: Run | null = pendingRow
     ? {
         id: PENDING_ID,
         name: pendingRow.name ?? '',
@@ -126,16 +131,31 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
         createdAt: now,
       }
     : null;
+  const recentList = pendingRun ? [pendingRun, ...byRecent] : byRecent;
 
-  const leaderboardList = pendingSynthetic
+  // Leaderboard tab shows the summed board; a synthetic pending entry is spliced
+  // in at the projected rank index.
+  const pendingEntry: GlobalEntry | null = pendingRow
+    ? {
+        id: PENDING_ID,
+        name: pendingRow.name ?? '',
+        score: pendingRow.score,
+        correct: pendingRow.correct,
+        gameModes: [],
+        country: null,
+        createdAt: now,
+        deviceId: PENDING_ID,
+      }
+    : null;
+  const leaderboardEntries: GlobalEntry[] = pendingEntry
     ? [
-        ...byScore.slice(0, Math.max(0, pendingRow!.rank - 1)),
-        pendingSynthetic,
-        ...byScore.slice(Math.max(0, pendingRow!.rank - 1)),
+        ...board.slice(0, Math.max(0, pendingRow!.rank - 1)),
+        pendingEntry,
+        ...board.slice(Math.max(0, pendingRow!.rank - 1)),
       ]
-    : byScore;
-  const recentList = pendingSynthetic ? [pendingSynthetic, ...byRecent] : byRecent;
-  const activeList = tab === 'leaderboard' ? leaderboardList : recentList;
+    : board;
+
+  const activeList: (Run | GlobalEntry)[] = tab === 'leaderboard' ? leaderboardEntries : recentList;
   const shown = expanded ? activeList : activeList.slice(0, PAGE);
   const hasMore = activeList.length > PAGE && !expanded;
 
@@ -144,7 +164,7 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
     setExpanded(false);
   }
 
-  const hasList = played.length > 0 || !!pendingSynthetic;
+  const hasList = played.length > 0 || !!pendingRow;
 
   return (
     <motion.div
@@ -244,12 +264,32 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
                   </div>
                 );
               }
+              if (tab === 'leaderboard') {
+                return (
+                  <div
+                    key={r.id}
+                    data-testid="game-row"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
+                      padding: '8px 12px', borderRadius: 10, border: '1px solid var(--line)',
+                      background: 'rgba(20,17,28,0.45)',
+                      fontFamily: "'JetBrains Mono', monospace", fontSize: 12,
+                    }}
+                  >
+                    <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', width: 22 }}>#{i + 1}</span>
+                    <span aria-hidden>{countryToFlag(r.country)}</span>
+                    <span style={{ flex: 1, minWidth: 0, color: 'var(--ink-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                    <ScoreValue score={r.score} fontSize={12} />
+                  </div>
+                );
+              }
+              const run = r as Run;
               return (
                 <button
-                  key={r.id}
+                  key={run.id}
                   type="button"
                   data-testid="game-row"
-                  onClick={() => r.gameMode && choose(r.gameMode)}
+                  onClick={() => run.gameMode && choose(run.gameMode)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
                     padding: '8px 12px', borderRadius: 10, border: '1px solid var(--line)',
@@ -257,17 +297,14 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
                     fontFamily: "'JetBrains Mono', monospace", fontSize: 12,
                   }}
                 >
-                  {tab === 'leaderboard' && (
-                    <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', width: 22 }}>#{i + 1}</span>
-                  )}
-                  <span aria-hidden>{countryToFlag(r.country)}</span>
-                  <span style={{ flex: 1, minWidth: 0, color: 'var(--ink-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                  <span aria-hidden>{countryToFlag(run.country)}</span>
+                  <span style={{ flex: 1, minWidth: 0, color: 'var(--ink-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{run.name}</span>
                   <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', fontSize: 11 }}>
-                    {[r.gameMode ? REVEAL_MODE_LABELS[r.gameMode] : null, formatAge(r.createdAt, now)]
+                    {[run.gameMode ? REVEAL_MODE_LABELS[run.gameMode] : null, formatAge(run.createdAt, now)]
                       .filter(Boolean)
                       .join(' · ')}
                   </span>
-                  <ScoreValue score={r.score} fontSize={12} />
+                  <ScoreValue score={run.score} fontSize={12} />
                 </button>
               );
             })}
@@ -288,6 +325,14 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
           </div>
         )}
 
+        <div data-testid="your-standing" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--line-strong)', background: 'rgba(20,17,28,0.6)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--ink-1)' }}>
+          <span>Your standing</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: 'var(--ember-hot)', fontWeight: 700 }}>{myRank != null ? `#${myRank}` : '—'}</span>
+            <ScoreValue score={myTotal} fontSize={13} />
+          </span>
+        </div>
+
         <p style={{ margin: '2px 0 0', color: 'var(--ink-2)', fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>
           {lockedReveal != null
             ? `Daily Set · only ${REVEAL_MODE_LABELS[lockedReveal]} counts today`
@@ -300,10 +345,8 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
               <span className="spinner" />
             </div>
           ) : (
-            enabled.map((reveal) => {
-              const leader = leaders?.[reveal] ?? null;
-              // Daily Set: only the locked reveal is playable, and only while plays remain.
-              const rowDisabled = lockedReveal != null && (reveal !== lockedReveal || (playsLeft ?? 0) <= 0);
+            revealsSorted.map((reveal) => {
+              const rowDisabled = lockedReveal != null && reveal !== lockedReveal;
               return (
                 <div
                   key={reveal}
@@ -323,17 +366,9 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
                   <span style={{ flex: '0 0 auto', width: 30, display: 'flex', justifyContent: 'center' }}>
                     <RevealIcon reveal={reveal} />
                   </span>
-                  <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--ink-2)', minWidth: 0 }}>
-                    {leader ? (
-                      <>
-                        <span aria-hidden>{countryToFlag(leader.country)}</span>
-                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{leader.name}</span>
-                        <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', fontSize: 11 }}>{formatAge(leader.createdAt, now)}</span>
-                        <ScoreValue score={leader.score} fontSize={13} />
-                      </>
-                    ) : (
-                      <span style={{ flex: 1 }}>open · no scores</span>
-                    )}
+                  <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--ink-1)', minWidth: 0 }}>
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{REVEAL_MODE_LABELS[reveal]}</span>
+                    <ScoreValue score={own.get(reveal) ?? 0} fontSize={13} />
                   </span>
                   {!rowDisabled && (
                     <button
@@ -356,7 +391,7 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
           )}
         </div>
 
-        {lockedReveal != null && onPlayAgain && (playsLeft ?? 0) > 0 && (
+        {lockedReveal != null && onPlayAgain && (
           <button
             type="button"
             className="ember-btn"
@@ -364,7 +399,7 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
             onClick={onPlayAgain}
             style={{ width: '100%', padding: '13px 0', fontSize: 16, marginTop: 4 }}
           >
-            Play again ({playsLeft} left)
+            Play again
           </button>
         )}
         </div>

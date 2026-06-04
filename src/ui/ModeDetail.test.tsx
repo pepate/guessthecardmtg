@@ -4,9 +4,9 @@ import { ModeDetail } from './ModeDetail';
 import type { CustomFilter } from '../modes/filter';
 
 vi.mock('../leaderboard/client', () => ({
-  fetchRevealLeaders: vi.fn(async () => ({})),
   fetchModeRuns: vi.fn(async () => []),
 }));
+vi.mock('../leaderboard/identity', () => ({ getUserId: vi.fn(async () => 'me') }));
 vi.mock('../reveal/client', () => ({ fetchEnabledRevealModes: vi.fn(async () => ['blur', 'scanner']) }));
 
 const filter: CustomFilter = { types: ['Creature'] };
@@ -64,10 +64,10 @@ describe('ModeDetail', () => {
     expect(row.textContent).toContain('#5');
   });
 
-  it('daily lock: disables non-locked reveals and shows Play again with plays left', async () => {
+  it('daily lock: disables non-locked reveals and shows Play again', async () => {
     const onPlayAgain = vi.fn();
     const { container } = render(
-      <ModeDetail modeId="m1" modeName="Daily" filter={filter} lockedReveal="blur" playsLeft={2} onPlayAgain={onPlayAgain} />,
+      <ModeDetail modeId="m1" modeName="Daily" filter={filter} lockedReveal="blur" onPlayAgain={onPlayAgain} />,
     );
     await waitFor(() => expect(screen.getAllByTestId('reveal-row').length).toBe(2));
     const blur = container.querySelector('[data-reveal="blur"]') as HTMLElement;
@@ -75,19 +75,9 @@ describe('ModeDetail', () => {
     expect(blur.getAttribute('data-disabled')).toBeNull();
     expect(scanner.getAttribute('data-disabled')).toBe('true');
     const again = screen.getByTestId('daily-play-again');
-    expect(again.textContent).toContain('Play again (2 left)');
+    expect(again.textContent).toContain('Play again');
     fireEvent.click(again);
     expect(onPlayAgain).toHaveBeenCalledOnce();
-  });
-
-  it('daily lock: at 0 plays left, no Play again and the locked reveal is disabled too', async () => {
-    const { container } = render(
-      <ModeDetail modeId="m1" modeName="Daily" filter={filter} lockedReveal="blur" playsLeft={0} onPlayAgain={() => {}} />,
-    );
-    await waitFor(() => expect(screen.getAllByTestId('reveal-row').length).toBe(2));
-    const blur = container.querySelector('[data-reveal="blur"]') as HTMLElement;
-    expect(blur.getAttribute('data-disabled')).toBe('true');
-    expect(screen.queryByTestId('daily-play-again')).toBeNull();
   });
 
   it('tolerates a null modeId (unplayed mode): still shows the pending row', async () => {
