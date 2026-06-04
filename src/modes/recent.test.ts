@@ -40,6 +40,9 @@ vi.mock('./client', () => ({
   getModeById: vi.fn((id: string) => Promise.resolve({ id, name: `Mode ${id}`, filter: {}, card_count: 5 })),
 }));
 
+import { getUserId } from '../leaderboard/identity';
+const mockGetUserId = getUserId as ReturnType<typeof vi.fn>;
+
 function query(result: unknown) {
   const q: Record<string, unknown> = {};
   for (const m of ['select', 'eq', 'order', 'limit']) q[m] = vi.fn(() => q);
@@ -69,5 +72,20 @@ describe('fetchRecentGames', () => {
     const { fetchRecentGames } = await importRecent();
     const games = await fetchRecentGames(4);
     expect(games.map((m) => m.id)).toEqual(['m1', 'm2']);
+  });
+
+  it('returns [] without querying when there is no session', async () => {
+    const { fetchRecentGames } = await importRecent();
+    mockGetUserId.mockResolvedValueOnce(null);
+    const games = await fetchRecentGames(4);
+    expect(games).toEqual([]);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it('returns [] when the query errors', async () => {
+    from.mockReturnValueOnce(query({ data: null, error: { message: 'boom' } }));
+    const { fetchRecentGames } = await importRecent();
+    const games = await fetchRecentGames(4);
+    expect(games).toEqual([]);
   });
 });
