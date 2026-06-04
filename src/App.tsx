@@ -363,6 +363,14 @@ export function App() {
     void s.selectPool({ kind: 'custom', modeId: currentModeId, filter: currentModeFilter ?? {}, name: currentModeName ?? '', daily: dailyReveal ?? undefined });
   }
 
+  function nextMode() {
+    if (!currentModeId || !pending.nextMode) return;
+    setResultOpen(false);
+    const s = useGameStore.getState();
+    s.setRevealChoice(pending.nextMode);
+    void s.selectPool({ kind: 'custom', modeId: currentModeId, filter: currentModeFilter ?? {}, name: currentModeName ?? '' });
+  }
+
   async function shareStats() {
     const url = shareLink({ score: totalScore, correct: correctCount, pool: poolKind });
     const text = `I scored ${totalScore} points in GuessTheCard — beat me: ${url}`;
@@ -617,9 +625,12 @@ export function App() {
       {phase === 'gameover' && resultOpen && !gameOverProfileOpen && (
         <GameResultModal
           score={totalScore}
-          rank={pending.postedRank ?? pending.projectedRank}
+          total={pending.projectedTotal ?? totalScore}
+          totalRank={pending.postedRank ?? pending.projectedRank}
           modeName={currentModeName ?? undefined}
           needsSave={pending.needsLogin}
+          hasNextMode={!dailyReveal && pending.nextMode != null}
+          onNextMode={nextMode}
           onSaveRank={() => { setResultOpen(false); setGameOverProfileOpen(true); }}
           onReplay={replayGame}
           onShare={() => void shareStats()}
