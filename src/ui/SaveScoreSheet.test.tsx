@@ -9,13 +9,17 @@ vi.mock('../profile/client', () => ({
   checkNameAvailable: vi.fn(() => Promise.resolve(true)),
   upsertDisplayName: vi.fn(() => Promise.resolve({ ok: true })),
 }));
+vi.mock('../profile/refresh', () => ({ bumpProfile: vi.fn() }));
+vi.mock('../auth/session', () => ({ refreshUser: vi.fn() }));
 // SignInForm pulls in the whole auth/supabase stack — stub it for this unit.
 vi.mock('./ProfilePanel', () => ({ SignInForm: () => <div data-testid="signin-form" /> }));
 
 import { checkNameAvailable, upsertDisplayName } from '../profile/client';
+import { bumpProfile } from '../profile/refresh';
 
 const mockCheck = checkNameAvailable as ReturnType<typeof vi.fn>;
 const mockUpsert = upsertDisplayName as ReturnType<typeof vi.fn>;
+const mockBump = bumpProfile as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -34,6 +38,8 @@ describe('SaveScoreSheet', () => {
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith('YourMama'));
     expect(mockUpsert).toHaveBeenCalledWith('uid', 'YourMama');
+    // The account chip / profile are told the name was claimed (no auth status change).
+    expect(mockBump).toHaveBeenCalled();
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 

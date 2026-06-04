@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CardStage } from './scene/CardStage';
 import { fetchRandomCard } from './cards/client';
@@ -14,6 +14,7 @@ import { startMostPlayedGame } from './modes/quickStart';
 import { useAuth } from './auth/useAuth';
 import { getUserId } from './leaderboard/identity';
 import { getProfile } from './profile/client';
+import { subscribeProfile, getProfileVersion } from './profile/refresh';
 import type { CustomMode } from './modes/types';
 import { HUD } from './ui/HUD';
 import { Timer } from './ui/Timer';
@@ -188,6 +189,9 @@ function ErrorScreen() {
 // (or, at game over, the save-your-score sheet).
 function AccountButton({ onOpen }: { onOpen: () => void }) {
   const { status } = useAuth();
+  // Refetch when auth status flips AND whenever a name is claimed/changed
+  // (claiming keeps status === 'anonymous', so status alone never re-fires).
+  const profileVersion = useSyncExternalStore(subscribeProfile, getProfileVersion, () => 0);
   const [name, setName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -198,7 +202,7 @@ function AccountButton({ onOpen }: { onOpen: () => void }) {
       if (!cancelled) setName(profile?.displayName ?? null);
     })().catch(() => {});
     return () => { cancelled = true; };
-  }, [status]);
+  }, [status, profileVersion]);
 
   const personIcon = (size: number) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

@@ -13,6 +13,7 @@ import {
 } from '../auth/actions';
 import { clearRecovery, refreshUser, clearAuthError } from '../auth/session';
 import { getProfile, upsertDisplayName, checkNameAvailable, updateCountry } from '../profile/client';
+import { bumpProfile } from '../profile/refresh';
 import type { Profile } from '../profile/client';
 import { fetchPlayerBests, type PlayerBest } from '../profile/stats';
 import { ProfileStats } from './ProfileStats';
@@ -368,6 +369,7 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
       return;
     }
     setProfile(prev => prev ? { ...prev, displayName: clean } : null);
+    bumpProfile();
     setNotice('Name saved.');
     onNameSaved?.();
   }
@@ -420,6 +422,7 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
     }
     setUid(id);
     setProfile(prev => (prev ? { ...prev, displayName: clean } : prev));
+    bumpProfile();
     setCreatedName(clean);
     setLinkEmailOpen(false);
     setLinkPrompt(true);

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ensureUserId } from '../leaderboard/identity';
 import { checkNameAvailable, upsertDisplayName } from '../profile/client';
+import { bumpProfile } from '../profile/refresh';
+import { refreshUser } from '../auth/session';
 import { sanitizeName, NAME_MIN, NAME_MAX } from '../leaderboard/validation';
 import { SignInForm } from './ProfilePanel';
 
@@ -58,6 +60,10 @@ export function SaveScoreSheet({
         setError(res.error === 'name-taken' ? 'That name is already taken — please pick another.' : res.error);
         return;
       }
+      // The name now belongs to this (anonymous) account — tell the rest of the
+      // app so the account chip / profile stop showing "Guest".
+      bumpProfile();
+      void refreshUser();
       // Pass the just-claimed name straight through so the post never races the
       // profile write. Only close once the score actually posted.
       const posted = await onSaved(clean);
