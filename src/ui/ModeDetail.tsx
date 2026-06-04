@@ -22,7 +22,10 @@ export interface PendingRowInfo {
   rank: number;
   /** Player's name, or null → render a tappable LOGIN instead. */
   name: string | null;
+  /** This run's single-game score (shown in the Recent tab). */
   score: number;
+  /** Projected pool total across reveals (shown in the Leaderboard tab). */
+  total: number;
   correct: number;
   gameMode: RevealMode;
   onLogin: () => void;
@@ -257,10 +260,12 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
                         {pendingRow.name}
                       </span>
                     )}
-                    <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', fontSize: 11 }}>
-                      {REVEAL_MODE_LABELS[pendingRow.gameMode]}
-                    </span>
-                    <ScoreValue score={pendingRow.score} fontSize={12} />
+                    {tab === 'recent' && (
+                      <span style={{ flex: '0 0 auto', color: 'var(--ink-2)', fontSize: 11 }}>
+                        {REVEAL_MODE_LABELS[pendingRow.gameMode]}
+                      </span>
+                    )}
+                    <ScoreValue score={tab === 'leaderboard' ? pendingRow.total : pendingRow.score} fontSize={12} />
                   </div>
                 );
               }

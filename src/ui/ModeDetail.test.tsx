@@ -28,7 +28,7 @@ describe('ModeDetail', () => {
         modeId="m1"
         modeName="EDHRec 1000"
         filter={filter}
-        pendingRow={{ rank: 1, name: null, score: 500, correct: 5, gameMode: 'blur', onLogin }}
+        pendingRow={{ rank: 1, name: null, score: 500, total: 500, correct: 5, gameMode: 'blur', onLogin }}
       />,
     );
     const row = await screen.findByTestId('pending-run-row');
@@ -43,7 +43,7 @@ describe('ModeDetail', () => {
         modeId="m1"
         modeName="EDHRec 1000"
         filter={filter}
-        pendingRow={{ rank: 2, name: 'Pete', score: 500, correct: 5, gameMode: 'blur', onLogin: () => {} }}
+        pendingRow={{ rank: 2, name: 'Pete', score: 500, total: 500, correct: 5, gameMode: 'blur', onLogin: () => {} }}
       />,
     );
     const row = await screen.findByTestId('pending-run-row');
@@ -57,7 +57,7 @@ describe('ModeDetail', () => {
         modeId="m1"
         modeName="EDHRec 1000"
         filter={filter}
-        pendingRow={{ rank: 5, name: null, score: 500, correct: 5, gameMode: 'blur', onLogin: () => {} }}
+        pendingRow={{ rank: 5, name: null, score: 500, total: 500, correct: 5, gameMode: 'blur', onLogin: () => {} }}
       />,
     );
     const row = await screen.findByTestId('pending-run-row');
@@ -86,7 +86,7 @@ describe('ModeDetail', () => {
         modeId={null}
         modeName="Brand new set"
         filter={filter}
-        pendingRow={{ rank: 1, name: null, score: 100, correct: 1, gameMode: 'blur', onLogin: () => {} }}
+        pendingRow={{ rank: 1, name: null, score: 100, total: 500, correct: 1, gameMode: 'blur', onLogin: () => {} }}
       />,
     );
     expect(await screen.findByTestId('pending-run-row')).toBeTruthy();

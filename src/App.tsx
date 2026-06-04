@@ -331,6 +331,7 @@ export function App() {
           rank: pending.postedRank ?? pending.projectedRank,
           name: pending.needsLogin ? null : pending.name,
           score: pendingRunInput.score,
+          total: pending.projectedTotal ?? pendingRunInput.score,
           correct: pendingRunInput.correct,
           gameMode: pendingRunInput.gameMode,
           onLogin: () => setGameOverProfileOpen(true),
