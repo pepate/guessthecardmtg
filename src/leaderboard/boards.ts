@@ -159,3 +159,79 @@ export function pickAutoAdvance(
 
   return bestResult;
 }
+
+// ---------------------------------------------------------------------------
+// summed-per-reveal aggregation
+// ---------------------------------------------------------------------------
+
+/** Per-device total = sum of best score per reveal mode. One entry per device,
+ *  ranked by total desc, ties by earliest run, then deviceId for determinism.
+ *  Runs without a reveal mode are ignored. */
+export function summedBoard(runs: Run[]): GlobalEntry[] {
+  const byDevice = new Map<string, Run[]>();
+  for (const run of runs) {
+    if (!run.gameMode) continue;
+    const g = byDevice.get(run.deviceId);
+    if (g) g.push(run);
+    else byDevice.set(run.deviceId, [run]);
+  }
+  const entries: GlobalEntry[] = [];
+  for (const [deviceId, group] of byDevice) {
+    const bestPerReveal = new Map<RevealMode, Run>();
+    for (const run of group) {
+      const reveal = run.gameMode as RevealMode;
+      const prev = bestPerReveal.get(reveal);
+      if (!prev || run.score > prev.score) bestPerReveal.set(reveal, run);
+    }
+    const total = [...bestPerReveal.values()].reduce((sum, run) => sum + run.score, 0);
+    const best = group.reduce((a, b) => (b.score > a.score ? b : a));
+    const earliest = group.reduce((a, b) => (b.createdAt < a.createdAt ? b : a));
+    const gameModes = [...bestPerReveal.entries()].sort((a, b) => b[1].score - a[1].score).map(([m]) => m);
+    entries.push({
+      id: best.id, name: best.name, score: total, correct: best.correct,
+      gameModes, country: best.country, createdAt: earliest.createdAt, deviceId,
+    });
+  }
+  entries.sort((a, b) => b.score - a.score || a.createdAt - b.createdAt || (a.deviceId < b.deviceId ? -1 : 1));
+  return entries;
+}
+
+/** A device's best score per reveal mode (reveal absent ⇒ not in the map). */
+export function ownBestPerReveal(runs: Run[], deviceId: string): Map<RevealMode, number> {
+  const m = new Map<RevealMode, number>();
+  for (const run of runs) {
+    if (!run.gameMode || run.deviceId !== deviceId) continue;
+    const prev = m.get(run.gameMode);
+    if (prev === undefined || run.score > prev) m.set(run.gameMode, run.score);
+  }
+  return m;
+}
+
+/** 1-based rank of a device in a summed board, or null when absent. */
+export function summedRank(board: GlobalEntry[], deviceId: string): number | null {
+  const i = board.findIndex((e) => e.deviceId === deviceId);
+  return i === -1 ? null : i + 1;
+}
+
+/** Projected pool total + rank if `newScore` were applied to `reveal` for `deviceId`. */
+export function projectedSummedRank(
+  runs: Run[],
+  deviceId: string,
+  reveal: RevealMode,
+  newScore: number,
+): { total: number; rank: number } {
+  const own = ownBestPerReveal(runs, deviceId);
+  own.set(reveal, Math.max(own.get(reveal) ?? 0, newScore));
+  const total = [...own.values()].reduce((sum, v) => sum + v, 0);
+  const others = summedBoard(runs.filter((rr) => rr.deviceId !== deviceId));
+  const higher = others.filter((e) => e.score > total).length;
+  return { total, rank: higher + 1 };
+}
+
+/** First enabled reveal the device has zero points in (enabled order), or null. */
+export function nextZeroReveal(own: Map<RevealMode, number>, enabled: RevealMode[]): RevealMode | null {
+  for (const reveal of enabled) {
+    if ((own.get(reveal) ?? 0) === 0) return reveal;
+  }
+  return null;
+}

@@ -6,6 +6,11 @@ import {
   isRank1,
   deviceModeStanding,
   pickAutoAdvance,
+  summedBoard,
+  ownBestPerReveal,
+  summedRank,
+  projectedSummedRank,
+  nextZeroReveal,
   type Run,
 } from './boards';
 
@@ -375,5 +380,86 @@ describe('pickAutoAdvance', () => {
     const runs: Run[] = [run({ deviceId: 'dev-A', score: 900, gameMode: 'blur' })];
     const m = makeMap([['mode-a', runs]]);
     expect(pickAutoAdvance(m, 'dev-A', ['blur', 'zoom'])).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// summed-per-reveal aggregation helpers
+// ---------------------------------------------------------------------------
+
+const r = (over: Partial<Run>): Run => ({
+  id: 'i', name: 'N', score: 0, correct: 0, gameMode: 'blur', deviceId: 'd', country: null, createdAt: 0, ...over,
+});
+
+describe('summedBoard', () => {
+  it('sums each device\'s best score per reveal and ranks by total', () => {
+    const runs: Run[] = [
+      r({ deviceId: 'a', name: 'Al', gameMode: 'blur', score: 100, createdAt: 1 }),
+      r({ deviceId: 'a', name: 'Al', gameMode: 'blur', score: 150, createdAt: 2 }),
+      r({ deviceId: 'a', name: 'Al', gameMode: 'zoom', score: 80, createdAt: 3 }),
+      r({ deviceId: 'b', name: 'Bo', gameMode: 'blur', score: 200, createdAt: 4 }),
+    ];
+    const board = summedBoard(runs);
+    expect(board.map((e) => [e.deviceId, e.score])).toEqual([['a', 230], ['b', 200]]);
+  });
+
+  it('ignores runs without a reveal mode and breaks ties by earliest run', () => {
+    const runs: Run[] = [
+      r({ deviceId: 'a', gameMode: 'blur', score: 100, createdAt: 5 }),
+      r({ deviceId: 'b', gameMode: 'blur', score: 100, createdAt: 2 }),
+      r({ deviceId: 'c', gameMode: null, score: 999, createdAt: 1 }),
+    ];
+    expect(summedBoard(runs).map((e) => e.deviceId)).toEqual(['b', 'a']);
+  });
+});
+
+describe('ownBestPerReveal', () => {
+  it('returns the device\'s best per reveal', () => {
+    const runs: Run[] = [
+      r({ deviceId: 'a', gameMode: 'blur', score: 100 }),
+      r({ deviceId: 'a', gameMode: 'blur', score: 140 }),
+      r({ deviceId: 'a', gameMode: 'zoom', score: 70 }),
+      r({ deviceId: 'b', gameMode: 'blur', score: 999 }),
+    ];
+    const m = ownBestPerReveal(runs, 'a');
+    expect(m.get('blur')).toBe(140);
+    expect(m.get('zoom')).toBe(70);
+    expect(m.has('mosaic')).toBe(false);
+  });
+});
+
+describe('summedRank', () => {
+  it('is the 1-based index of the device, or null', () => {
+    const runs: Run[] = [
+      r({ deviceId: 'a', gameMode: 'blur', score: 300 }),
+      r({ deviceId: 'b', gameMode: 'blur', score: 200 }),
+    ];
+    const board = summedBoard(runs);
+    expect(summedRank(board, 'b')).toBe(2);
+    expect(summedRank(board, 'zzz')).toBeNull();
+  });
+});
+
+describe('projectedSummedRank', () => {
+  const runs: Run[] = [
+    r({ deviceId: 'a', gameMode: 'blur', score: 300 }),
+    r({ deviceId: 'me', gameMode: 'blur', score: 100 }),
+  ];
+  it('adds a new reveal\'s score to the device total and ranks vs others', () => {
+    expect(projectedSummedRank(runs, 'me', 'zoom', 250)).toEqual({ total: 350, rank: 1 });
+  });
+  it('replaces a reveal\'s best only when the new score is higher', () => {
+    expect(projectedSummedRank(runs, 'me', 'blur', 50)).toEqual({ total: 100, rank: 2 });
+  });
+});
+
+describe('nextZeroReveal', () => {
+  it('returns the first enabled reveal with zero own points', () => {
+    const own = new Map<RevealMode, number>([['blur', 120], ['zoom', 0]]);
+    expect(nextZeroReveal(own, ['blur', 'zoom', 'mosaic'])).toBe('zoom');
+  });
+  it('returns null when every enabled reveal has points', () => {
+    const own = new Map<RevealMode, number>([['blur', 1], ['zoom', 1]]);
+    expect(nextZeroReveal(own, ['blur', 'zoom'])).toBeNull();
   });
 });
