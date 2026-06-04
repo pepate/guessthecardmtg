@@ -140,7 +140,7 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
     ? {
         id: PENDING_ID,
         name: pendingRow.name ?? '',
-        score: pendingRow.score,
+        score: pendingRow.total,
         correct: pendingRow.correct,
         gameModes: [],
         country: null,
