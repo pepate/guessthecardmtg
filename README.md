@@ -111,6 +111,23 @@ clock is driven by Playwright’s `page.clock`, so they’re deterministic.
 
 ## Changelog
 
+### 2026-06-05
+
+- **Game-over navigation.** The game-over screen gains bottom **Home** and
+  **Back to mode** buttons (the latter opens the mode's picker page). Fixed a bug
+  where finishing a second run listed you twice on the leaderboard until a reload.
+- **Mode sharing.** The **Your standing** row gets a share button that creates a
+  link to that mode; the WhatsApp/Discord preview shows your standing total, and
+  opening it lands on the mode's picker page.
+- **Clearer leaderboard.** The mode screen explains that your total is the **sum
+  of your best score in each reveal mode**, and the Your standing row shows how
+  many reveals you've played (e.g. `3 / 7 reveals`) with a nudge to play more.
+- **Richer Games tab.** Game cards now show your **rank, points, games and
+  reveals played** (when signed in), keep the #1 leader, list **10** at a time
+  with a **Load more** button, and the grid's scrollbar is hidden.
+- **Profile.** A full-width **Back** button is added at the bottom of the profile,
+  matching the other back buttons.
+
 ### 2026-06-04
 
 - **Summed leaderboard.** A pool's leaderboard now ranks you by the **sum of your
