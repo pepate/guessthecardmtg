@@ -11,7 +11,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' (not 'autoUpdate') so the app controls WHEN to reload into a new
+      // version — we apply it only when the player isn't mid-game. See src/pwa/updates.ts.
+      registerType: 'prompt',
+      // We register the SW ourselves (initPwaUpdates) to add update polling +
+      // idle-gated reload, so don't let the plugin auto-inject a registration too.
+      injectRegister: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'GuessTheCard — MTG',

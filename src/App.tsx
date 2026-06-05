@@ -35,6 +35,7 @@ import { InstallButton } from './ui/InstallButton';
 import { useWideLayout } from './ui/useWideLayout';
 import { SUMMONING_TEXTS } from './ui/summoningTexts';
 import { parseDeeplink, parseModeLink } from './share/deeplink';
+import { isUpdateReady, onUpdateReady, applyUpdate } from './pwa/updates';
 import { getModeById } from './modes/client';
 
 // After a round resolves: a correct guess flashes green briefly, a miss / timeout
@@ -392,6 +393,17 @@ export function App() {
 
   useEffect(() => {
     if (phase !== 'idle') setView({ s: 'list' });
+  }, [phase]);
+
+  // A new app version reloads silently, but never mid-game: apply it only while
+  // the player is idle or on the game-over screen. If it arrives mid-game, the
+  // listener defers and this effect re-runs (and applies) once phase goes idle.
+  useEffect(() => {
+    const apply = () => {
+      if (isUpdateReady() && (phase === 'idle' || phase === 'gameover')) applyUpdate();
+    };
+    apply();
+    return onUpdateReady(apply);
   }, [phase]);
 
   useEffect(() => {

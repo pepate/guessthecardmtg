@@ -127,6 +127,9 @@ clock is driven by Playwright’s `page.clock`, so they’re deterministic.
   with a **Load more** button, and the grid's scrollbar is hidden.
 - **Profile.** A full-width **Back** button is added at the bottom of the profile,
   matching the other back buttons.
+- **Always-fresh updates.** The app now re-checks for a new version periodically
+  and on focus, and reloads into it **silently when you're not mid-game** — so an
+  open/installed PWA no longer sits on a stale cached build.
 
 ### 2026-06-04
 
