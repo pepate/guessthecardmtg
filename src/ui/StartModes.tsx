@@ -305,7 +305,7 @@ export function StartModes({
       </div>
 
       {tab === 'games' ? (
-        <div style={{ ...centered, flex: '1 1 auto', minHeight: 0, overflowY: 'auto', paddingBottom: 160 }}>
+        <div className="no-scrollbar" style={{ ...centered, flex: '1 1 auto', minHeight: 0, overflowY: 'auto', paddingBottom: 160 }}>
           <RecentGames onPick={onPick} />
         </div>
       ) : (

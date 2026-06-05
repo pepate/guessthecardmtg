@@ -2,3 +2,6 @@ project_id = "jgapiqpaeaslfpbgiptf"
 
 [functions.share]
 verify_jwt = false
+
+[functions.og-image]
+verify_jwt = false

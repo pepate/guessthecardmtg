@@ -14,6 +14,7 @@ import { findExistingMode, createMode } from '../modes/client';
 import { useGameStore } from '../state/gameStore';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';
+import { modeShareLink } from '../share/score';
 import { FilterChips } from './FilterChips';
 import { RevealIcon } from './RevealIcon';
 import { RevealPreview } from './RevealPreview';
@@ -43,17 +44,22 @@ interface ModeDetailProps {
   onPlayAgain?: () => void;
   /** When set, renders an always-visible Back button pinned below the list. */
   onBack?: () => void;
+  /** Game-over: pinned bottom button → back to the start list. */
+  onHome?: () => void;
+  /** Game-over: pinned bottom button → this mode's picker page. */
+  onBackToMode?: () => void;
 }
 
 const PENDING_ID = '__pending__';
 
-export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lockedReveal, onPlayAgain, onBack }: ModeDetailProps) {
+export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lockedReveal, onPlayAgain, onBack, onHome, onBackToMode }: ModeDetailProps) {
   const [runs, setRuns] = useState<Run[]>([]);
   const [deviceId, setDeviceId] = useState('');
   const [enabled, setEnabled] = useState<RevealMode[] | null>(null);
   const [confirm, setConfirm] = useState<RevealMode | null>(null);
   const [tab, setTab] = useState<'leaderboard' | 'recent'>('leaderboard');
   const [expanded, setExpanded] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const touchDevice = () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
 
@@ -115,6 +121,23 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
   const myRank = summedRank(board, deviceId);
   const myTotal = board.find((e) => e.deviceId === deviceId)?.score ?? 0;
   const own = ownBestPerReveal(runs, deviceId);
+  // Distinct enabled reveals the device has a score in (the count that feeds the total).
+  const playedReveals = (enabled ?? []).filter((r) => own.has(r)).length;
+
+  // Share this mode: link opens the mode's picker; the preview shows my total.
+  async function shareMode() {
+    if (!modeId) return;
+    const url = modeShareLink({ modeId, modeName, score: myTotal });
+    const text = `My total in ${modeName} is ${myTotal} on GuessTheCard — can you beat me?`;
+    try {
+      if (navigator.share) { await navigator.share({ title: 'GuessTheCard', text, url }); return; }
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    } catch {
+      // dismissed or blocked — no-op
+    }
+  }
   const revealsSorted = [...(enabled ?? [])].sort(
     (a, b) => (own.get(b) ?? 0) - (own.get(a) ?? 0) || REVEAL_MODE_LABELS[a].localeCompare(REVEAL_MODE_LABELS[b]),
   );
@@ -148,12 +171,14 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
         deviceId: PENDING_ID,
       }
     : null;
+  // The pending entry IS this device's projected total, so drop the device's
+  // already-persisted row before splicing it in — otherwise the player shows up
+  // twice (projected + persisted) until a reload merges them.
+  const boardSansSelf =
+    pendingEntry && deviceId ? board.filter((e) => e.deviceId !== deviceId) : board;
+  const pendingIdx = Math.max(0, (pendingRow?.rank ?? 1) - 1);
   const leaderboardEntries: GlobalEntry[] = pendingEntry
-    ? [
-        ...board.slice(0, Math.max(0, pendingRow!.rank - 1)),
-        pendingEntry,
-        ...board.slice(Math.max(0, pendingRow!.rank - 1)),
-      ]
+    ? [...boardSansSelf.slice(0, pendingIdx), pendingEntry, ...boardSansSelf.slice(pendingIdx)]
     : board;
 
   const activeList: (Run | GlobalEntry)[] = tab === 'leaderboard' ? leaderboardEntries : recentList;
@@ -328,9 +353,46 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
           </div>
         )}
 
-        <div data-testid="your-standing" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--line-strong)', background: 'rgba(20,17,28,0.6)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--ink-1)' }}>
-          <span>Your standing</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div data-testid="your-standing" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--line-strong)', background: 'rgba(20,17,28,0.6)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--ink-1)' }}>
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+            <span>Your standing</span>
+            {enabled && enabled.length > 0 && (
+              <span data-testid="standing-modes" style={{ color: 'var(--ink-2)', fontSize: 11, lineHeight: 1.3 }}>
+                {playedReveals} / {enabled.length} reveals
+                {playedReveals < enabled.length && ' · play more to raise your total'}
+              </span>
+            )}
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {modeId && (
+              <button
+                type="button"
+                data-testid="standing-share"
+                aria-label={shared ? 'Link copied' : 'Share this mode'}
+                title={shared ? 'Link copied' : 'Share this mode'}
+                onClick={() => void shareMode()}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 28, height: 28, padding: 0, borderRadius: 8,
+                  border: '1px solid var(--line-strong)', background: 'rgba(20,17,28,0.6)',
+                  color: shared ? 'var(--ember-hot)' : 'var(--ink-1)', cursor: 'pointer',
+                }}
+              >
+                {shared ? (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                ) : (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+                    <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+                  </svg>
+                )}
+              </button>
+            )}
             <span style={{ color: 'var(--ember-hot)', fontWeight: 700 }}>{myRank != null ? `#${myRank}` : '—'}</span>
             <ScoreValue score={myTotal} fontSize={13} />
           </span>
@@ -339,7 +401,7 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
         <p style={{ margin: '2px 0 0', color: 'var(--ink-2)', fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>
           {lockedReveal != null
             ? `Daily Set · only ${REVEAL_MODE_LABELS[lockedReveal]} counts today`
-            : 'Pick a reveal mode · beat the holder'}
+            : 'Total = your best score in each reveal mode, summed'}
         </p>
 
         <div data-testid="reveal-list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -420,6 +482,33 @@ export function ModeDetail({ modeId, modeName, filter, cardCount, pendingRow, lo
           >
             Back
           </button>
+        </div>
+      )}
+
+      {(onHome || onBackToMode) && (
+        <div style={{ width: '100%', maxWidth: 700, margin: '0 auto', flexShrink: 0, display: 'flex', gap: 10 }}>
+          {onHome && (
+            <button
+              type="button"
+              className="ghost-btn"
+              data-testid="gameover-home-bottom"
+              onClick={onHome}
+              style={{ flex: 1, padding: '13px 0', fontSize: 16 }}
+            >
+              Home
+            </button>
+          )}
+          {onBackToMode && (
+            <button
+              type="button"
+              className="ember-btn"
+              data-testid="gameover-back-to-mode"
+              onClick={onBackToMode}
+              style={{ flex: 1, padding: '13px 0', fontSize: 16 }}
+            >
+              Back to mode
+            </button>
+          )}
         </div>
       )}
 

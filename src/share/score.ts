@@ -60,6 +60,51 @@ export function shareUrl(result: SharedResult): string {
   return `${location.origin}${import.meta.env.BASE_URL}?r=${encodeResult(result)}`;
 }
 
+// ── Mode share ──────────────────────────────────────────────────────────────
+// A signed token for sharing a whole mode (not a single game result). The link
+// opens the mode's picker page and the preview shows the sharer's standing total.
+// Same signing scheme; a leading 'm' tags the payload so it can't be confused
+// with the 3-tuple score token above.
+
+export interface ModeShare {
+  modeId: string;
+  modeName: string;
+  /** The sharer's standing total in this mode — shown in the link preview. */
+  score: number;
+}
+
+export function encodeModeShare(s: ModeShare): string {
+  const payload = base64urlEncode(JSON.stringify(['m', s.modeId, s.modeName, s.score]));
+  return `${payload}.${checksum(payload + SECRET)}`;
+}
+
+export function decodeModeShare(token: string | null | undefined): ModeShare | null {
+  if (!token) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot <= 0) return null;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  if (checksum(payload + SECRET) !== sig) return null;
+  try {
+    const arr: unknown = JSON.parse(base64urlDecode(payload));
+    if (!Array.isArray(arr) || arr.length !== 4 || arr[0] !== 'm') return null;
+    const [, modeId, modeName, score] = arr;
+    if (typeof modeId !== 'string' || typeof modeName !== 'string' || typeof score !== 'number') return null;
+    if (score < 0) return null;
+    return { modeId, modeName, score };
+  } catch {
+    return null;
+  }
+}
+
+// Prefer the Supabase edge function (dynamic OG preview) when configured;
+// otherwise fall back to a plain mode link the app opens directly.
+export function modeShareLink(s: ModeShare): string {
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  if (!base) return `${location.origin}${import.meta.env.BASE_URL}?m=${encodeURIComponent(s.modeId)}`;
+  return `${base.replace(/\/$/, '')}/functions/v1/share?r=${encodeModeShare(s)}`;
+}
+
 // Prefer the Supabase edge function (dynamic OG preview) when configured;
 // otherwise fall back to the plain game URL.
 export function shareLink(result: SharedResult): string {

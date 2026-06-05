@@ -357,3 +357,11 @@ body::after {
 [data-testid="ptr-root"]::-webkit-scrollbar {
   display: none;
 }
+
+/* Reusable: scrollable region without a visible scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

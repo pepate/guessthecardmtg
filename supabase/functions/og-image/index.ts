@@ -52,6 +52,33 @@ function decodeResult(token: string | null | undefined): DecodedResult | null {
   }
 }
 
+interface DecodedModeShare {
+  modeId: string;
+  modeName: string;
+  score: number;
+}
+
+// Mode-share token: ['m', modeId, modeName, score]. Mirrors share/index.ts and
+// src/share/score.ts.
+function decodeModeShare(token: string | null | undefined): DecodedModeShare | null {
+  if (!token) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot <= 0) return null;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  if (checksum(payload + SECRET) !== sig) return null;
+  try {
+    const arr: unknown = JSON.parse(base64urlDecode(payload));
+    if (!Array.isArray(arr) || arr.length !== 4 || arr[0] !== 'm') return null;
+    const [, modeId, modeName, score] = arr;
+    if (typeof modeId !== 'string' || typeof modeName !== 'string' || typeof score !== 'number') return null;
+    if (score < 0) return null;
+    return { modeId, modeName, score };
+  } catch {
+    return null;
+  }
+}
+
 // Module-scope: fetch the banner once and inline it as a data URI so satori can
 // embed it without a network round-trip per render. Empty string on failure.
 let BANNER_DATA_URI = '';
@@ -75,10 +102,15 @@ function formatScore(n: number): string {
 // deno-lint-ignore no-explicit-any
 type SatoriNode = { type: string; props: Record<string, any> };
 
-function buildElement(result: DecodedResult | null): SatoriNode {
-  const hasResult = result != null;
-  const scoreText = hasResult ? formatScore(result!.score) : '';
-  const sublineText = hasResult ? `${result!.correct} cards correct` : 'Guess the card';
+interface Display {
+  score: number;
+  subline: string;
+}
+
+function buildElement(display: Display | null): SatoriNode {
+  const hasResult = display != null;
+  const scoreText = hasResult ? formatScore(display!.score) : '';
+  const sublineText = hasResult ? display!.subline : 'Guess the card';
 
   const children: SatoriNode[] = [];
 
@@ -230,13 +262,19 @@ Deno.serve(async (req: Request) => {
   }
 
   const rawToken = new URL(req.url).searchParams.get('r');
-  const result = decodeResult(rawToken);
+  const modeShare = decodeModeShare(rawToken);
+  const result = modeShare ? null : decodeResult(rawToken);
+  const display: Display | null = modeShare
+    ? { score: modeShare.score, subline: modeShare.modeName }
+    : result
+      ? { score: result.score, subline: `${result.correct} cards correct` }
+      : null;
 
   // og_edge only emits PNG; a 1200x630 PNG of photographic art is ~780KB, which
   // WhatsApp may refuse to render as a large preview. Re-encode to JPEG (~120KB)
   // at full resolution so the preview stays crisp and within size limits.
   const png = new Uint8Array(
-    await new ImageResponse(buildElement(result), { width: 1200, height: 630 }).arrayBuffer(),
+    await new ImageResponse(buildElement(display), { width: 1200, height: 630 }).arrayBuffer(),
   );
   const decoded = await Image.decode(png);
   const jpeg = await decoded.encodeJPEG(82);

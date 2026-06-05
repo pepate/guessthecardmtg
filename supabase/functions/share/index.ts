@@ -54,6 +54,34 @@ function decodeResult(token: string | null | undefined): DecodedResult | null {
   }
 }
 
+interface DecodedModeShare {
+  modeId: string;
+  modeName: string;
+  score: number;
+}
+
+// Mode-share token: ['m', modeId, modeName, score]. Tagged with a leading 'm'
+// so it can't collide with the 3-tuple score token above. Mirrors
+// src/share/score.ts decodeModeShare.
+function decodeModeShare(token: string | null | undefined): DecodedModeShare | null {
+  if (!token) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot <= 0) return null;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  if (checksum(payload + SECRET) !== sig) return null;
+  try {
+    const arr: unknown = JSON.parse(base64urlDecode(payload));
+    if (!Array.isArray(arr) || arr.length !== 4 || arr[0] !== 'm') return null;
+    const [, modeId, modeName, score] = arr;
+    if (typeof modeId !== 'string' || typeof modeName !== 'string' || typeof score !== 'number') return null;
+    if (score < 0) return null;
+    return { modeId, modeName, score };
+  } catch {
+    return null;
+  }
+}
+
 function esc(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -113,14 +141,21 @@ Deno.serve((req: Request) => {
   }
 
   const rawToken = new URL(req.url).searchParams.get('r');
-  const result = decodeResult(rawToken);
+  const modeShare = decodeModeShare(rawToken);
+  const result = modeShare ? null : decodeResult(rawToken);
 
   let description: string;
   let redirectUrl: string;
   let imageUrl: string;
   let imageWidth: number;
   let imageHeight: number;
-  if (result && rawToken) {
+  if (modeShare && rawToken) {
+    description = `My total in ${modeShare.modeName} is ${modeShare.score} on GuessTheCard — can you beat me?`;
+    redirectUrl = `${GAME_URL}?m=${encodeURIComponent(modeShare.modeId)}`;
+    imageUrl = `${SELF_BASE}/functions/v1/og-image?r=${encodeURIComponent(rawToken)}`;
+    imageWidth = 1200;
+    imageHeight = 630;
+  } else if (result && rawToken) {
     description = `I scored ${result.score} points (${result.correct} cards) in GuessTheCard — can you beat me?`;
     redirectUrl = `${GAME_URL}?r=${encodeURIComponent(rawToken)}`;
     imageUrl = `${SELF_BASE}/functions/v1/og-image?r=${encodeURIComponent(rawToken)}`;

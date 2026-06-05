@@ -137,7 +137,7 @@ export function SignInForm({ onSuccess, warning }: SignInFormProps) {
   );
 }
 
-export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNameSaved?: () => void; ensureSession?: boolean; promptName?: boolean } = {}) {
+export function ProfilePanel({ onNameSaved, ensureSession, promptName, onBack }: { onNameSaved?: () => void; ensureSession?: boolean; promptName?: boolean; onBack?: () => void } = {}) {
   const { user, status, recovery, authError } = useAuth();
   const [uid, setUid] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -296,6 +296,17 @@ export function ProfilePanel({ onNameSaved, ensureSession, promptName }: { onNam
             </div>
           )}
           {children}
+          {onBack && (
+            <button
+              type="button"
+              className="ember-btn"
+              data-testid="profile-back"
+              onClick={onBack}
+              style={{ width: '100%', padding: '13px 0', fontSize: 16 }}
+            >
+              Back
+            </button>
+          )}
         </div>
         </PullToRefresh>
         {linkPrompt && linkAccountModal()}

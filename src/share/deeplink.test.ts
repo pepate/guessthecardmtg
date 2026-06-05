@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { buildDeeplink, parseDeeplink } from './deeplink';
+import { buildDeeplink, parseDeeplink, parseModeLink } from './deeplink';
 
 const UUID = '97c50862-b555-46f1-932e-c3ad963f102a';
 
@@ -36,5 +36,22 @@ describe('parseDeeplink', () => {
   });
   it('returns null for empty search', () => {
     expect(parseDeeplink('')).toBeNull();
+  });
+});
+
+describe('parseModeLink', () => {
+  it('parses a mode-only link', () => {
+    expect(parseModeLink(`?m=${UUID}`)).toBe(UUID);
+  });
+  it('ignores a full reveal deeplink (left to parseDeeplink)', () => {
+    expect(parseModeLink(`?m=${UUID}&r=blur`)).toBeNull();
+  });
+  it('parses a mode link with a junk reveal param', () => {
+    expect(parseModeLink(`?m=${UUID}&r=banana`)).toBe(UUID);
+  });
+  it('rejects a missing or malformed mode id', () => {
+    expect(parseModeLink('?r=blur')).toBeNull();
+    expect(parseModeLink('?m=not-a-uuid')).toBeNull();
+    expect(parseModeLink('')).toBeNull();
   });
 });

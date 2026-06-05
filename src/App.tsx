@@ -34,7 +34,7 @@ import { BackButton } from './ui/BackButton';
 import { InstallButton } from './ui/InstallButton';
 import { useWideLayout } from './ui/useWideLayout';
 import { SUMMONING_TEXTS } from './ui/summoningTexts';
-import { parseDeeplink } from './share/deeplink';
+import { parseDeeplink, parseModeLink } from './share/deeplink';
 import { getModeById } from './modes/client';
 
 // After a round resolves: a correct guess flashes green briefly, a miss / timeout
@@ -360,6 +360,16 @@ export function App() {
     void s.selectPool({ kind: 'custom', modeId: currentModeId, filter: currentModeFilter ?? {}, name: currentModeName ?? '' });
   }
 
+  // Game-over → this mode's picker page. Resolve the full mode (for card_count)
+  // before leaving game-over, since reset() clears the current-mode fields.
+  async function backToMode() {
+    const id = currentModeId;
+    if (!id) { reset(); return; }
+    const mode = await getModeById(id).catch(() => null);
+    reset();
+    if (mode) setView({ s: 'picker', mode });
+  }
+
   async function shareStats() {
     const url = shareLink({ score: totalScore, correct: correctCount, pool: poolKind });
     const text = `I scored ${totalScore} points in GuessTheCard — beat me: ${url}`;
@@ -429,16 +439,23 @@ export function App() {
   }, [loadRevealModes]);
 
   // Deeplink (?m=&r=): open straight into the shared mode + reveal and auto-start.
+  // A mode-only link (?m= without a reveal, e.g. from a "Your standing" share)
+  // instead opens that mode's picker page without starting a game.
   useEffect(() => {
     const dl = parseDeeplink(window.location.search);
-    if (!dl) return;
+    const modeOnlyId = dl ? null : parseModeLink(window.location.search);
+    if (!dl && !modeOnlyId) return;
     let cancelled = false;
     (async () => {
-      const mode = await getModeById(dl.modeId);
+      const mode = await getModeById(dl ? dl.modeId : modeOnlyId!);
       if (cancelled || !mode) return;
-      const store = useGameStore.getState();
-      store.setRevealChoice(dl.reveal);
-      void store.selectPool({ kind: 'custom', modeId: mode.id, filter: mode.filter, name: mode.name });
+      if (dl) {
+        const store = useGameStore.getState();
+        store.setRevealChoice(dl.reveal);
+        void store.selectPool({ kind: 'custom', modeId: mode.id, filter: mode.filter, name: mode.name });
+      } else {
+        setView({ s: 'picker', mode });
+      }
     })().catch(() => {});
     return () => {
       cancelled = true;
@@ -554,7 +571,7 @@ export function App() {
           )}
 
           {phase === 'idle' && view.s === 'profile' && (
-            <ProfilePanel key="profile" promptName={view.promptName} ensureSession={view.promptName} />
+            <ProfilePanel key="profile" promptName={view.promptName} ensureSession={view.promptName} onBack={() => setView({ s: 'list' })} />
           )}
 
           {phase === 'loading' && <LoadingScreen />}
@@ -568,6 +585,8 @@ export function App() {
               pendingRow={gameOverPendingRow}
               lockedReveal={dailyReveal}
               onPlayAgain={dailyReveal ? replayDaily : undefined}
+              onHome={reset}
+              onBackToMode={() => void backToMode()}
             />
           )}
 

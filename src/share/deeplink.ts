@@ -23,3 +23,15 @@ export function parseDeeplink(search: string): Deeplink | null {
   if (!r || !KNOWN_REVEAL_MODES.includes(r as RevealMode)) return null;
   return { modeId: m, reveal: r as RevealMode };
 }
+
+/** Parse a mode-only link `?m=<uuid>` (no valid reveal): opens the mode picker.
+ *  Returns the mode id, or null when absent/malformed or when it's a full
+ *  reveal deeplink (handled by parseDeeplink instead). */
+export function parseModeLink(search: string): string | null {
+  const p = new URLSearchParams(search);
+  const m = p.get('m');
+  const r = p.get('r');
+  if (!m || !/^[0-9a-f-]{36}$/.test(m)) return null;
+  if (r && KNOWN_REVEAL_MODES.includes(r as RevealMode)) return null;
+  return m;
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { encodeResult, decodeResult, shareLink, shareUrl } from './score';
+import { encodeResult, decodeResult, shareLink, shareUrl, encodeModeShare, decodeModeShare, modeShareLink } from './score';
 
 describe('share token', () => {
   it('round-trips a result', () => {
@@ -50,5 +50,40 @@ describe('shareLink', () => {
     vi.stubEnv('VITE_SUPABASE_URL', '');
     const result = { score: 100, correct: 1, pool: 'popular' as const };
     expect(shareLink(result)).toBe(shareUrl(result));
+  });
+});
+
+describe('mode share token', () => {
+  const m = { modeId: '11111111-1111-1111-1111-111111111111', modeName: 'EDHRec 100', score: 6874 };
+
+  it('round-trips a mode share', () => {
+    expect(decodeModeShare(encodeModeShare(m))).toEqual(m);
+  });
+
+  it('is not confused with a score token (and vice-versa)', () => {
+    expect(decodeResult(encodeModeShare(m))).toBeNull();
+    expect(decodeModeShare(encodeResult({ score: 100, correct: 1, pool: 'all' }))).toBeNull();
+  });
+
+  it('rejects a tampered mode token', () => {
+    const [payload, sig] = encodeModeShare(m).split('.');
+    expect(decodeModeShare(`${payload}A.${sig}`)).toBeNull();
+  });
+});
+
+describe('modeShareLink', () => {
+  afterEach(() => vi.unstubAllEnvs());
+  const m = { modeId: '11111111-1111-1111-1111-111111111111', modeName: 'EDHRec 100', score: 6874 };
+
+  it('targets the edge function when VITE_SUPABASE_URL is set', () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
+    const link = modeShareLink(m);
+    expect(link.startsWith('https://example.supabase.co/functions/v1/share?r=')).toBe(true);
+    expect(link).toContain(encodeModeShare(m));
+  });
+
+  it('falls back to a plain ?m= link when VITE_SUPABASE_URL is empty', () => {
+    vi.stubEnv('VITE_SUPABASE_URL', '');
+    expect(modeShareLink(m)).toContain(`?m=${m.modeId}`);
   });
 });
