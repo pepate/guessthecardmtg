@@ -1,5 +1,5 @@
-import { KNOWN_REVEAL_MODES } from '../engine/timeAttack';
-import type { RevealMode } from '../engine/timeAttack';
+import { KNOWN_REVEAL_MODES } from '../engine/revealMode';
+import type { RevealMode } from '../engine/revealMode';
 import type { GlobalEntry } from './types';
 
 export interface Run {

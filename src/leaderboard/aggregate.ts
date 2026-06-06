@@ -1,4 +1,4 @@
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 import type { GlobalEntry } from './types';
 
 /** A single stored run, before it is collapsed into a per-person leaderboard row. */

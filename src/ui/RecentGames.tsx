@@ -8,7 +8,7 @@ import { fetchModeRuns } from '../leaderboard/client';
 import { summedBoard, summedRank, ownBestPerReveal } from '../leaderboard/boards';
 import { getUserId } from '../leaderboard/identity';
 import { fetchEnabledRevealModes } from '../reveal/client';
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 import type { GlobalEntry } from '../leaderboard/types';
 import { ScoreValue } from './ScoreValue';
 import { countryToFlag } from '../leaderboard/flag';

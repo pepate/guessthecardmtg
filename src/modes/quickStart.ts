@@ -1,6 +1,6 @@
 import { listModes } from './client';
 import { useGameStore } from '../state/gameStore';
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 
 /**
  * Start a game in the mode with the most leaderboard entries, so a newcomer

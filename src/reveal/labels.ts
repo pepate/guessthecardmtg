@@ -1,4 +1,4 @@
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 
 export const REVEAL_MODE_LABELS: Record<RevealMode, string> = {
   blur: 'Blur',

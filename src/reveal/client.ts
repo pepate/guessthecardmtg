@@ -1,5 +1,5 @@
 import { getSupabase } from '../supabase/client';
-import { KNOWN_REVEAL_MODES, type RevealMode } from '../engine/timeAttack';
+import { KNOWN_REVEAL_MODES, type RevealMode } from '../engine/revealMode';
 
 const FALLBACK: RevealMode[] = ['blur', 'scanner', 'mosaic'];
 

@@ -1,7 +1,7 @@
 import { getSupabase } from '../supabase/client';
 import { listModes } from '../modes/client';
 import { fetchModeStandings } from '../leaderboard/client';
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 
 export interface PlayerBest {
   modeId: string;

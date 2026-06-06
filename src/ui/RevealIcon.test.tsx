@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { RevealIcon } from './RevealIcon';
-import { KNOWN_REVEAL_MODES } from '../engine/timeAttack';
+import { KNOWN_REVEAL_MODES } from '../engine/revealMode';
 
 describe('RevealIcon', () => {
   it('renders a labelled svg icon for every reveal mode', () => {

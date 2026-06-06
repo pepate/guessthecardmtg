@@ -1,11 +1,12 @@
 import type { Round, RevealStage, TimeAttackConfig } from './types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from './types';
 import type { ScryfallCard } from '../scryfall/types';
+import { KNOWN_REVEAL_MODES, type RevealMode } from './revealMode';
 
-export type RevealMode = 'blur' | 'scanner' | 'mosaic' | 'zoom' | 'silhouette' | 'spotlight' | 'gallery';
-
-/** Canonical list of every implemented reveal mode (used to validate DB toggles). */
-export const KNOWN_REVEAL_MODES: RevealMode[] = ['blur', 'scanner', 'mosaic', 'zoom', 'silhouette', 'spotlight', 'gallery'];
+// RevealMode/KNOWN_REVEAL_MODES now live in ./revealMode; re-exported here so the
+// many existing `from '../engine/timeAttack'` imports keep working.
+export { KNOWN_REVEAL_MODES };
+export type { RevealMode };
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];

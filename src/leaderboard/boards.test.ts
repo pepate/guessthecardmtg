@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 import {
   comboBoard,
   revealLeaders,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 import type { CustomFilter } from '../modes/filter';
 import { sanitizeName } from './validation';
 import { isLeaderboardEnabled, fetchModeRuns, submitScore } from './client';

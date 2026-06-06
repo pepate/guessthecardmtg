@@ -3,7 +3,7 @@ import { CardStage } from '../scene/CardStage';
 import { fetchCandidates } from '../cards/client';
 import type { ScryfallCard } from '../scryfall/types';
 import type { CustomFilter } from '../modes/filter';
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 import {
   stageAt,
   scanProgressAt,

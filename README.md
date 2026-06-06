@@ -111,6 +111,14 @@ clock is driven by Playwright’s `page.clock`, so they’re deterministic.
 
 ## Changelog
 
+### 2026-06-06
+
+- **Internal: reveal-mode primitive extracted.** The `RevealMode` type and
+  `KNOWN_REVEAL_MODES` list moved from `engine/timeAttack.ts` into a dedicated
+  `engine/revealMode.ts`, so the many features keyed by reveal mode (leaderboard,
+  profile stats, share links, deeplinks, UI) no longer depend on the engine's
+  rendering module just to use the type. No behavior change.
+
 ### 2026-06-05
 
 - **Game-over navigation.** The game-over screen gains bottom **Home** and

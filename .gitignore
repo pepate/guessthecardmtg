@@ -58,3 +58,6 @@ npm-debug.log*
 # Git worktrees
 .worktrees/
 .claude/worktrees/
+
+# graphify generated knowledge-graph output
+graphify-out/

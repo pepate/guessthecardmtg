@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import type { Round, TimeAttackConfig } from '../engine/types';
 import { DEFAULT_TIME_ATTACK_CONFIG } from '../engine/types';
-import { planGame, planGalleryGame, resolveGuess, expire as expireRound, resolveGameMode, type PlannedRound, type RevealMode } from '../engine/timeAttack';
+import { planGame, planGalleryGame, resolveGuess, expire as expireRound, resolveGameMode, type PlannedRound } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 import { fetchEnabledRevealModes } from '../reveal/client';
 import { fetchCandidates } from '../cards/client';
 import type { PoolSelection, ScryfallCard } from '../scryfall/types';

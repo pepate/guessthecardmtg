@@ -1,7 +1,7 @@
 import { getSupabase } from '../supabase/client';
 import { ensureUserId } from './identity';
 import type { GlobalEntry, SubmitPayload } from './types';
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 import { aggregateByPerson, type LeaderboardRun } from './aggregate';
 import {
   comboBoard,

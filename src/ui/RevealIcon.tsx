@@ -1,4 +1,4 @@
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 import { REVEAL_MODE_LABELS } from '../reveal/labels';
 
 /**

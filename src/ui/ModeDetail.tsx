@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { PullToRefresh } from './PullToRefresh';
 import type { GlobalEntry } from '../leaderboard/types';
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 import type { CustomFilter } from '../modes/filter';
 import { summedBoard, ownBestPerReveal, summedRank, type Run } from '../leaderboard/boards';
 import { getUserId } from '../leaderboard/identity';

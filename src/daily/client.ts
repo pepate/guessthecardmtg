@@ -1,6 +1,6 @@
 import { getSupabase } from '../supabase/client';
 import { fetchComboBoard } from '../leaderboard/client';
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 
 export interface DailyLeader { name: string; score: number; country: string | null }
 export interface DailyToday {

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { GlobalEntry } from '../leaderboard/types';
-import type { RevealMode } from '../engine/timeAttack';
+import type { RevealMode } from '../engine/revealMode';
 import { countryToFlag } from '../leaderboard/flag';
 import { formatAge } from '../leaderboard/age';
 import { REVEAL_MODE_LABELS } from '../reveal/labels';

@@ -1,4 +1,4 @@
-import { KNOWN_REVEAL_MODES, type RevealMode } from '../engine/timeAttack';
+import { KNOWN_REVEAL_MODES, type RevealMode } from '../engine/revealMode';
 
 export interface Deeplink {
   modeId: string;
