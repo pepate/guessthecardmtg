@@ -61,3 +61,8 @@ npm-debug.log*
 
 # graphify generated knowledge-graph output
 graphify-out/
+
+# Agent skill tooling artifacts (installed locally, not project source)
+.agents/
+.claude/skills/fallow
+skills-lock.json
