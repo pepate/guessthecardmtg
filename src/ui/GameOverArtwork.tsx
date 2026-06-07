@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { fetchRandomCard } from '../cards/client';
+import { useRandomCardArt } from '../cards/useRandomCardArt';
 import { CardArtInfo } from './CardArtInfo';
 
 // Shown behind the game-over screen until the random card art loads, so the
@@ -17,21 +16,7 @@ const SCRIM =
  * a top "info" pill that reveals the art fullscreen with its metadata.
  */
 export function GameOverArtwork() {
-  const [art, setArt] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchRandomCard()
-      .then((card) => {
-        const url = card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop ?? null;
-        if (!cancelled) setArt(url);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
+  const art = useRandomCardArt();
   const bg = art ?? FALLBACK_ART;
 
   return (

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { subscribe, getUserSnapshot, getRecoverySnapshot, getAuthErrorSnapshot } from './session';
 
-export type AuthStatus = 'signed-out' | 'anonymous' | 'permanent';
+type AuthStatus = 'signed-out' | 'anonymous' | 'permanent';
 
 export function useAuth() {
   const user = useSyncExternalStore(subscribe, getUserSnapshot, () => null);

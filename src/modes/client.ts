@@ -22,11 +22,6 @@ export async function listModes(limit = 50): Promise<CustomModeListItem[]> {
   return (data ?? []) as CustomModeListItem[];
 }
 
-export async function randomMode(): Promise<CustomModeListItem | null> {
-  const modes = await listModes(200);
-  if (modes.length === 0) return null;
-  return modes[Math.floor(Math.random() * modes.length)];
-}
 
 export async function createMode(filter: CustomFilter, name?: string): Promise<CreateModeResult> {
   const c = getSupabase();

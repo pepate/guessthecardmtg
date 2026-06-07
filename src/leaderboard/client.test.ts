@@ -106,26 +106,6 @@ describe('fetchModeTopScores', () => {
   });
 });
 
-describe('fetchModeProjectedRank', () => {
-  it('ranks against distinct people (best score each), not raw rows', async () => {
-    // Al has two runs; they collapse to one person at their best (900). Three
-    // distinct people total; two of them beat a score of 500.
-    from.mockReturnValueOnce(
-      query({
-        data: [
-          { id: '1', name: 'Al', score: 900, correct: 9, mode_id: 'm', game_mode: 'zoom', device_id: 'dev-al', country: 'DE', created_at: '2026-01-01T00:00:00.000Z' },
-          { id: '2', name: 'Al', score: 200, correct: 2, mode_id: 'm', game_mode: 'blur', device_id: 'dev-al', country: 'DE', created_at: '2026-01-02T00:00:00.000Z' },
-          { id: '3', name: 'Bo', score: 700, correct: 7, mode_id: 'm', game_mode: 'blur', device_id: 'dev-bo', country: 'DE', created_at: '2026-01-01T00:00:00.000Z' },
-          { id: '4', name: 'Cy', score: 300, correct: 3, mode_id: 'm', game_mode: 'blur', device_id: 'dev-cy', country: 'DE', created_at: '2026-01-01T00:00:00.000Z' },
-        ],
-        error: null,
-      }),
-    );
-    const { fetchModeProjectedRank } = await importClient();
-    expect(await fetchModeProjectedRank('m', 500)).toEqual({ rank: 3, total: 3 });
-  });
-});
-
 describe('fetchComboBoard', () => {
   it('returns best-per-device entries for the given reveal, sliced to limit', async () => {
     from.mockReturnValueOnce(
@@ -162,41 +142,6 @@ describe('fetchComboBoard', () => {
     const board = await fetchComboBoard('m', 'blur', null, 1);
     expect(board).toHaveLength(1);
     expect(board[0].deviceId).toBe('dev-al');
-  });
-});
-
-describe('fetchComboProjectedRank', () => {
-  it('returns the correct rank and total for the reveal board', async () => {
-    // blur board: dev-al(900), dev-bo(700), dev-cy(300). Score 500 -> rank 3 of 3.
-    from.mockReturnValueOnce(
-      query({
-        data: [
-          { id: '1', name: 'Al', score: 900, correct: 9, mode_id: 'm', game_mode: 'blur', device_id: 'dev-al', country: null, created_at: '2026-01-01T00:00:00.000Z' },
-          { id: '2', name: 'Bo', score: 700, correct: 7, mode_id: 'm', game_mode: 'blur', device_id: 'dev-bo', country: null, created_at: '2026-01-01T00:00:00.000Z' },
-          { id: '3', name: 'Cy', score: 300, correct: 3, mode_id: 'm', game_mode: 'blur', device_id: 'dev-cy', country: null, created_at: '2026-01-01T00:00:00.000Z' },
-          { id: '4', name: 'Al', score: 800, correct: 8, mode_id: 'm', game_mode: 'zoom', device_id: 'dev-al', country: null, created_at: '2026-01-01T00:00:00.000Z' },
-        ],
-        error: null,
-      }),
-    );
-    const { fetchComboProjectedRank } = await importClient();
-    const result = await fetchComboProjectedRank('m', 'blur', 500);
-    // blur board has 3 distinct devices; scores above 500: dev-al(900), dev-bo(700) → rank 3
-    expect(result).toEqual({ rank: 3, total: 3 });
-  });
-
-  it('returns rank 1 when score beats everyone', async () => {
-    from.mockReturnValueOnce(
-      query({
-        data: [
-          { id: '1', name: 'Bo', score: 700, correct: 7, mode_id: 'm', game_mode: 'blur', device_id: 'dev-bo', country: null, created_at: '2026-01-01T00:00:00.000Z' },
-        ],
-        error: null,
-      }),
-    );
-    const { fetchComboProjectedRank } = await importClient();
-    const result = await fetchComboProjectedRank('m', 'blur', 900);
-    expect(result).toEqual({ rank: 1, total: 1 });
   });
 });
 

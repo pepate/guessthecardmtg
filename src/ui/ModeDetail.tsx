@@ -19,7 +19,7 @@ import { FilterChips } from './FilterChips';
 import { RevealIcon } from './RevealIcon';
 import { RevealPreview } from './RevealPreview';
 
-export interface PendingRowInfo {
+interface PendingRowInfo {
   rank: number;
   /** Player's name, or null → render a tappable LOGIN instead. */
   name: string | null;

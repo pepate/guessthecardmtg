@@ -5,9 +5,7 @@ import type { RevealMode } from '../engine/revealMode';
 import { aggregateByPerson, type LeaderboardRun } from './aggregate';
 import {
   comboBoard,
-  revealLeaders,
   deviceModeStanding,
-  pickAutoAdvance,
   type Run,
 } from './boards';
 
@@ -71,15 +69,6 @@ export async function fetchModeTopScores(
   return persons.slice(0, limit);
 }
 
-export async function fetchModeProjectedRank(
-  modeId: string,
-  score: number,
-): Promise<{ rank: number; total: number }> {
-  const persons = await fetchPersons(modeId, null);
-  const higher = persons.filter((p) => p.score > score).length;
-  return { rank: higher + 1, total: persons.length };
-}
-
 // ---------------------------------------------------------------------------
 // Per-(mode,reveal) board fetchers
 // ---------------------------------------------------------------------------
@@ -127,25 +116,6 @@ export async function fetchComboBoard(
   return comboBoard(await fetchModeRuns(modeId, since), reveal).slice(0, limit);
 }
 
-/** Projected rank of `score` on the (mode,reveal) all-time board (distinct devices). */
-export async function fetchComboProjectedRank(
-  modeId: string,
-  reveal: RevealMode,
-  score: number,
-): Promise<{ rank: number; total: number }> {
-  const runs = await fetchModeRuns(modeId, null);
-  const board = comboBoard(runs, reveal);
-  const higher = board.filter((e) => e.score > score).length;
-  return { rank: higher + 1, total: board.length };
-}
-
-/** Per reveal: the rank-1 entry (or null) — for the reveal picker. */
-export async function fetchRevealLeaders(
-  modeId: string,
-): Promise<Record<RevealMode, GlobalEntry | null>> {
-  return revealLeaders(await fetchModeRuns(modeId, null));
-}
-
 /** For each given mode id, the device's best rank across reveals (or null). All-time. */
 export async function fetchModeStandings(
   modeIds: string[],
@@ -157,20 +127,6 @@ export async function fetchModeStandings(
     result.set(modeIds[i], deviceModeStanding(runArrays[i], deviceId));
   }
   return result;
-}
-
-/** Best next combo to chase for this device across the given modes. All-time. */
-export async function fetchAutoAdvanceTarget(
-  modeIds: string[],
-  deviceId: string,
-  reveals: RevealMode[],
-): Promise<{ modeId: string; reveal: RevealMode } | null> {
-  const runArrays = await Promise.all(modeIds.map((id) => fetchModeRuns(id, null)));
-  const runsByMode = new Map<string, Run[]>();
-  for (let i = 0; i < modeIds.length; i++) {
-    runsByMode.set(modeIds[i], runArrays[i]);
-  }
-  return pickAutoAdvance(runsByMode, deviceId, reveals);
 }
 
 // ---------------------------------------------------------------------------
